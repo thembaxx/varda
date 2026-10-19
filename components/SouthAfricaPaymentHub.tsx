@@ -2,6 +2,7 @@
 
 import React, {useState, useEffect, useCallback} from 'react';
 import {motion, AnimatePresence} from 'motion/react';
+import QRCode from 'qrcode';
 import type {OfflineTransactionItem} from '@/lib/sa-data';
 import type {SaGatewayProvider} from '@/app/api/payments/checkout/route';
 import {
@@ -21,6 +22,8 @@ import {
   Terminal,
   Wallet,
   CreditCard,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 
 interface CheckoutSessionResponse {
@@ -117,6 +120,11 @@ export default function SouthAfricaPaymentHub({
   const [paymentCompletedRef, setPaymentCompletedRef] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<boolean>(false);
   const [showCryptoInspector, setShowCryptoInspector] = useState<boolean>(false);
+
+  // QR Code Generation State (qrcode library)
+  const [qrTargetApp, setQrTargetApp] = useState<'snapscan' | 'zapper'>('snapscan');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const [generatingQr, setGeneratingQr] = useState<boolean>(false);
 
   // Offline-First LocalStorage Ledger
   const [ledger, setLedger] = useState<OfflineTransactionItem[]>(INITIAL_LEDGER);
@@ -241,6 +249,46 @@ export default function SouthAfricaPaymentHub({
     setPaymentCompletedRef(null);
     initializeGatewaySession();
   }, [initializeGatewaySession]);
+
+  // Generate dynamic QR code using 'qrcode' library for SnapScan and Zapper
+  useEffect(() => {
+    if (!sessionData) return;
+    let isMounted = true;
+    setGeneratingQr(true);
+
+    const amountCents = Math.round(sessionData.effectiveAmountZar * 100);
+    const merchantSlug = 'varda-sa';
+    
+    // South African standard SnapScan and Zapper deep links
+    const payloadUrl =
+      qrTargetApp === 'snapscan'
+        ? `https://pos.snapscan.io/qr/${merchantSlug}?id=${sessionData.txReference}&amount=${amountCents}`
+        : `https://zapper.com/pay.aspx?tid=${sessionData.txReference}&amount=${sessionData.effectiveAmountZar.toFixed(2)}&merchant=Varda`;
+
+    QRCode.toDataURL(payloadUrl, {
+      width: 240,
+      margin: 1,
+      color: {
+        dark: '#144239',
+        light: '#FFFFFF',
+      },
+      errorCorrectionLevel: 'M',
+    })
+      .then((url) => {
+        if (isMounted) {
+          setQrCodeDataUrl(url);
+          setGeneratingQr(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to generate QR code with qrcode:', err);
+        if (isMounted) setGeneratingQr(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionData, qrTargetApp]);
 
   // Authorize / Settle Payment via PayFast ITN / Ozow Webhook or Queue Offline
   const handleCompleteCheckout = async () => {
@@ -553,43 +601,100 @@ export default function SouthAfricaPaymentHub({
               )}
 
               {provider === 'snapscan' && sessionData && (
-                <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row items-center gap-4">
-                  {/* Deterministic SVG QR Code */}
-                  <div className="p-2.5 bg-white rounded-2xl shrink-0">
-                    <svg className="w-24 h-24" viewBox="0 0 100 100">
-                      <rect width="100" height="100" fill="#FFFFFF" />
-                      <rect x="8" y="8" width="26" height="26" fill="none" stroke="#144239" strokeWidth="6" />
-                      <rect x="15" y="15" width="12" height="12" fill="#144239" />
-                      <rect x="66" y="8" width="26" height="26" fill="none" stroke="#144239" strokeWidth="6" />
-                      <rect x="73" y="15" width="12" height="12" fill="#144239" />
-                      <rect x="8" y="66" width="26" height="26" fill="none" stroke="#144239" strokeWidth="6" />
-                      <rect x="15" y="73" width="12" height="12" fill="#144239" />
-                      {/* Data matrix pattern */}
-                      <rect x="42" y="12" width="8" height="8" fill="#144239" />
-                      <rect x="42" y="28" width="16" height="8" fill="#144239" />
-                      <rect x="12" y="42" width="16" height="8" fill="#144239" />
-                      <rect x="38" y="42" width="22" height="22" fill="#19B86B" />
-                      <rect x="68" y="44" width="10" height="16" fill="#144239" />
-                      <rect x="44" y="72" width="16" height="10" fill="#144239" />
-                      <rect x="68" y="68" width="20" height="20" fill="#144239" />
-                    </svg>
+                <div className="pt-2 border-t border-white/10 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-white">
+                      Instant QR Checkout · Generated via 'qrcode'
+                    </span>
+                    <div className="flex items-center p-0.5 rounded-lg bg-[#091D18] border border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => setQrTargetApp('snapscan')}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                          qrTargetApp === 'snapscan'
+                            ? 'bg-[#19B86B] text-[#082019] font-bold'
+                            : 'text-[#C4C6AF] hover:text-white'
+                        }`}
+                      >
+                        SnapScan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQrTargetApp('zapper')}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                          qrTargetApp === 'zapper'
+                            ? 'bg-[#E6C465] text-[#082019] font-bold'
+                            : 'text-[#C4C6AF] hover:text-white'
+                        }`}
+                      >
+                        Zapper
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-1.5 text-xs">
-                    <p className="font-semibold text-white">
-                      Scan with SnapScan, Zapper, or your SA Banking App
-                    </p>
-                    <p className="text-[#C4C6AF]">
-                      EMVCo Token:{' '}
-                      <span className="font-mono text-[#E6C465]">
-                        {sessionData.txReference}
-                      </span>
-                    </p>
-                    <p className="text-[11px] text-[#C4C6AF]/80">
-                      Also dial USSD offline:{' '}
-                      <span className="font-mono text-white">
-                        {sessionData.ussdString}
-                      </span>
-                    </p>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#081F1A] p-3.5 rounded-2xl border border-white/10">
+                    {/* Real Dynamic QR Code image generated from qrcode library */}
+                    <div className="p-2 bg-white rounded-xl shrink-0 shadow-md">
+                      {generatingQr ? (
+                        <div className="w-28 h-28 flex flex-col items-center justify-center text-xs text-[#144239] gap-1">
+                          <RefreshCw className="w-5 h-5 animate-spin" />
+                          <span>Generating QR...</span>
+                        </div>
+                      ) : qrCodeDataUrl ? (
+                        <img
+                          src={qrCodeDataUrl}
+                          alt={`${qrTargetApp === 'snapscan' ? 'SnapScan' : 'Zapper'} Payment QR Code`}
+                          className="w-28 h-28 object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-28 h-28 flex items-center justify-center text-xs text-red-600">
+                          QR Error
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 text-xs flex-1">
+                      <div>
+                        <p className="font-semibold text-white">
+                          Scan with {qrTargetApp === 'snapscan' ? 'SnapScan' : 'Zapper'} or any SA Banking App
+                        </p>
+                        <p className="text-[#C4C6AF] text-[11px]">
+                          Compatible with FNB, Standard Bank, Capitec, Absa & Nedbank in-app scan to pay.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        {qrCodeDataUrl && (
+                          <a
+                            href={qrCodeDataUrl}
+                            download={`varda-${qrTargetApp}-${sessionData.txReference}.png`}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#143D34] hover:bg-[#1A5044] text-[#E6C465] text-xs font-medium flex items-center gap-1.5 transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download QR
+                          </a>
+                        )}
+
+                        <a
+                          href={
+                            qrTargetApp === 'snapscan'
+                              ? `https://pos.snapscan.io/qr/varda-sa?id=${sessionData.txReference}&amount=${Math.round(sessionData.effectiveAmountZar * 100)}`
+                              : `https://zapper.com/pay.aspx?tid=${sessionData.txReference}&amount=${sessionData.effectiveAmountZar.toFixed(2)}&merchant=Varda`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 rounded-lg bg-[#143D34] hover:bg-[#1A5044] text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Open {qrTargetApp === 'snapscan' ? 'SnapScan' : 'Zapper'} Link
+                        </a>
+                      </div>
+
+                      <p className="text-[11px] text-[#C4C6AF]/80">
+                        Reference: <span className="font-mono text-[#E6C465]">{sessionData.txReference}</span> · USSD offline: <span className="font-mono text-white">{sessionData.ussdString}</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

@@ -291,6 +291,7 @@ export default function ThreeStudioViewport({
   const [dockCollapsed, setDockCollapsed] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [webglReady, setWebglReady] = useState<boolean>(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Scene Editor & Collision State
   const [sceneNodes, setSceneNodes] = useState<SceneAssetNode[]>(INITIAL_SCENE_NODES);
@@ -344,48 +345,131 @@ export default function ThreeStudioViewport({
     soundEnabled,
   ]);
 
-  // Procedural Web Audio synthesizer for micro-interaction & collision feedback
-  const playTactileTone = useCallback((type: 'select' | 'collide' | 'snap' | 'spawn') => {
-    if (!stateRef.current.soundEnabled || typeof window === 'undefined') return;
-    try {
-      const AudioCtx = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+  // Procedural Web Audio synthesizer for tactile micro-interactions, drag-and-drop, and collision feedback
+  const playTactileTone = useCallback(
+    (type: 'select' | 'collide' | 'snap' | 'spawn' | 'dragstart' | 'dragmove' | 'drop' | 'dock-spawn') => {
+      if (!stateRef.current.soundEnabled || typeof window === 'undefined') return;
+      try {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
+        if (!AudioCtx) return;
 
-      const now = ctx.currentTime;
-      if (type === 'collide') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(155, now);
-        osc.frequency.exponentialRampToValueAtTime(68, now + 0.14);
-        gain.gain.setValueAtTime(0.14, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        osc.start(now);
-        osc.stop(now + 0.15);
-      } else if (type === 'select') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(520, now);
-        osc.frequency.exponentialRampToValueAtTime(780, now + 0.07);
-        gain.gain.setValueAtTime(0.06, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-        osc.start(now);
-        osc.stop(now + 0.08);
-      } else if (type === 'spawn' || type === 'snap') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(340, now);
-        osc.frequency.exponentialRampToValueAtTime(680, now + 0.11);
-        gain.gain.setValueAtTime(0.08, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-        osc.start(now);
-        osc.stop(now + 0.12);
+        if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+          audioCtxRef.current = new AudioCtx();
+        }
+        const ctx = audioCtxRef.current;
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+
+        const now = ctx.currentTime;
+
+        if (type === 'dragstart') {
+          // Subtle upward tactile blip when picking up a 3D component
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(360, now);
+          osc.frequency.exponentialRampToValueAtTime(560, now + 0.05);
+          gain.gain.setValueAtTime(0.045, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        } else if (type === 'dragmove') {
+          // Micro-tick as component glides across grid divisions
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(820, now);
+          osc.frequency.exponentialRampToValueAtTime(680, now + 0.015);
+          gain.gain.setValueAtTime(0.018, now);
+          gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.018);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.02);
+        } else if (type === 'drop') {
+          // Satisfying resonant mechanical latch / settling thud
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(230, now);
+          osc.frequency.exponentialRampToValueAtTime(74, now + 0.11);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'snap') {
+          // Crisp magnetic busbar snap
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(740, now);
+          osc.frequency.exponentialRampToValueAtTime(960, now + 0.04);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === 'dock-spawn' || type === 'spawn') {
+          // Melodic two-tone confirmation chime when dropping new module into the scene
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc1.type = 'sine';
+          osc2.type = 'sine';
+          osc1.frequency.setValueAtTime(420, now);
+          osc1.frequency.exponentialRampToValueAtTime(580, now + 0.08);
+          osc2.frequency.setValueAtTime(640, now + 0.04);
+          osc2.frequency.exponentialRampToValueAtTime(840, now + 0.12);
+          gain.gain.setValueAtTime(0.07, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc2.start(now + 0.04);
+          osc1.stop(now + 0.14);
+          osc2.stop(now + 0.14);
+        } else if (type === 'collide') {
+          // Soft rubberized warning bump
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(155, now);
+          osc.frequency.exponentialRampToValueAtTime(68, now + 0.14);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'select') {
+          // Part anatomy selection ping
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(780, now + 0.07);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        }
+      } catch {
+        // Ignore audio errors if blocked by browser autoplay policy
       }
-    } catch {
-      // Ignore audio errors if blocked by browser autoplay policy
-    }
-  }, []);
+    },
+    []
+  );
 
   // Build procedural canvas dial texture for ground pad
   const createTechnicalGridTexture = useCallback((maxAnisotropy: number) => {
@@ -926,6 +1010,9 @@ export default function ThreeStudioViewport({
     const pointer = new THREE.Vector2();
     let draggingNodeUid: string | null = null;
     let lastCollisionHash = '';
+    let lastDragAudioTime = 0;
+    let lastAudioX = 0;
+    let lastAudioZ = 0;
 
     const updatePointer = (e: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
@@ -960,7 +1047,12 @@ export default function ThreeStudioViewport({
             setSelectedNodeUid(uid);
             controls.enabled = false;
             renderer.domElement.style.cursor = 'grabbing';
-            playTactileTone('select');
+            const entry = nodeMeshesMap.get(uid);
+            if (entry) {
+              lastAudioX = entry.root.position.x;
+              lastAudioZ = entry.root.position.z;
+            }
+            playTactileTone('dragstart');
           }
         }
       }
@@ -988,6 +1080,16 @@ export default function ThreeStudioViewport({
             entry.root.position.set(finalX, 0, finalZ);
           }
 
+          // Trigger subtle micro-tick audio feedback when dragging across space
+          const distMoved = Math.hypot(finalX - lastAudioX, finalZ - lastAudioZ);
+          const now = performance.now();
+          if (distMoved >= 0.35 && now - lastDragAudioTime > 85) {
+            lastDragAudioTime = now;
+            lastAudioX = finalX;
+            lastAudioZ = finalZ;
+            playTactileTone('dragmove');
+          }
+
           setSceneNodes((prev) =>
             prev.map((n) =>
               n.uid === draggingNodeUid
@@ -1008,6 +1110,11 @@ export default function ThreeStudioViewport({
 
     const onPointerUp = () => {
       if (draggingNodeUid) {
+        if (stateRef.current.snapToGrid) {
+          playTactileTone('snap');
+        } else {
+          playTactileTone('drop');
+        }
         draggingNodeUid = null;
         controls.enabled = true;
         renderer.domElement.style.cursor = 'grab';
@@ -1283,7 +1390,7 @@ export default function ThreeStudioViewport({
     setWorkspaceMode('scene-editor');
     setSceneNodes((prev) => [...prev, newNode]);
     setSelectedNodeUid(newNode.uid);
-    playTactileTone('spawn');
+    playTactileTone('dock-spawn');
   };
 
   const handleRemoveSelectedNode = () => {
@@ -1667,6 +1774,7 @@ export default function ThreeStudioViewport({
                       draggable
                       onDragStart={(e) => {
                         e.dataTransfer.setData('text/plain', tpl.templateId);
+                        playTactileTone('dragstart');
                       }}
                       onClick={() => handleAddSceneNode(tpl)}
                       className="p-2.5 rounded-xl bg-[#12352D] hover:bg-[#18473C] border border-white/10 cursor-pointer transition-colors flex flex-col justify-between gap-1"
