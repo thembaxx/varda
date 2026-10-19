@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E332B"/>
+      <stop offset="100%" stop-color="#144239"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF3D6"/>
+      <stop offset="100%" stop-color="#E6C465"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#19B86B"/>
+      <stop offset="100%" stop-color="#4FFFB0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Solid background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle inner safe-zone ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+
+  <!-- Orbital arc (inspired by Noli/fintech 3D assets) -->
+  <ellipse cx="256" cy="256" rx="145" ry="58" fill="none" stroke="url(#emeraldGrad)" stroke-width="12" stroke-dasharray="24 16" transform="rotate(-28 256 256)"/>
+
+  <!-- Varda Central Monogram 'V' -->
+  <path d="M168 152 L256 348 L344 152" fill="none" stroke="url(#goldGrad)" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Glowing solar/micro-grid focal core -->
+  <circle cx="256" cy="186" r="26" fill="url(#emeraldGrad)"/>
+  <circle cx="256" cy="186" r="10" fill="#FFFFFF"/>
+</svg>

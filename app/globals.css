@@ -5,6 +5,33 @@
     --font-sans: var(--font-sans), system-ui, sans-serif;
     --font-serif: var(--font-serif), Georgia, serif;
     --font-mono: var(--font-mono), monospace;
+    --app-bg: #F4F3EC;
+    --app-brand: #144239;
+    color-scheme: light dark;
+  }
+
+  /* Seamless background across browser viewport, loading states, and devices */
+  html {
+    background-color: #F4F3EC;
+    color: #11362E;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    /* Prevent white flash during overscroll/bounce on iOS Safari & macOS */
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    background-color: #F4F3EC;
+    color: #11362E;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Safe-area insets for modern edge-to-edge screens with notch/island */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   .font-serif {
@@ -19,4 +46,5 @@
     font-family: var(--font-mono), monospace;
   }
 }
+
 

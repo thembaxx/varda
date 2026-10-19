@@ -1483,7 +1483,7 @@ export default function ThreeStudioViewport({
 
       {/* Main 3D Viewport Container (100% unobstructed center) */}
       <div
-        className="relative w-full h-[560px] lg:h-[640px] select-none"
+        className="relative w-full h-[460px] sm:h-[560px] lg:h-[640px] select-none"
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
@@ -1494,10 +1494,10 @@ export default function ThreeStudioViewport({
           }
         }}
       >
-        {/* Dedicated Empty WebGL Canvas Mount Ref */}
+        {/* Dedicated Empty WebGL Canvas Mount Ref with touch-none for smooth mobile interaction */}
         <div
           ref={canvasMountRef}
-          className="w-full h-full cursor-grab active:cursor-grabbing"
+          className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
         />
 
         {!webglReady && (
@@ -1509,8 +1509,8 @@ export default function ThreeStudioViewport({
           </div>
         )}
 
-        {/* Top-Left Compact Telemetry Spec Strip (Unobtrusive) */}
-        <div className="absolute top-4 left-4 z-10 pointer-events-auto max-w-xs sm:max-w-sm bg-[#0D2A23]/95 border border-white/15 rounded-xl p-3.5 shadow-lg">
+        {/* Top-Left Compact Telemetry Spec Strip (Unobtrusive & responsive on mobile) */}
+        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 pointer-events-auto max-w-[calc(100%-1.5rem)] sm:max-w-sm bg-[#0D2A23]/95 border border-white/15 rounded-xl p-3 sm:p-3.5 shadow-lg">
           {workspaceMode === 'anatomy' ? (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2 text-xs text-[#C4C6AF]">

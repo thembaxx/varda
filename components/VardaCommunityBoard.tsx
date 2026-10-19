@@ -196,14 +196,15 @@ export default function VardaCommunityBoard({
                 </p>
               </div>
 
-              {/* Weekly Timetable Grid */}
-              <div className="bg-[#0F352D] rounded-2xl p-3 border border-white/10">
-                <div className="grid grid-cols-8 gap-1 text-[10px] text-[#C4C6AF] pb-2 border-b border-white/10 text-center font-medium">
-                  <span>Hr</span>
-                  {DAYS.map((d) => (
-                    <span key={d}>{d}</span>
-                  ))}
-                </div>
+              {/* Weekly Timetable Grid with smooth mobile horizontal scroll */}
+              <div className="bg-[#0F352D] rounded-2xl p-3 border border-white/10 overflow-x-auto">
+                <div className="min-w-[290px]">
+                  <div className="grid grid-cols-8 gap-1 text-[10px] text-[#C4C6AF] pb-2 border-b border-white/10 text-center font-medium">
+                    <span>Hr</span>
+                    {DAYS.map((d) => (
+                      <span key={d}>{d}</span>
+                    ))}
+                  </div>
 
                 <div className="divide-y divide-white/5">
                   {HOURS.map((hr) => (
@@ -254,6 +255,7 @@ export default function VardaCommunityBoard({
                   ))}
                 </div>
               </div>
+            </div>
 
               {/* Selected Event Detail Card (Inspired by Noli Pink Yoga Pill Card) */}
               <div className="space-y-2">

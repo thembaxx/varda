@@ -5,6 +5,7 @@ import {motion} from 'motion/react';
 import ThreeStudioViewport from '@/components/ThreeStudioViewport';
 import VardaCommunityBoard from '@/components/VardaCommunityBoard';
 import SouthAfricaPaymentHub from '@/components/SouthAfricaPaymentHub';
+import PWAInstallButton from '@/components/PWAInstallButton';
 import {VARDA_ASSEMBLIES} from '@/lib/sa-data';
 import {
   Box,
@@ -44,11 +45,11 @@ export default function VardaHomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F3EC] text-[#11362E]">
+    <div className="min-h-screen flex flex-col bg-[#F4F3EC] text-[#11362E] transition-colors duration-200">
       {/* ====================================================================
-          STRICT 3-ZONE TOP BAR CONTRACT
+          STRICT 3-ZONE TOP BAR CONTRACT WITH NATIVE PWA INSTALL & SAFE AREA
          ==================================================================== */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-8 px-6 lg:px-12 py-4 bg-[#F4F3EC]/95 border-b border-[#144239]/12">
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-4 sm:gap-8 px-4 sm:px-8 lg:px-12 py-3.5 sm:py-4 bg-[#F4F3EC]/95 backdrop-blur-md border-b border-[#144239]/12 pt-[max(0.875rem,env(safe-area-inset-top))]">
         {/* Zone 1: Single text element wordmark */}
         <a
           href="#"
@@ -58,7 +59,7 @@ export default function VardaHomePage() {
         </a>
 
         {/* Zone 2: 4 concise single-line text navigation links */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#11362E]/80">
+        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-[#11362E]/80">
           <a
             href="#spatial-studio"
             className="hover:text-[#144239] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
@@ -85,13 +86,14 @@ export default function VardaHomePage() {
           </a>
         </nav>
 
-        {/* Zone 3: 1 primary action */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 3: 1 primary action + in-app PWA install affordance */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <PWAInstallButton />
           <a
             href="#sa-payments"
-            className="px-4 py-2 text-xs font-semibold text-[#F4F3EC] bg-[#144239] rounded-xl hover:bg-[#1B574B] transition-colors whitespace-nowrap shrink-0"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold text-[#F4F3EC] bg-[#144239] rounded-xl hover:bg-[#1B574B] transition-colors whitespace-nowrap shrink-0"
           >
-            PayFast & Ozow Checkout
+            <span className="hidden sm:inline">PayFast & Ozow </span>Checkout
           </a>
         </div>
       </header>
