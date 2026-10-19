@@ -1,6 +1,7 @@
 'use client';
 
 import React, {useEffect, useRef, useState, useCallback} from 'react';
+import {useExperience} from '@/components/ExperienceProvider';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
@@ -265,7 +266,6 @@ interface SpringState {
 }
 
 interface ThreeStudioViewportProps {
-  lowBandwidthMode: boolean;
   onSelectOrderForPayment: (item: {
     name: string;
     description: string;
@@ -274,7 +274,6 @@ interface ThreeStudioViewportProps {
 }
 
 export default function ThreeStudioViewport({
-  lowBandwidthMode,
   onSelectOrderForPayment,
 }: ThreeStudioViewportProps) {
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
@@ -289,7 +288,9 @@ export default function ThreeStudioViewport({
     VARDA_ASSEMBLIES[0].parts[1].id
   );
   const [dockCollapsed, setDockCollapsed] = useState<boolean>(false);
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const {preferences, update: updatePreferences, reducedMotion} = useExperience();
+  const soundEnabled = preferences.sound;
+  const [webglError, setWebglError] = useState(false);
   const [webglReady, setWebglReady] = useState<boolean>(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -308,7 +309,7 @@ export default function ThreeStudioViewport({
   const stateRef = useRef({
     workspaceMode,
     selectedAssemblyId,
-    activeShader: lowBandwidthMode ? ('wireframe' as ShaderMode) : activeShader,
+    activeShader,
     isIsometric,
     explodeFactor,
     selectedPartId,
@@ -316,13 +317,14 @@ export default function ThreeStudioViewport({
     selectedNodeUid,
     snapToGrid,
     soundEnabled,
+    reducedMotion,
   });
 
   useEffect(() => {
     stateRef.current = {
       workspaceMode,
       selectedAssemblyId,
-      activeShader: lowBandwidthMode ? 'wireframe' : activeShader,
+      activeShader,
       isIsometric,
       explodeFactor,
       selectedPartId,
@@ -330,12 +332,12 @@ export default function ThreeStudioViewport({
       selectedNodeUid,
       snapToGrid,
       soundEnabled,
+      reducedMotion,
     };
   }, [
     workspaceMode,
     selectedAssemblyId,
     activeShader,
-    lowBandwidthMode,
     isIsometric,
     explodeFactor,
     selectedPartId,
@@ -343,6 +345,7 @@ export default function ThreeStudioViewport({
     selectedNodeUid,
     snapToGrid,
     soundEnabled,
+    reducedMotion,
   ]);
 
   // Procedural Web Audio synthesizer for tactile micro-interactions, drag-and-drop, and collision feedback
@@ -544,12 +547,11 @@ export default function ThreeStudioViewport({
       typeof navigator !== 'undefined' &&
       (navigator.webdriver || /HeadlessChrome/i.test(navigator.userAgent));
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !isHeadless,
-      powerPreference: 'high-performance',
-    });
+    let renderer: THREE.WebGLRenderer;
+    try { renderer = new THREE.WebGLRenderer({antialias: !isHeadless, powerPreference: 'low-power'}); }
+    catch { setWebglError(true); return; }
     renderer.setSize(width, height);
-    renderer.setPixelRatio(isHeadless ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(isHeadless ? 1 : Math.min(window.devicePixelRatio, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
@@ -561,7 +563,9 @@ export default function ThreeStudioViewport({
 
     // Studio Environment Reflection (RoomEnvironment + PMREMGenerator)
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    const environment = new RoomEnvironment();
+    scene.environment = pmremGenerator.fromScene(environment, 0.04).texture;
+    environment.dispose();
     pmremGenerator.dispose();
 
     // 3-Point Warm/Cool Studio Lighting Rig
@@ -711,7 +715,9 @@ export default function ThreeStudioViewport({
     // Build distinct multi-part geometry for each of the 8 parts
     const buildAnatomyMeshes = (assembly: VardaProductAssembly) => {
       while (anatomyGroup.children.length > 0) {
-        anatomyGroup.remove(anatomyGroup.children[0]);
+        const previous = anatomyGroup.children[0];
+        previous.traverse(child => { if (child instanceof THREE.Mesh || child instanceof THREE.Line) child.geometry.dispose(); });
+        anatomyGroup.remove(previous);
       }
       partMeshesMap.clear();
       partSpringsMap.clear();
@@ -855,6 +861,7 @@ export default function ThreeStudioViewport({
 
         const initPos = new THREE.Vector3(...part.defaultPosition);
         partHolder.position.copy(initPos);
+        partHolder.traverse(child => { if (child instanceof THREE.Mesh) child.userData.originalMaterial = child.material; });
         anatomyGroup.add(partHolder);
         partMeshesMap.set(part.id, partHolder);
 
@@ -907,7 +914,9 @@ export default function ThreeStudioViewport({
       // Remove deleted nodes
       for (const [uid, entry] of nodeMeshesMap.entries()) {
         if (!nodes.some((n) => n.uid === uid)) {
+          entry.root.traverse(child => { if (child instanceof THREE.Mesh || child instanceof THREE.Line) child.geometry.dispose(); });
           editorGroup.remove(entry.root);
+          (Array.isArray(entry.ring.material) ? entry.ring.material : [entry.ring.material]).forEach(material => material.dispose());
           nodeMeshesMap.delete(uid);
         }
       }
@@ -1138,10 +1147,12 @@ export default function ThreeStudioViewport({
     const clock = new THREE.Clock();
     let frameId = 0;
 
+    let inView = true;
     const animate = () => {
+      if (!inView || document.hidden) { frameId = 0; return; }
       frameId = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
-      const elapsed = clock.getElapsedTime();
+      const elapsed = stateRef.current.reducedMotion ? 0 : clock.getElapsedTime();
       const st = stateRef.current;
 
       // Update GLSL Shader Uniforms
@@ -1204,10 +1215,11 @@ export default function ThreeStudioViewport({
           spring.scaleVel += scaleForce * dt;
           spring.scaleVel *= Math.exp(-12 * dt);
           spring.scale += spring.scaleVel * dt;
+          if (st.reducedMotion) { spring.pos.copy(spring.target); spring.vel.set(0, 0, 0); spring.scale = spring.targetScale; spring.scaleVel = 0; holder.position.copy(spring.pos); }
           holder.scale.setScalar(spring.scale);
 
           // Individual part continuous rotation/motion
-          if (part.rotationAxis && part.rotationSpeed) {
+          if (!st.reducedMotion && part.rotationAxis && part.rotationSpeed) {
             holder.rotation[part.rotationAxis] += part.rotationSpeed * dt;
           }
 
@@ -1215,6 +1227,8 @@ export default function ThreeStudioViewport({
           holder.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
               const mesh = child as THREE.Mesh;
+              const original = mesh.userData.originalMaterial;
+              mesh.material = st.activeShader === 'pbr' && original instanceof THREE.ShaderMaterial ? forestAnodizedMat : original || mesh.material;
               if (st.activeShader === 'wireframe') {
                 mesh.material = wireframeBlueprintMat;
               } else if (st.activeShader === 'fire' && part.shaderCategory !== 'glass') {
@@ -1247,7 +1261,7 @@ export default function ThreeStudioViewport({
           if (!entryA) continue;
 
           // Continuous rotor animation
-          entryA.rotor.rotation.y += dt * 0.9;
+          if (!st.reducedMotion) entryA.rotor.rotation.y += dt * 0.9;
           entryA.rotor.position.y = 0.72 + Math.sin(elapsed * 2.2 + i) * 0.05;
 
           for (let j = i + 1; j < nodes.length; j++) {
@@ -1334,6 +1348,10 @@ export default function ThreeStudioViewport({
       }
     };
 
+    const resume = () => { if (inView && !document.hidden && !frameId) { clock.getDelta(); animate(); } };
+    const visibilityObserver = new IntersectionObserver(entries => { inView = entries[0].isIntersecting; if (inView) resume(); else { cancelAnimationFrame(frameId); frameId = 0; } });
+    visibilityObserver.observe(container);
+    document.addEventListener('visibilitychange', resume);
     animate();
 
     const handleResize = () => {
@@ -1354,16 +1372,29 @@ export default function ThreeStudioViewport({
       renderer.setSize(w, h);
     };
 
-    window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
 
     return () => {
       cancelAnimationFrame(frameId);
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+      visibilityObserver.disconnect();
+      document.removeEventListener('visibilitychange', resume);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       controls.dispose();
+      const geometries = new Set<THREE.BufferGeometry>();
+      const materials = new Set<THREE.Material>();
+      scene.traverse(child => { if (child instanceof THREE.Mesh || child instanceof THREE.Line) { geometries.add(child.geometry); (Array.isArray(child.material) ? child.material : [child.material]).forEach(mat => materials.add(mat)); } });
+      [fireShaderMat, waterShaderMat, plasmaShaderMat, wireframeBlueprintMat, forestAnodizedMat, brushedGoldMat, obsidianIronMat, frostedGlassMat].forEach(material => materials.add(material));
+      geometries.forEach(geometry => geometry.dispose());
+      materials.forEach(material => { for (const value of Object.values(material)) { if (value instanceof THREE.Texture) value.dispose(); } material.dispose(); });
+      scene.environment?.dispose();
       renderer.dispose();
+      renderer.domElement.remove();
+      void audioCtxRef.current?.close();
+      audioCtxRef.current = null;
     };
   }, [createTechnicalGridTexture, playTactileTone]);
 
@@ -1415,7 +1446,7 @@ export default function ThreeStudioViewport({
       {/* Top Minimal Viewport Header Bar */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-5 py-3.5 bg-[#0E2D26] border-b border-white/10">
         <div className="flex items-center gap-3">
-          <span className="font-serif text-lg font-semibold tracking-tight text-[#F4F3EC] whitespace-nowrap">
+          <span className="font-serif text-lg font-semibold tracking-tight text-[#F4F3EC] break-words">
             {workspaceMode === 'anatomy'
               ? currentAssembly.name
               : 'Varda Rooftop Micro-Grid Spatial Configurator'}
@@ -1423,57 +1454,60 @@ export default function ThreeStudioViewport({
           <span className="hidden sm:inline-block text-xs text-[#C4C6AF]">·</span>
           <span className="hidden sm:inline-block text-xs font-mono tabular-nums text-[#E6C465]">
             {workspaceMode === 'anatomy'
-              ? `R ${currentAssembly.priceZar.toLocaleString('en-ZA')} (${currentAssembly.lowBandwidthSizeKb} KB Mesh)`
+              ? `R ${currentAssembly.priceZar.toLocaleString('en-ZA')}`
               : `${sceneNodes.length} Modules · Net ${netScenePowerKw >= 0 ? '+' : ''}${netScenePowerKw.toFixed(1)} kW · R ${totalSceneZar.toLocaleString('en-ZA')}`}
           </span>
         </div>
 
         {/* Workspace Mode Switcher & Camera Preset Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center p-1 rounded-lg bg-[#091D18] border border-white/10">
             <button
               type="button"
+              aria-pressed={workspaceMode === 'anatomy'}
               onClick={() => setWorkspaceMode('anatomy')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors break-words shrink-0 flex items-center gap-1.5 ${
                 workspaceMode === 'anatomy'
                   ? 'bg-[#19B86B] text-[#082019] font-semibold'
                   : 'text-[#C4C6AF] hover:text-white'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              3D Anatomy & Shaders
+              Explore parts
             </button>
             <button
               type="button"
+              aria-pressed={workspaceMode === 'scene-editor'}
               onClick={() => setWorkspaceMode('scene-editor')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors break-words shrink-0 flex items-center gap-1.5 ${
                 workspaceMode === 'scene-editor'
                   ? 'bg-[#E6C465] text-[#091D18] font-semibold'
                   : 'text-[#C4C6AF] hover:text-white'
               }`}
             >
               <Move className="w-3.5 h-3.5" />
-              Drag & Collision Scene
+              Build a scene
             </button>
           </div>
 
           <button
             type="button"
             onClick={() => setIsIsometric((prev) => !prev)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors break-words shrink-0 flex items-center gap-1.5 ${
               isIsometric
                 ? 'bg-[#E6C465] text-[#0B241E] border-[#E6C465]'
                 : 'bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]'
             }`}
           >
             <Compass className="w-3.5 h-3.5" />
-            {isIsometric ? 'Isometric Ortho' : 'Perspective 3D'}
+            {isIsometric ? 'Isometric' : 'Orbit view'}
           </button>
 
           <button
             type="button"
-            onClick={() => setSoundEnabled((s) => !s)}
+            onClick={() => updatePreferences({sound: !soundEnabled})}
             aria-label="Toggle tactile audio"
+            aria-pressed={soundEnabled}
             className="p-2 rounded-lg bg-[#12382F] text-[#C4C6AF] hover:text-white border border-white/10"
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -1504,7 +1538,7 @@ export default function ThreeStudioViewport({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0B241E] text-[#C4C6AF] gap-2">
             <Cpu className="w-8 h-8 text-[#19B86B]" />
             <p className="text-sm font-medium">
-              Initializing Three.js WebGL Studio & GLSL Shaders...
+              {webglError ? 'This device can’t open the 3D view. Try a browser with WebGL support.' : 'Preparing your interactive studio…'}
             </p>
           </div>
         )}
@@ -1525,7 +1559,7 @@ export default function ThreeStudioViewport({
               </p>
               <div className="pt-1 flex items-center justify-between text-xs font-mono tabular-nums text-[#4FFFB0]">
                 <span>{currentPart.telemetry}</span>
-                <span>Shader: {lowBandwidthMode ? 'WIREFRAME' : activeShader.toUpperCase()}</span>
+                <span>Shader: {activeShader.toUpperCase()}</span>
               </div>
             </div>
           ) : (
@@ -1570,15 +1604,15 @@ export default function ThreeStudioViewport({
             <button
               type="button"
               onClick={() => setDockCollapsed((c) => !c)}
-              className="px-3.5 py-1 rounded-full bg-[#0E2D26] border border-white/15 text-xs font-medium text-[#C4C6AF] hover:text-white flex items-center gap-1.5 shadow-md whitespace-nowrap shrink-0"
+              className="px-3.5 py-1 rounded-full bg-[#0E2D26] border border-white/15 text-xs font-medium text-[#C4C6AF] hover:text-white flex items-center gap-1.5 shadow-md break-words shrink-0"
             >
               {dockCollapsed ? (
                 <>
-                  <Maximize2 className="w-3 h-3" />▴ Show 3D Controls
+                  <Maximize2 className="w-3 h-3" />Show controls
                 </>
               ) : (
                 <>
-                  <Minimize2 className="w-3 h-3" />▾ Hide Controls (Zen Mode)
+                  <Minimize2 className="w-3 h-3" />Hide controls
                 </>
               )}
             </button>
@@ -1601,7 +1635,7 @@ export default function ThreeStudioViewport({
                           setSelectedPartId(asm.parts[0].id);
                           setActiveShader(asm.recommendedShader);
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors break-words shrink-0 ${
                           selectedAssemblyId === asm.id
                             ? 'bg-[#F4F3EC] text-[#0E2D26] font-semibold'
                             : 'bg-[#143D34] text-[#C4C6AF] hover:text-white'
@@ -1626,13 +1660,13 @@ export default function ThreeStudioViewport({
                       ] as const
                     ).map((sh) => {
                       const Icon = sh.icon;
-                      const isActive = (lowBandwidthMode ? 'wireframe' : activeShader) === sh.id;
+                      const isActive = (activeShader) === sh.id;
                       return (
                         <button
                           key={sh.id}
                           type="button"
                           onClick={() => setActiveShader(sh.id)}
-                          className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                          className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 break-words shrink-0 ${
                             isActive
                               ? 'bg-[#19B86B] text-[#072018] font-semibold'
                               : 'text-[#C4C6AF] hover:text-white'
@@ -1649,9 +1683,9 @@ export default function ThreeStudioViewport({
                   <div className="flex items-center gap-2.5">
                     <label
                       htmlFor="explode-slider"
-                      className="text-xs text-[#C4C6AF] whitespace-nowrap"
+                      className="text-xs text-[#C4C6AF] break-words"
                     >
-                      Explode Spring:
+                      Spread parts:
                     </label>
                     <input
                       id="explode-slider"
@@ -1666,7 +1700,7 @@ export default function ThreeStudioViewport({
                     <button
                       type="button"
                       onClick={() => setExplodeFactor(explodeFactor > 0.5 ? 0 : 0.85)}
-                      className="px-2.5 py-1 rounded-md bg-[#143D34] text-xs text-[#E6C465] hover:bg-[#1B4F43] whitespace-nowrap shrink-0"
+                      className="px-2.5 py-1 rounded-md bg-[#143D34] text-xs text-[#E6C465] hover:bg-[#1B4F43] break-words shrink-0"
                     >
                       {explodeFactor > 0.5 ? 'Assemble' : 'Explode All'}
                     </button>
@@ -1682,7 +1716,7 @@ export default function ThreeStudioViewport({
                         amountZar: currentAssembly.priceZar,
                       })
                     }
-                    className="px-3.5 py-1.5 rounded-lg bg-[#E6C465] hover:bg-[#f0cf73] text-[#0B241E] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+                    className="px-3.5 py-1.5 rounded-lg bg-[#E6C465] hover:bg-[#f0cf73] text-[#0B241E] text-xs font-semibold flex items-center gap-1.5 transition-colors break-words shrink-0"
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
                     Order · R {currentAssembly.priceZar.toLocaleString('en-ZA')}
@@ -1699,7 +1733,7 @@ export default function ThreeStudioViewport({
                         setSelectedPartId(part.id);
                         playTactileTone('select');
                       }}
-                      className={`px-2.5 py-1 rounded-md text-xs transition-colors whitespace-nowrap shrink-0 ${
+                      className={`px-2.5 py-1 rounded-md text-xs transition-colors break-words shrink-0 ${
                         selectedPartId === part.id
                           ? 'bg-[#19B86B]/25 border border-[#19B86B] text-white font-medium'
                           : 'bg-[#12352D] text-[#C4C6AF] hover:text-white border border-transparent'
@@ -1726,7 +1760,7 @@ export default function ThreeStudioViewport({
                     <button
                       type="button"
                       onClick={() => setSnapToGrid((s) => !s)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors break-words shrink-0 ${
                         snapToGrid
                           ? 'bg-[#19B86B] text-[#082019] border-[#19B86B]'
                           : 'bg-[#12382F] text-[#C4C6AF] border-white/10'
@@ -1737,7 +1771,7 @@ export default function ThreeStudioViewport({
                     <button
                       type="button"
                       onClick={handleRemoveSelectedNode}
-                      className="px-2.5 py-1 rounded-lg bg-[#3A1818] hover:bg-[#522020] text-[#FCA5A5] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0"
+                      className="px-2.5 py-1 rounded-lg bg-[#3A1818] hover:bg-[#522020] text-[#FCA5A5] text-xs font-medium flex items-center gap-1 break-words shrink-0"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Remove Selected
@@ -1745,7 +1779,7 @@ export default function ThreeStudioViewport({
                     <button
                       type="button"
                       onClick={() => setSceneNodes(INITIAL_SCENE_NODES)}
-                      className="px-2.5 py-1 rounded-lg bg-[#12382F] hover:bg-[#194B3F] text-[#C4C6AF] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0"
+                      className="px-2.5 py-1 rounded-lg bg-[#12382F] hover:bg-[#194B3F] text-[#C4C6AF] text-xs font-medium flex items-center gap-1 break-words shrink-0"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       Reset Scene
@@ -1759,7 +1793,7 @@ export default function ThreeStudioViewport({
                           amountZar: totalSceneZar,
                         })
                       }
-                      className="px-3.5 py-1 rounded-lg bg-[#E6C465] text-[#091D18] text-xs font-semibold whitespace-nowrap shrink-0"
+                      className="px-3.5 py-1 rounded-lg bg-[#E6C465] text-[#091D18] text-xs font-semibold break-words shrink-0"
                     >
                       Checkout Bundle · R {totalSceneZar.toLocaleString('en-ZA')}
                     </button>

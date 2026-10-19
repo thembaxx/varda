@@ -22,7 +22,6 @@ export interface VardaProductAssembly {
   category: string;
   priceZar: number;
   monthlyStokvelZar: number;
-  lowBandwidthSizeKb: number;
   recommendedShader: ShaderMode;
   summary: string;
   parts: AnatomyPart[];
@@ -81,11 +80,10 @@ export const VARDA_ASSEMBLIES: VardaProductAssembly[] = [
   {
     id: 'karoo-inverter-vault',
     name: 'Varda Karoo-X8 Hybrid Micro-Grid Core',
-    subtitle: 'Stage-8 Load-Shedding LiFePO4 Inverter + PayShap Smart Metering Hub',
+    subtitle: 'Solar energy storage & smart metering hub',
     category: 'Energy & Fintech Hardware',
     priceZar: 24800,
     monthlyStokvelZar: 2150,
-    lowBandwidthSizeKb: 38,
     recommendedShader: 'plasma',
     summary:
       'Engineered for South African residential co-ops and micro-grids. Combines a 8kW bi-directional toroidal plasma inverter, modular LiFePO4 battery blades, and a contactless NFC/QR PayShap token terminal in a frosted ballistic polycarbonate enclosure.',
@@ -199,7 +197,6 @@ export const VARDA_ASSEMBLIES: VardaProductAssembly[] = [
     category: 'Water & Thermal Infrastructure',
     priceZar: 18450,
     monthlyStokvelZar: 1620,
-    lowBandwidthSizeKb: 31,
     recommendedShader: 'water',
     summary:
       'Designed for Cape Town and Gauteng rooftop gardens and co-living developments. Harvests rainwater, purifies greywater for rooftop vegetable beds, and heats domestic water using evacuated solar thermal tubes.',

@@ -1,6 +1,6 @@
 {
   "name": "Varda",
-  "description": "Interactive 3D spatial product visualizer, WebGL shader studio, and community living platform engineered for South Africa with offline-first sync and local payment integrations.",
+  "description": "Good spaces, good people, and a little more life. Community plans, shared spaces, and an interactive greener-home studio.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

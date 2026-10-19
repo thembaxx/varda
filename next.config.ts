@@ -2,9 +2,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -20,6 +17,16 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone',
+  serverExternalPackages: ['better-sqlite3'],
+  experimental: {optimizePackageImports: ['@phosphor-icons/react', 'lucide-react']},
+  async headers() {
+    return [
+      {source: '/sw.js', headers: [{key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate'}, {key: 'Service-Worker-Allowed', value: '/'}, {key: 'X-Content-Type-Options', value: 'nosniff'}]},
+      {source: '/sw-assets.json', headers: [{key: 'Cache-Control', value: 'no-cache'}]},
+      {source: '/api/:path*', headers: [{key: 'Cache-Control', value: 'no-store'}]},
+      {source: '/(.*)', headers: [{key: 'X-Content-Type-Options', value: 'nosniff'}, {key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin'}]},
+    ];
+  },
   transpilePackages: ['motion'],
   webpack: (config, {dev}) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
