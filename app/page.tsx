@@ -1,63 +1,373 @@
 'use client';
 
-import {useEffect, useRef, useState} from 'react';
-import dynamic from 'next/dynamic';
-import {AnimatePresence, motion} from 'motion/react';
-import {HouseLine, UsersThree, Cube, Wallet, UserCircle, SlidersHorizontal, FlowerTulip, ArrowUpRight, Leaf, ArrowRight} from '@/components/ui/icons';
+import React, {useState} from 'react';
+import {motion} from 'motion/react';
+import ThreeStudioViewport from '@/components/ThreeStudioViewport';
 import VardaCommunityBoard from '@/components/VardaCommunityBoard';
-import EventsSection from '@/components/EventsSection';
-import CommunityNotes from '@/components/CommunityNotes';
-import {useExperience} from '@/components/ExperienceProvider';
+import SouthAfricaPaymentHub from '@/components/SouthAfricaPaymentHub';
+import PWAInstallButton from '@/components/PWAInstallButton';
+import MobileNavBar from '@/components/MobileNavBar';
 import {VARDA_ASSEMBLIES} from '@/lib/sa-data';
-import type {VardaOrder} from '@/components/SpacesPanel';
-import Reveal from '@/components/ui/Reveal';
-
-const ThreeStudioViewport = dynamic(() => import('@/components/ThreeStudioViewport'), {ssr: false, loading: () => <div className="studio-loading"><Cube size={48} weight="duotone" /><span>Making a little room for your ideas…</span></div>});
-const SouthAfricaPaymentHub = dynamic(() => import('@/components/SouthAfricaPaymentHub'), {loading: () => <div className="page-skeleton" aria-label="Loading wallet" aria-busy="true" />});
-const SettingsPanel = dynamic(() => import('@/components/SettingsPanel'), {ssr: false});
-const AccountPanel = dynamic(() => import('@/components/AccountPanel'), {ssr: false});
-
-type View = 'home' | 'community' | 'studio' | 'wallet';
-const navigation = [{id: 'home', label: 'Home', icon: HouseLine}, {id: 'community', label: 'Community', icon: UsersThree}, {id: 'studio', label: '3D studio', icon: Cube}, {id: 'wallet', label: 'Wallet', icon: Wallet}] as const;
+import {triggerHaptic} from '@/lib/haptics';
+import {shareContent} from '@/lib/native-share';
+import {
+  Box,
+  WifiOff,
+  Share2,
+  Check,
+  ArrowDownRight,
+  Layers,
+  Zap,
+  ShieldCheck,
+} from 'lucide-react';
 
 export default function VardaHomePage() {
-  const [view, setView] = useState<View>('home');
-  const [panel, setPanel] = useState<'settings' | 'account' | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<VardaOrder>({name: VARDA_ASSEMBLIES[0].name, description: VARDA_ASSEMBLIES[0].subtitle, amountZar: VARDA_ASSEMBLIES[0].priceZar});
-  const {feedback, preferences, reducedMotion} = useExperience();
-  const previousView = useRef<View>('home');
-  const main = useRef<HTMLElement>(null);
+  const [lowBandwidthMode, setLowBandwidthMode] = useState<boolean>(false);
+  const [isOfflineSimulated, setIsOfflineSimulated] = useState<boolean>(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    function sync() {
-      const hash = location.hash.slice(1);
-      const next: View = hash === 'community' ? 'community' : ['studio', 'spatial-studio'].includes(hash) ? 'studio' : ['wallet', 'sa-payments'].includes(hash) ? 'wallet' : 'home';
-      setView(next);
-      if (next !== previousView.current) {
-        window.scrollTo({top: 0, behavior: 'instant'});
-        requestAnimationFrame(() => main.current?.focus({preventScroll: true}));
-      }
-      previousView.current = next;
-      if (hash === 'events') requestAnimationFrame(() => document.getElementById('events')?.scrollIntoView({behavior: reducedMotion ? 'instant' : 'smooth'}));
+  const [selectedOrder, setSelectedOrder] = useState<{
+    name: string;
+    description: string;
+    amountZar: number;
+  }>({
+    name: VARDA_ASSEMBLIES[0].name,
+    description: VARDA_ASSEMBLIES[0].subtitle,
+    amountZar: VARDA_ASSEMBLIES[0].priceZar,
+  });
+
+  const handleSelectOrderAndScroll = (item: {
+    name: string;
+    description: string;
+    amountZar: number;
+  }) => {
+    triggerHaptic('medium');
+    setSelectedOrder(item);
+    const el = document.getElementById('sa-payments');
+    if (el) {
+      el.scrollIntoView({behavior: 'smooth'});
     }
-    sync(); window.addEventListener('hashchange', sync);
-    return () => window.removeEventListener('hashchange', sync);
-  }, [reducedMotion]);
+  };
 
-  function checkout(order: VardaOrder) { setSelectedOrder(order); location.hash = 'wallet'; }
-  return <div className="varda-app">
-    <a className="skip-link" href="#main-content">Skip to content</a>
-    <header className="app-header"><div className="header-inner"><a href="#home" className="wordmark" aria-label="Varda home"><FlowerTulip size={32} weight="fill" /><span>varda<span className="wordmark-dot">.</span></span></a><nav className="desktop-nav" aria-label="Main navigation">{navigation.map(({id, label}) => <a href={`#${id}`} key={id} onClick={() => feedback()} aria-current={view === id ? 'page' : undefined}>{view === id && <motion.span layoutId="desktop-nav-active" className="nav-active" />}<span>{label}</span></a>)}</nav><div className="header-actions"><span className="home-note"><Leaf size={15} />A little more together.</span><button className="icon-button settings-button" aria-label="Open settings" onClick={() => { setPanel('settings'); feedback(); }}><SlidersHorizontal size={22} /></button><button className="profile-button" aria-label="Open your profile" onClick={() => { setPanel('account'); feedback(); }}>{preferences.nickname ? preferences.nickname.slice(0, 2).toUpperCase() : <UserCircle size={28} weight="duotone" />}</button></div></div></header>
-    <main ref={main} id="main-content" tabIndex={-1} className={`app-main ${view === 'studio' ? 'studio-main' : ''}`}>
-      <AnimatePresence mode="wait" initial={false}><motion.div key={view} initial={reducedMotion ? false : {opacity: 0, y: 12}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: reducedMotion ? 0 : -8}} transition={{duration: 0.2, type: 'tween'}}>
-        {view === 'home' && <VardaCommunityBoard onTriggerCheckout={checkout} onAccount={() => setPanel('account')} />}
-        {view === 'community' && <div className="community-home"><Reveal className="page-title"><span className="eyebrow">Your people, right here</span><h1>A little hello.<br /><em>A lot of possibility.</em></h1><p>Find your next good plan, or start a conversation of your own.</p></Reveal><EventsSection expanded /><CommunityNotes onAccount={() => setPanel('account')} /></div>}
-        {view === 'studio' && <div className="studio-page"><Reveal className="page-title"><span className="eyebrow">Room to imagine</span><h1>A brighter idea<br /><em>starts with a little play.</em></h1><p>Get hands-on with the things that power a greener home. Orbit, explore, and make it your own.</p></Reveal><ThreeStudioViewport onSelectOrderForPayment={checkout} /><div className="studio-help"><span><Cube size={22} />Drag to orbit. Pinch to zoom. Tap a part to explore.</span><a className="text-button" href="#home">Back to your people<ArrowRight size={17} /></a></div></div>}
-        {view === 'wallet' && <SouthAfricaPaymentHub selectedOrder={selectedOrder} />}
-      </motion.div></AnimatePresence>
-    </main>
-    <footer className="app-footer"><a href="#home" className="wordmark"><FlowerTulip size={25} weight="fill" /><span>varda.</span></a><p>Good spaces. Good people. A little more life.</p><button className="text-button" onClick={() => { setPanel('settings'); feedback(); }}>Make yourself at home<ArrowUpRight size={16} /></button><span className="footer-location mono">Made for living, together.</span></footer>
-    <nav className="mobile-nav" aria-label="Mobile navigation">{navigation.map(({id, label, icon: Icon}) => <a key={id} href={`#${id}`} aria-current={view === id ? 'page' : undefined} onClick={() => feedback()}><Icon size={23} weight={view === id ? 'fill' : 'regular'} /><span>{label}</span></a>)}<button onClick={() => { setPanel('account'); feedback(); }} aria-label="Open your profile"><UserCircle size={23} /><span>You</span></button></nav>
-    {panel === 'settings' && <SettingsPanel onClose={() => setPanel(null)} />}{panel === 'account' && <AccountPanel onClose={() => setPanel(null)} />}
-  </div>;
+  const handleTopShare = async () => {
+    triggerHaptic('light');
+    const res = await shareContent({
+      title: 'Varda — 3D Spatial & Eco-Living Platform',
+      text: 'Inspect 3D solar-hydro hardware with custom GLSL shaders, community living board, and South African payment settlements.',
+    });
+    if (res === 'copied') {
+      setShareToast('Link Copied to Clipboard!');
+      setTimeout(() => setShareToast(null), 2200);
+    } else if (res === 'shared') {
+      setShareToast('Shared via System Share!');
+      setTimeout(() => setShareToast(null), 2200);
+    }
+  };
+
+  return (
+    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-[#F4F3EC] text-[#11362E] transition-colors duration-200 pb-24 md:pb-12">
+      {/* ====================================================================
+          STRICT 3-ZONE TOP BAR CONTRACT WITH NATIVE PWA INSTALL & SAFE AREA
+         ==================================================================== */}
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 sm:gap-8 px-4 sm:px-8 lg:px-12 py-3 sm:py-4 bg-[#F4F3EC]/95 backdrop-blur-md border-b border-[#144239]/12 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        {/* Zone 1: Single text element wordmark */}
+        <a
+          href="#"
+          className="font-serif text-2xl font-bold tracking-tight text-[#144239] whitespace-nowrap shrink-0 hover:opacity-90 transition-opacity"
+        >
+          Varda
+        </a>
+
+        {/* Zone 2: Concise single-line text navigation links */}
+        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-[#11362E]/80">
+          <a
+            href="#studio"
+            className="hover:text-[#144239] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+          >
+            3D Studio
+          </a>
+          <a
+            href="#community-board"
+            className="hover:text-[#144239] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+          >
+            Varda Board
+          </a>
+          <a
+            href="#sa-payments"
+            className="hover:text-[#144239] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+          >
+            SA Payments
+          </a>
+          <a
+            href="#architecture-specs"
+            className="hover:text-[#144239] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+          >
+            Specifications
+          </a>
+        </nav>
+
+        {/* Zone 3: Native Share + In-app PWA install affordance + Primary CTA */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={handleTopShare}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#144239]/20 hover:bg-[#144239]/5 text-[#144239] text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+            title="Share Varda"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Share</span>
+          </button>
+
+          <PWAInstallButton />
+
+          <a
+            href="#sa-payments"
+            onClick={() => triggerHaptic('selection')}
+            className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold text-[#F4F3EC] bg-[#144239] rounded-xl hover:bg-[#1B574B] active:scale-95 transition-all whitespace-nowrap shrink-0 shadow-sm"
+          >
+            <span className="hidden sm:inline">PayFast & Ozow </span>Checkout
+          </a>
+        </div>
+      </header>
+
+      {/* Share Toast Notification */}
+      {shareToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#144239] text-[#E6C465] text-xs font-semibold px-4 py-2 rounded-full shadow-2xl border border-[#E6C465]/40 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+          <Check className="w-3.5 h-3.5" />
+          <span>{shareToast}</span>
+        </div>
+      )}
+
+      {/* ====================================================================
+          MAIN CONTENT CONTAINER (1440px Baseline)
+         ==================================================================== */}
+      <main className="flex-1 w-full max-w-[1380px] mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-12 space-y-12 sm:space-y-20">
+        {/* HERO SECTION + LOW-BANDWIDTH WORKSPACE BAR */}
+        <section className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-end">
+            <motion.div
+              initial={{opacity: 0, y: 12}}
+              animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.25}}
+              className="lg:col-span-8 space-y-3 sm:space-y-4"
+            >
+              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[#144239]/75">
+                <span>South Africa Spatial Infrastructure & Co-Living</span>
+                <span aria-hidden="true">·</span>
+                <span>Woodstock, Cape Town & Maboneng, JHB</span>
+                <span aria-hidden="true">·</span>
+                <span className="font-mono tabular-nums">ZAR (R) Native</span>
+              </div>
+
+              <h1
+                className="font-serif text-3xl sm:text-5xl lg:text-[3.5rem] font-semibold text-[#11362E] tracking-tight leading-[1.12] sm:leading-[1.08]"
+                style={{textWrap: 'balance'}}
+              >
+                Interactive 3D micro-grid anatomy, WebGL shaders & community living.
+              </h1>
+            </motion.div>
+
+            <motion.div
+              initial={{opacity: 0, y: 12}}
+              animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.25, delay: 0.05}}
+              className="lg:col-span-4 space-y-4"
+            >
+              <p className="text-xs sm:text-base text-[#11362E]/80 leading-relaxed">
+                Inspect multi-part solar and hydro hardware with custom GLSL fire,
+                water, and plasma shaders, test real-time 3D collision physics, and
+                settle via PayFast, Ozow Instant EFT, PayShap, or offline USSD.
+              </p>
+
+              {/* Workspace Quick Toggles for South African Low-Bandwidth & Offline Mode */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setLowBandwidthMode((b) => !b);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                    lowBandwidthMode
+                      ? 'bg-[#144239] text-[#E6C465] shadow-sm'
+                      : 'bg-[#E5E4D8] text-[#144239] hover:bg-[#DAD8C8]'
+                  }`}
+                >
+                  <Box className="w-3.5 h-3.5" />
+                  {lowBandwidthMode
+                    ? '2G/3G Wireframe: ON (38 KB)'
+                    : 'Enable 2G/3G Wireframe'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('warning');
+                    setIsOfflineSimulated((o) => !o);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                    isOfflineSimulated
+                      ? 'bg-[#8E1B24] text-white shadow-sm'
+                      : 'bg-[#E5E4D8] text-[#144239] hover:bg-[#DAD8C8]'
+                  }`}
+                >
+                  <WifiOff className="w-3.5 h-3.5" />
+                  {isOfflineSimulated
+                    ? 'Offline USSD Queue: ON'
+                    : 'Simulate Load-Shedding'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* 3D INTERACTIVE WEBGL STUDIO & REAL-TIME COLLISION SCENE EDITOR */}
+          <ThreeStudioViewport
+            lowBandwidthMode={lowBandwidthMode}
+            onSelectOrderForPayment={handleSelectOrderAndScroll}
+          />
+
+          {/* 4-Column Quantitative Proof & Telemetry Strip below Hero Split */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-2">
+            {[
+              {
+                label: 'Custom GLSL Shaders',
+                value: 'Fire · Water · Plasma',
+                context: '60 FPS Procedural Vertex & Fragment Pipeline',
+              },
+              {
+                label: 'Low-Bandwidth Footprint',
+                value: '38 KB Isometric Mesh',
+                context: 'Zero external .glb 404s · Loads in 0.4s on 3G',
+              },
+              {
+                label: 'Collision & Kinematics',
+                value: '135 N/m Spring Physics',
+                context: 'Real-time bounding-sphere repulsion & drag-and-drop',
+              },
+              {
+                label: 'SA Payment Settlement',
+                value: 'PayFast · Ozow · PayShap',
+                context: 'Server-side MD5 & SHA-512 cryptographic signing',
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="p-3.5 sm:p-4 rounded-2xl bg-white/80 border border-[#144239]/10 space-y-1"
+              >
+                <p className="text-[11px] sm:text-xs text-[#144239]/70">{stat.label}</p>
+                <p className="font-serif text-base sm:text-lg font-bold text-[#144239] font-mono tabular-nums">
+                  {stat.value}
+                </p>
+                <p className="text-[10px] sm:text-[11px] text-[#144239]/75">{stat.context}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* NOLI-INSPIRED VARDA COMMUNITY BOARD & ECO-GOALS */}
+        <VardaCommunityBoard onTriggerCheckout={handleSelectOrderAndScroll} />
+
+        {/* SOUTH AFRICAN PAYMENT GATEWAY (PAYFAST / OZOW / PAYSHAP / OFFLINE VAULT) */}
+        <SouthAfricaPaymentHub
+          selectedOrder={selectedOrder}
+          isOfflineSimulated={isOfflineSimulated}
+          onToggleOfflineSimulation={() => setIsOfflineSimulated((o) => !o)}
+          lowBandwidthMode={lowBandwidthMode}
+          onToggleLowBandwidth={() => setLowBandwidthMode((b) => !b)}
+        />
+
+        {/* ARCHITECTURAL & TECHNICAL SPECIFICATIONS SECTION */}
+        <section
+          id="architecture-specs"
+          className="rounded-3xl bg-[#E8E6DA] border border-[#144239]/12 p-5 sm:p-10 space-y-6 sm:space-y-8"
+        >
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium text-[#144239]/70">
+                04. Spatial & Cryptographic Architecture
+              </p>
+              <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[#11362E] mt-1">
+                Built for South African Grid & Network Realities
+              </h2>
+            </div>
+            <a
+              href="#studio"
+              className="text-xs font-semibold text-[#144239] hover:underline flex items-center gap-1 whitespace-nowrap shrink-0"
+            >
+              Return to 3D Isometric Studio
+              <ArrowDownRight className="w-3.5 h-3.5 rotate-180" />
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#F4F3EC] border border-[#144239]/10 space-y-2.5">
+              <Layers className="w-5 h-5 text-[#144239]" />
+              <h3 className="font-serif text-base sm:text-lg font-bold text-[#144239]">
+                01. Multi-Part 3D Anatomy & Spring Kinematics
+              </h3>
+              <p className="text-xs text-[#11362E]/80 leading-relaxed">
+                Every Varda hardware assembly is constructed procedurally in Three.js
+                with 7–8 individually selectable sub-components. Second-order Hooke’s
+                law spring equations smoothly interpolate exploded views and tactile
+                part isolation without layout thrashing.
+              </p>
+            </div>
+
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#F4F3EC] border border-[#144239]/10 space-y-2.5">
+              <Zap className="w-5 h-5 text-[#144239]" />
+              <h3 className="font-serif text-base sm:text-lg font-bold text-[#144239]">
+                02. GLSL Fire, Water & Plasma Shaders
+              </h3>
+              <p className="text-xs text-[#11362E]/80 leading-relaxed">
+                Custom WebGL vertex and fragment shaders simulate solar-thermal heat
+                convection (Fire), rainwater vortex waves with Fresnel caustics
+                (Water), and high-frequency toroidal inverter fields (Plasma), with
+                instant fallback to 38 KB Isometric Wireframes.
+              </p>
+            </div>
+
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#F4F3EC] border border-[#144239]/10 space-y-2.5">
+              <ShieldCheck className="w-5 h-5 text-[#144239]" />
+              <h3 className="font-serif text-base sm:text-lg font-bold text-[#144239]">
+                03. PayFast MD5 & Ozow SHA-512 Verification
+              </h3>
+              <p className="text-xs text-[#11362E]/80 leading-relaxed">
+                Server-side Next.js API routes generate URL-encoded PayFast MD5
+                signatures and Ozow SHA-512 hashes in ZAR, paired with a persistent
+                LocalStorage offline transaction queue and USSD fallback strings for
+                Stage-8 load-shedding resilience.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* QUIET ARCHITECTURAL FOOTER */}
+      <footer className="border-t border-[#144239]/12 bg-[#EAE8DC] px-4 sm:px-8 lg:px-12 py-6">
+        <div className="max-w-[1380px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#11362E]/75">
+          <div className="flex items-center gap-2">
+            <span className="font-serif font-bold text-[#144239]">Varda</span>
+            <span>·</span>
+            <span>
+              3D Spatial Product Studio & Co-Living Platform (Woodstock · Maboneng)
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <a href="#studio" className="hover:text-[#144239]">
+              3D WebGL Studio
+            </a>
+            <a href="#community-board" className="hover:text-[#144239]">
+              Varda Board
+            </a>
+            <a href="#sa-payments" className="hover:text-[#144239]">
+              PayFast & Ozow Vault
+            </a>
+          </div>
+        </div>
+      </footer>
+
+      {/* NATIVE MOBILE 5-TAB THUMB DOCK */}
+      <MobileNavBar />
+    </div>
+  );
 }

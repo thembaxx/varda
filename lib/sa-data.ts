@@ -1,5 +1,43 @@
 export type ShaderMode = 'pbr' | 'wireframe' | 'plasma' | 'fire' | 'water';
 
+/**
+ * Deterministic ZAR currency formatter ensuring exact server and client hydration parity.
+ * Avoids browser/Node ICU locale discrepancies (such as space vs comma separators).
+ */
+export function formatZarPrice(val: number, decimals: number = 0): string {
+  if (isNaN(val) || val === null || val === undefined) return '0';
+  const fixed = decimals > 0 ? val.toFixed(decimals) : Math.round(val).toString();
+  const [intPart, decPart] = fixed.split('.');
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+}
+
+export interface PartMaterialData {
+  composition: string;
+  grade: string;
+  thermalConductivityWmK: number;
+  tensileStrengthMpa: number;
+  recyclabilityRate: number; // percentage, e.g. 98.5%
+  surfaceTreatment: string;
+  embodiedCarbonKgCo2ePerKg: number;
+  temperatureRatingRange: string;
+  corrosionRating: string;
+  densityGPerCm3: number;
+}
+
+export interface PartEnergyEfficiencyData {
+  efficiencyPercent: number; // e.g. 99.4%
+  energyRatingGrade: 'A+++' | 'A++' | 'A+' | 'Ultra-Resonant' | 'Direct Pass-Through';
+  standbyPowerLossW: number;
+  heatDissipationW: number;
+  coolingMethod: string;
+  loadSheddingEndurance: string;
+  peakTariffArbitrageZarPerKwh: number;
+  annualCarbonOffsetKg: number;
+  durabilityCycleLife: string;
+  optimalPowerBand: string;
+}
+
 export interface AnatomyPart {
   id: string;
   name: string;
@@ -13,6 +51,8 @@ export interface AnatomyPart {
   rotationAxis?: 'x' | 'y' | 'z';
   rotationSpeed?: number;
   collisionRadius: number;
+  materialData?: PartMaterialData;
+  energyEfficiencyData?: PartEnergyEfficiencyData;
 }
 
 export interface VardaProductAssembly {
@@ -569,3 +609,308 @@ export const NEIGHBOURHOOD_SPOTS = [
     coords: {x: 29, y: 58},
   },
 ];
+
+// ============================================================================
+// COMPONENT INSPECTOR DATA PROVIDER (Material Specs & Energy Efficiency Metrics)
+// ============================================================================
+
+export const PART_INSPECTOR_REGISTRY: Record<
+  string,
+  {material: PartMaterialData; energy: PartEnergyEfficiencyData}
+> = {
+  'outer-glass-shield': {
+    material: {
+      composition: 'Optical Polycarbonate (Lexan Resin 9034) + UV400 Co-Extrusion',
+      grade: 'Impact-Resistant Architectural Grade 12mm · IOR 1.58',
+      thermalConductivityWmK: 0.21,
+      tensileStrengthMpa: 82.5,
+      recyclabilityRate: 94.8,
+      surfaceTreatment: 'Silica Anti-Scratch Nanocoat + Hydrophobic Rain Repellent',
+      embodiedCarbonKgCo2ePerKg: 3.2,
+      temperatureRatingRange: '-40°C to +130°C',
+      corrosionRating: 'Extreme UV & C5 Hail Class 4',
+      densityGPerCm3: 1.2,
+    },
+    energy: {
+      efficiencyPercent: 97.4,
+      energyRatingGrade: 'A+++',
+      standbyPowerLossW: 0.0,
+      heatDissipationW: 14.2,
+      coolingMethod: 'Passive Ambient Convective Chimney',
+      loadSheddingEndurance: 'Continuous All-Weather Ingress Protection (IP65)',
+      peakTariffArbitrageZarPerKwh: 0.85,
+      annualCarbonOffsetKg: 95,
+      durabilityCycleLife: '25-Year Anti-Degradation Hail Warranty',
+      optimalPowerBand: 'Zero Parasitic Load Barrier',
+    },
+  },
+  'plasma-toroid-core': {
+    material: {
+      composition: 'Nanocrystalline High-Permeability FeSiB Ribbon + Oxygen-Free Cu ETP',
+      grade: 'Metglas 2605SA1 Toroidal Core / Class 220 Enamel',
+      thermalConductivityWmK: 398.0,
+      tensileStrengthMpa: 310.0,
+      recyclabilityRate: 99.4,
+      surfaceTreatment: 'Plasma Vapor Deposition (PVD) Gold Contact Terminals',
+      embodiedCarbonKgCo2ePerKg: 1.6,
+      temperatureRatingRange: '-30°C to +180°C',
+      corrosionRating: 'Hermetic Inert Dielectric Seal',
+      densityGPerCm3: 7.85,
+    },
+    energy: {
+      efficiencyPercent: 99.4,
+      energyRatingGrade: 'Ultra-Resonant',
+      standbyPowerLossW: 0.28,
+      heatDissipationW: 28.5,
+      coolingMethod: 'Direct Dielectric Fluid Submersion',
+      loadSheddingEndurance: 'Stage-8 Resilient (Instantaneous 2ms UPS Transfer)',
+      peakTariffArbitrageZarPerKwh: 4.85,
+      annualCarbonOffsetKg: 780,
+      durabilityCycleLife: '150,000 High-Frequency Resonant Hours',
+      optimalPowerBand: '2.5 kW – 8.2 kW Resonant Sweet Spot',
+    },
+  },
+  'lifepo4-blade-west': {
+    material: {
+      composition: 'Lithium Iron Phosphate (LiFePO4) Prismatic Cells + Recycled 6061-T6 Aluminum',
+      grade: 'Automotive EV Class A+ Grade · Nanophosphate Cathode',
+      thermalConductivityWmK: 167.0,
+      tensileStrengthMpa: 290.0,
+      recyclabilityRate: 96.2,
+      surfaceTreatment: '25µm Hard Anodized Deep Forest Green (Mil-A-8625 Type III)',
+      embodiedCarbonKgCo2ePerKg: 4.8,
+      temperatureRatingRange: '-15°C to +60°C',
+      corrosionRating: 'Industrial C4 Salt Spray 1,000h',
+      densityGPerCm3: 2.7,
+    },
+    energy: {
+      efficiencyPercent: 96.8,
+      energyRatingGrade: 'A+++',
+      standbyPowerLossW: 0.35,
+      heatDissipationW: 42.0,
+      coolingMethod: 'Conductive Cold-Plate Thermal Bus Interface',
+      loadSheddingEndurance: 'Stage-8 (14.5 Hours Sustained 1.2kW Co-op Base Load)',
+      peakTariffArbitrageZarPerKwh: 4.15,
+      annualCarbonOffsetKg: 1150,
+      durabilityCycleLife: '8,000 Full Cycles @ 80% DoD (22-Year Life)',
+      optimalPowerBand: '0.2C to 1.0C Continuous Charge/Discharge',
+    },
+  },
+  'lifepo4-blade-east': {
+    material: {
+      composition: 'Lithium Iron Phosphate (LiFePO4) Prismatic Cells + Solid Copper Busbars',
+      grade: 'Automotive EV Class A+ Grade · Active BMS Cell Balancing',
+      thermalConductivityWmK: 167.0,
+      tensileStrengthMpa: 290.0,
+      recyclabilityRate: 96.2,
+      surfaceTreatment: '25µm Hard Anodized Deep Forest Green + Nickel-Plated Terminals',
+      embodiedCarbonKgCo2ePerKg: 4.8,
+      temperatureRatingRange: '-15°C to +60°C',
+      corrosionRating: 'Industrial C4 Salt Spray 1,000h',
+      densityGPerCm3: 2.7,
+    },
+    energy: {
+      efficiencyPercent: 96.5,
+      energyRatingGrade: 'A+++',
+      standbyPowerLossW: 0.38,
+      heatDissipationW: 44.0,
+      coolingMethod: 'Conductive Cold-Plate Thermal Bus Interface',
+      loadSheddingEndurance: 'Stage-8 Peak Shaving Reserve (5.12 kWh Usable)',
+      peakTariffArbitrageZarPerKwh: 4.15,
+      annualCarbonOffsetKg: 1150,
+      durabilityCycleLife: '8,000 Full Cycles @ 80% DoD (22-Year Life)',
+      optimalPowerBand: '0.2C to 1.0C Continuous Charge/Discharge',
+    },
+  },
+  'thermal-fire-heatsink': {
+    material: {
+      composition: 'Silicon-Carbide (SiC) Trench MOSFETs + Cold-Forged Tellurium Copper C14500',
+      grade: 'Semiconductor SiC Gen-3 / C14500 High-Conductivity 93% IACS',
+      thermalConductivityWmK: 355.0,
+      tensileStrengthMpa: 340.0,
+      recyclabilityRate: 98.8,
+      surfaceTreatment: 'Electroless Nickel Immersion Gold (ENIG) + Micro-Skived Fins',
+      embodiedCarbonKgCo2ePerKg: 2.1,
+      temperatureRatingRange: '-40°C to +175°C',
+      corrosionRating: 'Aerospace ISO-9 Standard',
+      densityGPerCm3: 8.94,
+    },
+    energy: {
+      efficiencyPercent: 99.1,
+      energyRatingGrade: 'Ultra-Resonant',
+      standbyPowerLossW: 0.15,
+      heatDissipationW: 58.0,
+      coolingMethod: 'Vapor Chamber Phase-Change Thermal Spreading',
+      loadSheddingEndurance: 'Ultra-Fast Surge Clamping (10kA 8/20µs Transient Arrest)',
+      peakTariffArbitrageZarPerKwh: 3.4,
+      annualCarbonOffsetKg: 520,
+      durabilityCycleLife: '100,000 Thermal Shock Cycles (-20°C to +100°C)',
+      optimalPowerBand: '3.2 kW – 5.5 kW PV Array MPPT Window',
+    },
+  },
+  'hydro-cooling-loop': {
+    material: {
+      composition: 'Borosilicate Glass 3.3 Reservoir + Synthetic Biodegradable Ester Dielectric Fluid',
+      grade: 'DIN ISO 3585 Schott Duran / MIDEL 7131 Dielectric Non-Toxic',
+      thermalConductivityWmK: 1.2,
+      tensileStrengthMpa: 110.0,
+      recyclabilityRate: 99.8,
+      surfaceTreatment: 'Fire-Polished Stress-Relieved Annealing + Viton O-Rings',
+      embodiedCarbonKgCo2ePerKg: 0.85,
+      temperatureRatingRange: '-20°C to +140°C',
+      corrosionRating: 'Chemical Inert Class 1 / Zero Hydrolysis',
+      densityGPerCm3: 2.23,
+    },
+    energy: {
+      efficiencyPercent: 98.7,
+      energyRatingGrade: 'A+++',
+      standbyPowerLossW: 0.65,
+      heatDissipationW: 320.0,
+      coolingMethod: 'Closed-Loop Dielectric Natural Thermosiphon Circulation',
+      loadSheddingEndurance: 'Passive 4-Hour Thermal Buffering without Grid Draw',
+      peakTariffArbitrageZarPerKwh: 1.9,
+      annualCarbonOffsetKg: 340,
+      durabilityCycleLife: '20-Year Sealed Fluid Integrity (Zero Top-Up Required)',
+      optimalPowerBand: '2.0 – 6.0 L/min Flow Dynamic Equilibrium',
+    },
+  },
+  'payshap-nfc-terminal': {
+    material: {
+      composition: 'Zirconia (ZrO2) Sintered High-Tech Ceramic + 24k Gold Busbar Traces',
+      grade: 'Yttria-Stabilized Tetragonal Zirconia Polycrystal (Y-TZP)',
+      thermalConductivityWmK: 2.7,
+      tensileStrengthMpa: 1200.0,
+      recyclabilityRate: 92.4,
+      surfaceTreatment: 'Diamond-Polished Matte Finish + Micro-Embossed Braille Dial',
+      embodiedCarbonKgCo2ePerKg: 3.4,
+      temperatureRatingRange: '-20°C to +85°C',
+      corrosionRating: 'IP67 Submersible & Scratch-Proof Mohs 8.5 Hardness',
+      densityGPerCm3: 6.05,
+    },
+    energy: {
+      efficiencyPercent: 99.9,
+      energyRatingGrade: 'Direct Pass-Through',
+      standbyPowerLossW: 0.08,
+      heatDissipationW: 0.8,
+      coolingMethod: 'Passive Substrate Conductive Sinking',
+      loadSheddingEndurance: 'Offline Non-Volatile Flash + 48h Supercapacitor Backup',
+      peakTariffArbitrageZarPerKwh: 2.8,
+      annualCarbonOffsetKg: 180,
+      durabilityCycleLife: '1,000,000 Tap & Transaction Cycles',
+      optimalPowerBand: '0.08W Sleep / 1.8W Active NFC Burst',
+    },
+  },
+  'seismic-base-plinth': {
+    material: {
+      composition: 'Obsidian Ductile Spheroidal Graphite Iron (EN-GJS-500-7) + Heavy Solid Copper Bus',
+      grade: 'Ductile Iron SABS 936 / S355 Structural Heavy Foundation Grade',
+      thermalConductivityWmK: 36.0,
+      tensileStrengthMpa: 500.0,
+      recyclabilityRate: 100.0,
+      surfaceTreatment: 'Bituminous Corrosion Shield + Phosphated Zinc Primer',
+      embodiedCarbonKgCo2ePerKg: 1.15,
+      temperatureRatingRange: '-40°C to +200°C',
+      corrosionRating: 'Underground & Marine Heavy C5-M (50-Year Spec)',
+      densityGPerCm3: 7.15,
+    },
+    energy: {
+      efficiencyPercent: 99.98,
+      energyRatingGrade: 'Direct Pass-Through',
+      standbyPowerLossW: 0.0,
+      heatDissipationW: 5.0,
+      coolingMethod: 'Direct Sub-Floor Conductive Ground Thermal Sinking',
+      loadSheddingEndurance: '40kA Lightning Surge Shunt (Zero Grid Return Impedance)',
+      peakTariffArbitrageZarPerKwh: 0.4,
+      annualCarbonOffsetKg: 60,
+      durabilityCycleLife: '50-Year Structural Anchor Guarantee',
+      optimalPowerBand: 'Static Low-Impedance Base (0.18 Ω Earth Bus)',
+    },
+  },
+};
+
+/**
+ * Returns specific material properties and real-time energy efficiency metrics
+ * for any given 3D Anatomy Part.
+ */
+export function getPartInspectorData(
+  part: AnatomyPart,
+  assemblyId?: string
+): {material: PartMaterialData; energy: PartEnergyEfficiencyData} {
+  if (part.materialData && part.energyEfficiencyData) {
+    return {
+      material: part.materialData,
+      energy: part.energyEfficiencyData,
+    };
+  }
+
+  const registered = PART_INSPECTOR_REGISTRY[part.id];
+  if (registered) {
+    // If it's the Drakensberg Hydro-Solar unit, provide water-specific adaptations
+    if (assemblyId === 'table-mountain-hydro-thermal') {
+      if (part.id === 'plasma-toroid-core') {
+        return {
+          material: {
+            ...registered.material,
+            composition: 'Synthetic Fused Silica Quartz Sleeve + 254nm UV-C Arc Emitter',
+            grade: 'High-Purity Quartz Glass JGS1 / 316L Stainless Chamber',
+            tensileStrengthMpa: 48.0,
+          },
+          energy: {
+            ...registered.energy,
+            efficiencyPercent: 99.2,
+            heatDissipationW: 18.0,
+            standbyPowerLossW: 0.12,
+            loadSheddingEndurance: 'Solar Direct DC Sterilization (99.99% Pathogen Free)',
+          },
+        };
+      }
+      if (part.id === 'thermal-fire-heatsink') {
+        return {
+          material: {
+            ...registered.material,
+            composition: 'Evacuated Double-Wall Borosilicate + Copper Heat-Pipe with AL-N/AL Selective Coating',
+            grade: 'Solar Thermal Class 1 Evacuated Vacuum Tube',
+            thermalConductivityWmK: 380.0,
+          },
+          energy: {
+            ...registered.energy,
+            efficiencyPercent: 89.4,
+            heatDissipationW: 2400.0, // Useful thermal yield
+            coolingMethod: 'Thermosiphon Heat Exchange to Water Boiler',
+            loadSheddingEndurance: 'Zero Grid Draw Hot Water (Heats up to 72°C purely on solar)',
+            annualCarbonOffsetKg: 890,
+          },
+        };
+      }
+    }
+    return registered;
+  }
+
+  // Graceful fallback for custom dynamic nodes
+  return {
+    material: {
+      composition: part.materialSpec || 'Aerospace Lightweight Composite',
+      grade: 'Industrial Spec Grade 1',
+      thermalConductivityWmK: 45.0,
+      tensileStrengthMpa: 250.0,
+      recyclabilityRate: 92.0,
+      surfaceTreatment: 'UV-Resistant Protective Nanocoat',
+      embodiedCarbonKgCo2ePerKg: 2.5,
+      temperatureRatingRange: '-20°C to +85°C',
+      corrosionRating: 'IP65 All-Weather',
+      densityGPerCm3: 2.8,
+    },
+    energy: {
+      efficiencyPercent: 96.0,
+      energyRatingGrade: 'A++',
+      standbyPowerLossW: 0.5,
+      heatDissipationW: 25.0,
+      coolingMethod: 'Passive Ambient Convection',
+      loadSheddingEndurance: 'Stage-8 Resilient',
+      peakTariffArbitrageZarPerKwh: 3.2,
+      annualCarbonOffsetKg: 300,
+      durabilityCycleLife: '10,000 Operating Cycles',
+      optimalPowerBand: 'Standard Operating Range',
+    },
+  };
+}
