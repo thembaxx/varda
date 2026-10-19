@@ -5,3 +5,9 @@ coverage/
 *.log
 .env*
 !.env.example
+
+.data/
+playwright-report/
+test-results/
+*.tsbuildinfo
+public/sw-assets.json

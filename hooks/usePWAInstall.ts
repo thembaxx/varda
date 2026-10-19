@@ -23,7 +23,7 @@ export function usePWAInstall() {
     // Detect iOS devices
     if (typeof window !== 'undefined') {
       const userAgent = window.navigator.userAgent.toLowerCase();
-      const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+      const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       setIsIOS(isIOSDevice);
     }
 
@@ -48,14 +48,13 @@ export function usePWAInstall() {
 
   const install = async () => {
     if (!deferredPrompt) return false;
-    await deferredPrompt.prompt();
-    const {outcome} = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstalled(true);
+    try {
+      await deferredPrompt.prompt();
+      const {outcome} = await deferredPrompt.userChoice;
+      return outcome === 'accepted';
+    } finally {
       setDeferredPrompt(null);
-      return true;
     }
-    return false;
   };
 
   return {
