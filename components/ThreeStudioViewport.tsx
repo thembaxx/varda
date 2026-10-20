@@ -314,13 +314,22 @@ const THERMAL_FRAGMENT_SHADER = `
 // Pre-allocated math helpers at module scope to prevent GC in the animation loop
 const _tempVec3 = new THREE.Vector3();
 const _targetVec3 = new THREE.Vector3();
+const _zeroVec3 = new THREE.Vector3(0, 0, 0);
 const _dragIntersect = new THREE.Vector3();
 const _groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const _partDragPlane = new THREE.Plane();
+const _camDir = new THREE.Vector3();
+const _grabOffset = new THREE.Vector3();
+const _prevDragWorldPos = new THREE.Vector3();
+const _instVel = new THREE.Vector3();
+const _smoothedThrowVel = new THREE.Vector3();
 
 interface SpringState {
   pos: THREE.Vector3;
   vel: THREE.Vector3;
   target: THREE.Vector3;
+  customOffset: THREE.Vector3;
+  angVel: THREE.Vector3;
   scale: number;
   scaleVel: number;
   targetScale: number;
@@ -353,6 +362,10 @@ export default function ThreeStudioViewport({
     VARDA_ASSEMBLIES[0].parts[1].id
   );
   const [isolatePart, setIsolatePart] = useState<boolean>(false);
+  const [freeRearrangeMode, setFreeRearrangeMode] = useState<boolean>(true);
+  const [lastTossSpeed, setLastTossSpeed] = useState<number>(0);
+  const [rearrangedCount, setRearrangedCount] = useState<number>(0);
+  const [activeGrabLabel, setActiveGrabLabel] = useState<string | null>(null);
   const [clipPercent, setClipPercent] = useState<number>(0);
   const [clipAxis, setClipAxis] = useState<'y' | 'x'>('y');
   const [eskomStage, setEskomStage] = useState<number>(4);
@@ -411,6 +424,7 @@ export default function ThreeStudioViewport({
     explodeFactor,
     selectedPartId,
     isolatePart,
+    freeRearrangeMode,
     clipPercent,
     clipAxis,
     eskomStage,
@@ -432,6 +446,7 @@ export default function ThreeStudioViewport({
       explodeFactor,
       selectedPartId,
       isolatePart,
+      freeRearrangeMode,
       clipPercent,
       clipAxis,
       eskomStage,
@@ -450,6 +465,7 @@ export default function ThreeStudioViewport({
     explodeFactor,
     selectedPartId,
     isolatePart,
+    freeRearrangeMode,
     clipPercent,
     clipAxis,
     eskomStage,
@@ -460,9 +476,20 @@ export default function ThreeStudioViewport({
     soundEnabled,
   ]);
 
-  // Procedural Web Audio synthesizer for tactile micro-interactions, drag-and-drop, and collision feedback
+  // Procedural Web Audio synthesizer for tactile micro-interactions, grab/toss physics, and collision feedback
   const playTactileTone = useCallback(
-    (type: 'select' | 'collide' | 'snap' | 'spawn' | 'dragstart' | 'dragmove' | 'drop' | 'dock-spawn') => {
+    (
+      type:
+        | 'select'
+        | 'collide'
+        | 'snap'
+        | 'spawn'
+        | 'dragstart'
+        | 'dragmove'
+        | 'drop'
+        | 'dock-spawn'
+        | 'toss'
+    ) => {
       if (!stateRef.current.soundEnabled || typeof window === 'undefined') return;
       try {
         const AudioCtx =
@@ -482,7 +509,6 @@ export default function ThreeStudioViewport({
 
         if (type === 'dragstart') {
           triggerHaptic('light');
-          // Subtle upward tactile blip when picking up a 3D component
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -494,8 +520,21 @@ export default function ThreeStudioViewport({
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 0.06);
+        } else if (type === 'toss') {
+          triggerHaptic('heavy');
+          // Kinetic aerodynamic whoosh + harmonic launch chirp when tossing a 3D part
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.11);
+          gain.gain.setValueAtTime(0.09, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.14);
         } else if (type === 'dragmove') {
-          // Micro-tick as component glides across grid divisions
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -509,7 +548,6 @@ export default function ThreeStudioViewport({
           osc.stop(now + 0.02);
         } else if (type === 'drop') {
           triggerHaptic('medium');
-          // Satisfying resonant mechanical latch / settling thud
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'triangle';
@@ -523,7 +561,6 @@ export default function ThreeStudioViewport({
           osc.stop(now + 0.12);
         } else if (type === 'snap') {
           triggerHaptic('selection');
-          // Crisp magnetic busbar snap
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -537,7 +574,6 @@ export default function ThreeStudioViewport({
           osc.stop(now + 0.05);
         } else if (type === 'dock-spawn' || type === 'spawn') {
           triggerHaptic('success');
-          // Melodic two-tone confirmation chime when dropping new module into the scene
           const osc1 = ctx.createOscillator();
           const osc2 = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -558,7 +594,6 @@ export default function ThreeStudioViewport({
           osc2.stop(now + 0.14);
         } else if (type === 'collide') {
           triggerHaptic('warning');
-          // Soft rubberized warning bump
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'triangle';
@@ -572,7 +607,6 @@ export default function ThreeStudioViewport({
           osc.stop(now + 0.15);
         } else if (type === 'select') {
           triggerHaptic('light');
-          // Part anatomy selection ping
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -591,6 +625,54 @@ export default function ThreeStudioViewport({
     },
     []
   );
+
+  // Reset all grabbed/tossed anatomy components back to their calibrated engineering layout
+  const handleResetAssemblyLayout = useCallback(() => {
+    triggerHaptic('medium');
+    playTactileTone('snap');
+    const springs = partSpringsMapRef.current;
+    if (springs) {
+      springs.forEach((sp) => {
+        sp.customOffset.set(0, 0, 0);
+        sp.vel.set(0, 0, 0);
+        sp.angVel.set(0, 0, 0);
+        sp.scaleVel += 1.4;
+      });
+    }
+    setRearrangedCount(0);
+    setLastTossSpeed(0);
+  }, [playTactileTone]);
+
+  // Apply a kinetic toss impulse burst to demonstrate 3D grab & toss physics immediately
+  const handleKineticTossBurst = useCallback(() => {
+    triggerHaptic('heavy');
+    playTactileTone('toss');
+    setFreeRearrangeMode(true);
+    const springs = partSpringsMapRef.current;
+    if (springs) {
+      let idx = 0;
+      let peakSpeed = 0;
+      springs.forEach((sp) => {
+        const angle = (idx * 2.39996) + (Math.random() * 0.4); // Golden angle distribution
+        const speed = 3.2 + (idx % 3) * 1.4;
+        peakSpeed = Math.max(peakSpeed, speed);
+        sp.vel.set(
+          Math.cos(angle) * speed,
+          1.2 + (idx % 2) * 0.9,
+          Math.sin(angle) * speed
+        );
+        sp.angVel.set(
+          (Math.random() - 0.5) * 4.5,
+          (Math.random() - 0.5) * 4.5,
+          (Math.random() - 0.5) * 4.5
+        );
+        sp.scaleVel += 1.8;
+        idx++;
+      });
+      setLastTossSpeed(Number(peakSpeed.toFixed(1)));
+      setRearrangedCount(springs.size);
+    }
+  }, [playTactileTone]);
 
   // Build procedural canvas dial texture for ground pad
   const createTechnicalGridTexture = useCallback((maxAnisotropy: number) => {
@@ -1049,6 +1131,8 @@ export default function ThreeStudioViewport({
           pos: initPos.clone(),
           vel: new THREE.Vector3(),
           target: initPos.clone(),
+          customOffset: new THREE.Vector3(),
+          angVel: new THREE.Vector3(),
           scale: 1,
           scaleVel: 0,
           targetScale: 1,
@@ -1057,6 +1141,21 @@ export default function ThreeStudioViewport({
     };
 
     buildAnatomyMeshes(VARDA_ASSEMBLIES[0]);
+
+    // 3D Grab Tether & Velocity Vector Line Indicator
+    const tetherPositions = new Float32Array(9); // Anchor -> Grabbed Pos -> Predicted Toss Tip
+    const tetherGeo = new THREE.BufferGeometry();
+    tetherGeo.setAttribute('position', new THREE.BufferAttribute(tetherPositions, 3));
+    const grabTetherLine = new THREE.Line(
+      tetherGeo,
+      new THREE.LineBasicMaterial({
+        color: '#E6C465',
+        transparent: true,
+        opacity: 0.85,
+      })
+    );
+    grabTetherLine.visible = false;
+    scene.add(grabTetherLine);
 
     // ========================================================================
     // 2. SCENE EDITOR GROUP (DRAG-AND-DROP ASSETS & REACTIVE COLLISIONS)
@@ -1191,19 +1290,20 @@ export default function ThreeStudioViewport({
     syncEditorNodes(INITIAL_SCENE_NODES);
 
     // ========================================================================
-    // POINTER RAYCASTING & DRAG-AND-DROP INTERACTION
-    // ========================================================================
-    // POINTER RAYCASTING & DRAG-AND-DROP INTERACTION (TAP VS ORBIT DETECTION)
+    // POINTER RAYCASTING, 3D GRAB & TOSS PHYSICS (MOUSE & TOUCH)
     // ========================================================================
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    let draggingPartId: string | null = null;
     let draggingNodeUid: string | null = null;
     let lastCollisionHash = '';
     let lastDragAudioTime = 0;
+    let lastBounceAudioTime = 0;
     let lastAudioX = 0;
     let lastAudioZ = 0;
+    let lastDragTimestamp = 0;
 
-    // Track pointer movement to differentiate true tap/click from camera orbit rotation
+    // Track pointer movement to differentiate true tap/click from grab/toss or camera orbit
     let pointerDownX = 0;
     let pointerDownY = 0;
     let pointerMovedDist = 0;
@@ -1214,6 +1314,26 @@ export default function ThreeStudioViewport({
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     };
 
+    const updateTetherGeometry = (
+      ax: number,
+      ay: number,
+      az: number,
+      bx: number,
+      by: number,
+      bz: number,
+      vx: number,
+      vy: number,
+      vz: number
+    ) => {
+      const posAttr = grabTetherLine.geometry.getAttribute(
+        'position'
+      ) as THREE.BufferAttribute;
+      posAttr.setXYZ(0, ax, ay, az);
+      posAttr.setXYZ(1, bx, by, bz);
+      posAttr.setXYZ(2, bx + vx * 0.18, by + vy * 0.18, bz + vz * 0.18);
+      posAttr.needsUpdate = true;
+    };
+
     const onPointerDown = (e: PointerEvent) => {
       pointerDownX = e.clientX;
       pointerDownY = e.clientY;
@@ -1222,17 +1342,70 @@ export default function ThreeStudioViewport({
       const activeCam = stateRef.current.isIsometric ? orthoCamera : perspCamera;
       raycaster.setFromCamera(pointer, activeCam);
 
-      if (stateRef.current.workspaceMode === 'scene-editor') {
+      if (stateRef.current.workspaceMode === 'anatomy') {
+        const hits = raycaster.intersectObjects(raycastTargets, false);
+        if (hits.length > 0) {
+          const hitPartId = hits[0].object.userData.partId;
+          const holder = hitPartId ? partMeshesMap.get(hitPartId) : null;
+          const spring = hitPartId ? partSpringsMap.get(hitPartId) : null;
+          if (hitPartId && holder && spring) {
+            draggingPartId = hitPartId;
+            setSelectedPartId(hitPartId);
+            const assembly =
+              VARDA_ASSEMBLIES.find((a) => a.id === stateRef.current.selectedAssemblyId) ||
+              VARDA_ASSEMBLIES[0];
+            const foundPart = assembly.parts.find((p) => p.id === hitPartId);
+            setActiveGrabLabel(foundPart ? foundPart.name : hitPartId);
+
+            controls.enabled = false;
+            renderer.domElement.style.cursor = 'grabbing';
+            try {
+              renderer.domElement.setPointerCapture(e.pointerId);
+            } catch {
+              // Ignore if synthetic pointer
+            }
+
+            // Build a camera-facing drag plane passing through the grabbed part's center
+            activeCam.getWorldDirection(_camDir).negate();
+            _partDragPlane.setFromNormalAndCoplanarPoint(_camDir, holder.position);
+            if (raycaster.ray.intersectPlane(_partDragPlane, _dragIntersect)) {
+              _grabOffset.subVectors(holder.position, _dragIntersect);
+            } else {
+              _grabOffset.set(0, 0, 0);
+            }
+
+            _prevDragWorldPos.copy(holder.position);
+            _smoothedThrowVel.set(0, 0, 0);
+            lastDragTimestamp = performance.now();
+            lastAudioX = holder.position.x;
+            lastAudioZ = holder.position.z;
+            spring.vel.set(0, 0, 0);
+            spring.angVel.set(0, 0, 0);
+            playTactileTone('dragstart');
+          }
+        }
+      } else if (stateRef.current.workspaceMode === 'scene-editor') {
         const hits = raycaster.intersectObjects(editorDragTargets, false);
         if (hits.length > 0) {
           const uid = hits[0].object.userData.nodeUid;
           if (uid) {
             draggingNodeUid = uid;
             setSelectedNodeUid(uid);
+            const foundNode = stateRef.current.sceneNodes.find((n) => n.uid === uid);
+            setActiveGrabLabel(foundNode ? foundNode.label : uid);
             controls.enabled = false;
             renderer.domElement.style.cursor = 'grabbing';
+            try {
+              renderer.domElement.setPointerCapture(e.pointerId);
+            } catch {
+              // Ignore
+            }
             const entry = nodeMeshesMap.get(uid);
             if (entry) {
+              entry.vel.set(0, 0, 0);
+              _prevDragWorldPos.copy(entry.root.position);
+              _smoothedThrowVel.set(0, 0, 0);
+              lastDragTimestamp = performance.now();
               lastAudioX = entry.root.position.x;
               lastAudioZ = entry.root.position.z;
             }
@@ -1247,6 +1420,76 @@ export default function ThreeStudioViewport({
       updatePointer(e);
       const activeCam = stateRef.current.isIsometric ? orthoCamera : perspCamera;
 
+      // 1. Anatomy 3D Hardware Sub-Component Grab & Rearrange
+      if (draggingPartId && stateRef.current.workspaceMode === 'anatomy') {
+        raycaster.setFromCamera(pointer, activeCam);
+        if (raycaster.ray.intersectPlane(_partDragPlane, _dragIntersect)) {
+          _dragIntersect.add(_grabOffset);
+          const clampedX = THREE.MathUtils.clamp(_dragIntersect.x, -3.3, 3.3);
+          const clampedY = THREE.MathUtils.clamp(_dragIntersect.y, 0.18, 3.35);
+          const clampedZ = THREE.MathUtils.clamp(_dragIntersect.z, -3.3, 3.3);
+          _dragIntersect.set(clampedX, clampedY, clampedZ);
+
+          const now = performance.now();
+          const dtMove = Math.max(0.004, (now - lastDragTimestamp) / 1000);
+          _instVel.subVectors(_dragIntersect, _prevDragWorldPos).divideScalar(dtMove);
+          _smoothedThrowVel.lerp(_instVel, 0.5);
+          _prevDragWorldPos.copy(_dragIntersect);
+          lastDragTimestamp = now;
+
+          const holder = partMeshesMap.get(draggingPartId);
+          const spring = partSpringsMap.get(draggingPartId);
+          const assembly =
+            VARDA_ASSEMBLIES.find((a) => a.id === stateRef.current.selectedAssemblyId) ||
+            VARDA_ASSEMBLIES[0];
+          const part = assembly.parts.find((p) => p.id === draggingPartId);
+
+          if (holder && spring && part) {
+            const baseX =
+              part.defaultPosition[0] +
+              part.explodeOffset[0] * stateRef.current.explodeFactor;
+            const baseY =
+              part.defaultPosition[1] +
+              part.explodeOffset[1] * stateRef.current.explodeFactor +
+              0.14;
+            const baseZ =
+              part.defaultPosition[2] +
+              part.explodeOffset[2] * stateRef.current.explodeFactor;
+
+            spring.customOffset.set(
+              clampedX - baseX,
+              clampedY - baseY,
+              clampedZ - baseZ
+            );
+            spring.pos.set(clampedX, clampedY, clampedZ);
+            holder.position.copy(spring.pos);
+
+            grabTetherLine.visible = true;
+            updateTetherGeometry(
+              baseX,
+              baseY,
+              baseZ,
+              clampedX,
+              clampedY,
+              clampedZ,
+              _smoothedThrowVel.x,
+              _smoothedThrowVel.y,
+              _smoothedThrowVel.z
+            );
+          }
+
+          const distMoved = Math.hypot(clampedX - lastAudioX, clampedZ - lastAudioZ);
+          if (distMoved >= 0.35 && now - lastDragAudioTime > 85) {
+            lastDragAudioTime = now;
+            lastAudioX = clampedX;
+            lastAudioZ = clampedZ;
+            playTactileTone('dragmove');
+          }
+        }
+        return;
+      }
+
+      // 2. Scene Editor 3D Module Grab & Toss Tracking
       if (draggingNodeUid && stateRef.current.workspaceMode === 'scene-editor') {
         raycaster.setFromCamera(pointer, activeCam);
         if (raycaster.ray.intersectPlane(_groundPlane, _dragIntersect)) {
@@ -1260,14 +1503,33 @@ export default function ThreeStudioViewport({
             ? Math.round(clampedZ * 2) / 2
             : clampedZ;
 
+          const now = performance.now();
+          const dtMove = Math.max(0.004, (now - lastDragTimestamp) / 1000);
+          _instVel
+            .set(finalX - _prevDragWorldPos.x, 0, finalZ - _prevDragWorldPos.z)
+            .divideScalar(dtMove);
+          _smoothedThrowVel.lerp(_instVel, 0.5);
+          _prevDragWorldPos.set(finalX, 0, finalZ);
+          lastDragTimestamp = now;
+
           const entry = nodeMeshesMap.get(draggingNodeUid);
           if (entry) {
             entry.root.position.set(finalX, 0, finalZ);
+            grabTetherLine.visible = true;
+            updateTetherGeometry(
+              0,
+              0.2,
+              0,
+              finalX,
+              0.35,
+              finalZ,
+              _smoothedThrowVel.x,
+              0,
+              _smoothedThrowVel.z
+            );
           }
 
-          // Trigger subtle micro-tick audio feedback when dragging across space
           const distMoved = Math.hypot(finalX - lastAudioX, finalZ - lastAudioZ);
-          const now = performance.now();
           if (distMoved >= 0.35 && now - lastDragAudioTime > 85) {
             lastDragAudioTime = now;
             lastAudioX = finalX;
@@ -1294,42 +1556,97 @@ export default function ThreeStudioViewport({
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      try {
+        renderer.domElement.releasePointerCapture(e.pointerId);
+      } catch {
+        // Ignore
+      }
+      grabTetherLine.visible = false;
+      setActiveGrabLabel(null);
+
+      // 1. Release Grabbed Anatomy Part (Tap vs Placement vs Kinetic Toss)
+      if (draggingPartId) {
+        const releasedId = draggingPartId;
+        draggingPartId = null;
+        controls.enabled = true;
+        renderer.domElement.style.cursor = 'grab';
+
+        const spring = partSpringsMap.get(releasedId);
+        if (pointerMovedDist < 8) {
+          // Quick tap without dragging -> open inspector & pulse spring
+          if (spring) {
+            spring.customOffset.set(0, 0, 0);
+            spring.scaleVel += 1.8;
+          }
+          setInspectorOpen(true);
+          playTactileTone('select');
+          return;
+        }
+
+        if (spring) {
+          const timeSinceLastMove = performance.now() - lastDragTimestamp;
+          const rawSpeed = timeSinceLastMove < 110 ? _smoothedThrowVel.length() : 0;
+          const tossSpeed = Math.min(13.5, rawSpeed * 1.12);
+
+          if (tossSpeed > 0.75) {
+            spring.vel.copy(_smoothedThrowVel).normalize().multiplyScalar(tossSpeed);
+            spring.angVel.set(
+              spring.vel.z * 0.85,
+              spring.vel.x * 0.65,
+              -spring.vel.x * 0.75
+            );
+            spring.scaleVel += 1.5;
+            setLastTossSpeed(Number(tossSpeed.toFixed(1)));
+            playTactileTone('toss');
+          } else {
+            spring.vel.set(0, 0, 0);
+            playTactileTone('drop');
+          }
+        }
+
+        // Count how many anatomy parts have been visually rearranged
+        let movedCount = 0;
+        partSpringsMap.forEach((sp) => {
+          if (sp.customOffset.lengthSq() > 0.01) movedCount++;
+        });
+        setRearrangedCount(movedCount);
+        return;
+      }
+
+      // 2. Release Grabbed Scene Editor Module (Placement vs Ground-Pad Toss)
       if (draggingNodeUid) {
-        if (stateRef.current.snapToGrid) {
+        const entry = nodeMeshesMap.get(draggingNodeUid);
+        const timeSinceLastMove = performance.now() - lastDragTimestamp;
+        const rawSpeed =
+          !stateRef.current.snapToGrid && timeSinceLastMove < 110
+            ? Math.hypot(_smoothedThrowVel.x, _smoothedThrowVel.z)
+            : 0;
+        const tossSpeed = Math.min(12.0, rawSpeed * 1.1);
+
+        if (entry && tossSpeed > 0.8) {
+          entry.vel
+            .set(_smoothedThrowVel.x, 0, _smoothedThrowVel.z)
+            .normalize()
+            .multiplyScalar(tossSpeed);
+          setLastTossSpeed(Number(tossSpeed.toFixed(1)));
+          playTactileTone('toss');
+        } else if (stateRef.current.snapToGrid) {
           playTactileTone('snap');
         } else {
           playTactileTone('drop');
         }
+
         draggingNodeUid = null;
         controls.enabled = true;
         renderer.domElement.style.cursor = 'grab';
         return;
-      }
-
-      // Tap detection: Only trigger part selection if pointer didn't orbit/drag (threshold 10px)
-      if (pointerMovedDist < 10 && stateRef.current.workspaceMode === 'anatomy') {
-        updatePointer(e);
-        const activeCam = stateRef.current.isIsometric ? orthoCamera : perspCamera;
-        raycaster.setFromCamera(pointer, activeCam);
-        const hits = raycaster.intersectObjects(raycastTargets, false);
-        if (hits.length > 0) {
-          const hitPartId = hits[0].object.userData.partId;
-          if (hitPartId) {
-            setSelectedPartId(hitPartId);
-            setInspectorOpen(true);
-            playTactileTone('select');
-            const spring = partSpringsMap.get(hitPartId);
-            if (spring) {
-              spring.scaleVel += 1.8; // Tactile spring impulse on click
-            }
-          }
-        }
       }
     };
 
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
 
     // Pre-compile shaders
     renderer.compile(scene, perspCamera);
@@ -1339,7 +1656,7 @@ export default function ThreeStudioViewport({
     let currentBuiltAssemblyId = VARDA_ASSEMBLIES[0].id;
 
     // ========================================================================
-    // ANIMATION, SPRING PHYSICS & REACTIVE COLLISION LOOP
+    // ANIMATION, SPRING PHYSICS, GRAB/TOSS MOMENTUM & COLLISION LOOP
     // ========================================================================
     const clock = new THREE.Clock();
     let frameId = 0;
@@ -1429,25 +1746,129 @@ export default function ThreeStudioViewport({
           VARDA_ASSEMBLIES.find((a) => a.id === st.selectedAssemblyId) ||
           VARDA_ASSEMBLIES[0];
 
+        // Inter-part 3D bounding-sphere collision repulsion & momentum transfer when rearranged/tossed
+        for (let i = 0; i < assembly.parts.length; i++) {
+          const partA = assembly.parts[i];
+          const spA = partSpringsMap.get(partA.id);
+          if (!spA) continue;
+
+          for (let j = i + 1; j < assembly.parts.length; j++) {
+            const partB = assembly.parts[j];
+            const spB = partSpringsMap.get(partB.id);
+            if (!spB) continue;
+
+            // Only collide if at least one part has velocity or custom rearranged offset
+            const activeKinetic =
+              spA.vel.lengthSq() > 0.05 ||
+              spB.vel.lengthSq() > 0.05 ||
+              (st.freeRearrangeMode &&
+                (spA.customOffset.lengthSq() > 0.04 || spB.customOffset.lengthSq() > 0.04));
+            if (!activeKinetic) continue;
+
+            _tempVec3.subVectors(spA.pos, spB.pos);
+            const dist = _tempVec3.length();
+            const minDist = (partA.collisionRadius + partB.collisionRadius) * 0.52;
+            if (dist < minDist && dist > 0.001) {
+              const overlap = minDist - dist;
+              _tempVec3.divideScalar(dist); // collision normal B -> A
+              if (st.freeRearrangeMode) {
+                if (draggingPartId !== partA.id) {
+                  spA.customOffset.addScaledVector(_tempVec3, overlap * 0.5);
+                  spA.vel.addScaledVector(_tempVec3, overlap * 4.5);
+                }
+                if (draggingPartId !== partB.id) {
+                  spB.customOffset.addScaledVector(_tempVec3, -overlap * 0.5);
+                  spB.vel.addScaledVector(_tempVec3, -overlap * 4.5);
+                }
+              }
+            }
+          }
+        }
+
         assembly.parts.forEach((part) => {
           const holder = partMeshesMap.get(part.id);
           const spring = partSpringsMap.get(part.id);
           if (!holder || !spring) return;
 
           const isSelected = st.selectedPartId === part.id;
+          const isBeingGrabbed = draggingPartId === part.id;
 
-          // Compute target position using Explode Factor + selection lift
-          _targetVec3.set(
-            part.defaultPosition[0] + part.explodeOffset[0] * st.explodeFactor,
+          const baseX =
+            part.defaultPosition[0] + part.explodeOffset[0] * st.explodeFactor;
+          const baseY =
             part.defaultPosition[1] +
-              part.explodeOffset[1] * st.explodeFactor +
-              (isSelected ? 0.14 : 0),
-            part.defaultPosition[2] + part.explodeOffset[2] * st.explodeFactor
+            part.explodeOffset[1] * st.explodeFactor +
+            (isSelected ? 0.14 : 0);
+          const baseZ =
+            part.defaultPosition[2] + part.explodeOffset[2] * st.explodeFactor;
+
+          if (!isBeingGrabbed) {
+            if (st.freeRearrangeMode) {
+              // Integrate toss velocity into rearranged customOffset with boundary bounce restitution
+              if (spring.vel.lengthSq() > 0.0004) {
+                spring.customOffset.addScaledVector(spring.vel, dt);
+                spring.vel.multiplyScalar(Math.exp(-3.1 * dt));
+
+                let nextX = baseX + spring.customOffset.x;
+                let nextY = baseY + spring.customOffset.y;
+                let nextZ = baseZ + spring.customOffset.z;
+                let bounced = false;
+
+                // Calibration pad floor bounce
+                if (nextY < 0.2) {
+                  nextY = 0.2;
+                  spring.customOffset.y = nextY - baseY;
+                  if (spring.vel.y < -0.8) bounced = true;
+                  spring.vel.y = Math.abs(spring.vel.y) * 0.68;
+                } else if (nextY > 3.35) {
+                  nextY = 3.35;
+                  spring.customOffset.y = nextY - baseY;
+                  spring.vel.y = -Math.abs(spring.vel.y) * 0.65;
+                }
+
+                // Studio perimeter cylinder bounce (r = 3.35m)
+                const radialDist = Math.hypot(nextX, nextZ);
+                if (radialDist > 3.35) {
+                  const nx = nextX / radialDist;
+                  const nz = nextZ / radialDist;
+                  nextX = nx * 3.35;
+                  nextZ = nz * 3.35;
+                  spring.customOffset.x = nextX - baseX;
+                  spring.customOffset.z = nextZ - baseZ;
+                  const radialDot = spring.vel.x * nx + spring.vel.z * nz;
+                  if (radialDot > 0) {
+                    spring.vel.x -= 1.72 * radialDot * nx;
+                    spring.vel.z -= 1.72 * radialDot * nz;
+                    if (radialDot > 1.0) bounced = true;
+                  }
+                }
+
+                const now = performance.now();
+                if (bounced && now - lastBounceAudioTime > 95) {
+                  lastBounceAudioTime = now;
+                  playTactileTone('collide');
+                }
+              }
+            } else {
+              // Elastic Spring-Back mode: smoothly decay customOffset back to calibrated 0
+              spring.customOffset.lerp(_zeroVec3, Math.min(1, dt * 7.5));
+            }
+          }
+
+          // Compute target position using Explode Factor + selection lift + customOffset
+          _targetVec3.set(
+            baseX + spring.customOffset.x,
+            baseY + spring.customOffset.y,
+            baseZ + spring.customOffset.z
           );
           spring.target.copy(_targetVec3);
-          spring.targetScale = isSelected ? 1.07 : 1.0;
+          spring.targetScale = isBeingGrabbed ? 1.13 : isSelected ? 1.07 : 1.0;
 
-          if (mScale === 0) {
+          if (isBeingGrabbed) {
+            holder.position.copy(spring.pos);
+            spring.scale += (spring.targetScale - spring.scale) * Math.min(1, dt * 18);
+            holder.scale.setScalar(spring.scale);
+          } else if (mScale === 0) {
             // Reduced Motion: critically damped smooth direct step with zero bounce
             spring.pos.lerp(spring.target, Math.min(1, dt * 16));
             spring.vel.set(0, 0, 0);
@@ -1461,9 +1882,13 @@ export default function ThreeStudioViewport({
             const damping = 14;
 
             _tempVec3.subVectors(spring.target, spring.pos).multiplyScalar(stiffness);
-            spring.vel.addScaledVector(_tempVec3, dt);
-            spring.vel.multiplyScalar(Math.exp(-damping * dt));
-            spring.pos.addScaledVector(spring.vel, dt);
+            if (!st.freeRearrangeMode) {
+              spring.vel.addScaledVector(_tempVec3, dt);
+              spring.vel.multiplyScalar(Math.exp(-damping * dt));
+              spring.pos.addScaledVector(spring.vel, dt);
+            } else {
+              spring.pos.lerp(spring.target, Math.min(1, dt * 22));
+            }
             holder.position.copy(spring.pos);
 
             const scaleForce = (spring.targetScale - spring.scale) * 160;
@@ -1473,7 +1898,17 @@ export default function ThreeStudioViewport({
             holder.scale.setScalar(spring.scale);
           }
 
-          // Individual part continuous rotation/motion scaled by motionIntensity
+          // Apply rotational spin impulse from toss + continuous rotation
+          if (spring.angVel.lengthSq() > 0.001 && mScale > 0) {
+            holder.rotation.x += spring.angVel.x * dt * mScale;
+            holder.rotation.y += spring.angVel.y * dt * mScale;
+            holder.rotation.z += spring.angVel.z * dt * mScale;
+            spring.angVel.multiplyScalar(Math.exp(-4.0 * dt));
+          } else if (!st.freeRearrangeMode) {
+            holder.rotation.x *= Math.exp(-6 * dt);
+            holder.rotation.z *= Math.exp(-6 * dt);
+          }
+
           if (part.rotationAxis && part.rotationSpeed && mScale > 0) {
             holder.rotation[part.rotationAxis] += part.rotationSpeed * dt * mScale;
           }
@@ -1504,7 +1939,7 @@ export default function ThreeStudioViewport({
         });
       } else {
         // ====================================================================
-        // SCENE EDITOR: REAL-TIME BOUNDING-SPHERE COLLISION DETECTION & PHYSICS
+        // SCENE EDITOR: GRAB/TOSS MOMENTUM & BOUNDING-SPHERE COLLISION PHYSICS
         // ====================================================================
         const collisionPairs: string[] = [];
         const collidingUids = new Set<string>();
@@ -1514,6 +1949,26 @@ export default function ThreeStudioViewport({
           const a = nodes[i];
           const entryA = nodeMeshesMap.get(a.uid);
           if (!entryA) continue;
+
+          // Integrate ground-pad toss velocity with perimeter wall bounce
+          if (draggingNodeUid !== a.uid && entryA.vel.lengthSq() > 0.001) {
+            entryA.root.position.x += entryA.vel.x * dt;
+            entryA.root.position.z += entryA.vel.z * dt;
+            entryA.vel.multiplyScalar(Math.exp(-3.2 * dt));
+
+            const rDist = Math.hypot(entryA.root.position.x, entryA.root.position.z);
+            if (rDist > 3.65) {
+              const nx = entryA.root.position.x / rDist;
+              const nz = entryA.root.position.z / rDist;
+              entryA.root.position.x = nx * 3.65;
+              entryA.root.position.z = nz * 3.65;
+              const rDot = entryA.vel.x * nx + entryA.vel.z * nz;
+              if (rDot > 0) {
+                entryA.vel.x -= 1.72 * rDot * nx;
+                entryA.vel.z -= 1.72 * rDot * nz;
+              }
+            }
+          }
 
           // Continuous rotor animation scaled by motionIntensity
           entryA.rotor.rotation.y += dt * 0.9 * mScale;
@@ -1535,12 +1990,12 @@ export default function ThreeStudioViewport({
               collidingUids.add(b.uid);
               collisionPairs.push(`${a.label} ↔ ${b.label}`);
 
-              // Reactive spring repulsion when user isn't actively holding the node
+              // Reactive spring repulsion & elastic momentum transfer when user isn't holding the node
               if (draggingNodeUid !== a.uid && draggingNodeUid !== b.uid && dist > 0.001) {
                 const overlap = minDist - dist;
                 const nx = dx / dist;
                 const nz = dz / dist;
-                const push = overlap * 3.5 * dt;
+                const push = overlap * 3.8 * dt;
                 entryA.root.position.x = THREE.MathUtils.clamp(
                   entryA.root.position.x + nx * push,
                   -3.7,
@@ -1561,6 +2016,10 @@ export default function ThreeStudioViewport({
                   -3.7,
                   3.7
                 );
+                entryA.vel.x += nx * overlap * 3.2;
+                entryA.vel.z += nz * overlap * 3.2;
+                entryB.vel.x -= nx * overlap * 3.2;
+                entryB.vel.z -= nz * overlap * 3.2;
               }
             }
           }
@@ -1642,6 +2101,7 @@ export default function ThreeStudioViewport({
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       controls.dispose();
       renderer.dispose();
@@ -1996,7 +2456,30 @@ export default function ThreeStudioViewport({
                 <span>{currentPart.telemetry}</span>
                 <span>{lowBandwidthMode ? 'WIREFRAME' : activeShader.toUpperCase()}</span>
               </div>
-              <div className="pt-1.5 flex items-center gap-1.5">
+
+              {/* Live Kinetic Grab & Toss Physics Telemetry Bar */}
+              <div className="p-2 rounded-xl bg-[#081C17]/90 border border-[#19B86B]/25 flex items-center justify-between gap-2 text-[11px]">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Move className={`w-3.5 h-3.5 shrink-0 ${activeGrabLabel ? 'text-[#E6C465] animate-pulse' : 'text-[#19B86B]'}`} />
+                  <span className="text-[#C4C6AF] font-medium truncate">
+                    {activeGrabLabel
+                      ? `Grabbing: ${activeGrabLabel}`
+                      : rearrangedCount > 0
+                        ? `${rearrangedCount} Rearranged`
+                        : 'Grab & Toss Physics'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 font-mono tabular-nums shrink-0">
+                  <span className="text-[#4FFFB0] font-semibold">
+                    {lastTossSpeed.toFixed(1)} m/s
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#143D34] text-[#E6C465]">
+                    {freeRearrangeMode ? 'FREE HOLD' : 'SPRING'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-1 flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleCyclePart(-1)}
@@ -2029,9 +2512,9 @@ export default function ThreeStudioViewport({
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2 text-xs text-[#C4C6AF]">
-                <span>Real-Time Collision & Physics Engine</span>
+                <span>Real-Time Grab, Toss & Collision Engine</span>
                 <span className="font-mono tabular-nums text-[#E6C465]">
-                  {activeCollisions.length === 0 ? '0 OVERLAP' : `${activeCollisions.length} OVERLAP`}
+                  {activeCollisions.length === 0 ? `${lastTossSpeed.toFixed(1)} m/s` : `${activeCollisions.length} OVERLAP`}
                 </span>
               </div>
               {activeCollisions.length > 0 ? (
@@ -2046,7 +2529,7 @@ export default function ThreeStudioViewport({
                 </div>
               ) : (
                 <p className="text-xs text-[#C4C6AF]">
-                  Drag 3D modules across the pad or tap cards below to spawn. Spring repulsion prevents structural overlap.
+                  Grab and toss 3D modules across the pad with momentum & boundary bounce, or tap cards below to spawn.
                 </p>
               )}
             </div>
@@ -2055,8 +2538,8 @@ export default function ThreeStudioViewport({
 
         {/* Top-Right Touch Navigation Hint */}
         <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0D2A23]/85 backdrop-blur-sm border border-white/10 text-[10px] sm:text-xs text-[#C4C6AF] pointer-events-none">
-          <span className="hidden sm:inline">Orbit: 1-finger drag · Zoom: 2-finger pinch · Tap part to inspect</span>
-          <span className="sm:hidden font-mono tabular-nums">Orbit · Pinch</span>
+          <span className="hidden sm:inline">Grab & Toss: drag part · Orbit: drag background · Zoom: pinch/scroll</span>
+          <span className="sm:hidden font-mono tabular-nums">Grab & Toss · Orbit · Pinch</span>
         </div>
 
         {/* Sub-Component Inspector Sidebar / Mobile Drawer */}
@@ -2177,6 +2660,44 @@ export default function ThreeStudioViewport({
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Grab & Toss Rearrange Controls (Free Rearrange Toggle, Kinetic Toss Burst, Reset Layout) */}
+                <div className="flex items-center gap-1.5 bg-[#091D18] sm:bg-[#091D18]/80 px-2 py-1 rounded-xl border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('selection');
+                      setFreeRearrangeMode((prev) => !prev);
+                    }}
+                    className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
+                      freeRearrangeMode
+                        ? 'bg-[#19B86B] text-[#072018] font-bold'
+                        : 'bg-[#143D34] text-[#C4C6AF] hover:text-white'
+                    }`}
+                    title="Toggle between Free Spatial Rearrangement and Elastic Spring-Back"
+                  >
+                    <Move className="w-3 h-3" />
+                    <span>{freeRearrangeMode ? 'Free Rearrange' : 'Elastic Snap'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleKineticTossBurst}
+                    className="px-2 py-1 rounded-lg bg-[#143D34] hover:bg-[#1C5246] text-[#E6C465] text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
+                    title="Apply a kinetic 3D toss impulse to all sub-components"
+                  >
+                    <Zap className="w-3 h-3" />
+                    <span className="hidden sm:inline">Toss Burst</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetAssemblyLayout}
+                    className="px-2 py-1 rounded-lg bg-[#143D34] hover:bg-[#1C5246] text-[#C4C6AF] hover:text-white text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
+                    title="Snap all rearranged sub-components back to factory CAD alignment"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span className="hidden sm:inline">Reset</span>
+                  </button>
                 </div>
 
                 {/* Direct SA Checkout Button */}
