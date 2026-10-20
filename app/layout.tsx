@@ -1,5 +1,6 @@
 import type {Metadata, Viewport} from 'next';
 import localFont from 'next/font/local';
+import {Analytics} from '@vercel/analytics/next';
 import ExperienceProvider from '@/components/ExperienceProvider';
 import './globals.css';
 
@@ -22,5 +23,5 @@ export const metadata: Metadata = {
 const themeBootstrap = `(function(){try{var p=JSON.parse(localStorage.getItem('varda.preferences.v2')||'{}');var d=p.theme==='dark'||(p.theme!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);var e=document.documentElement;e.dataset.theme=d?'dark':'light';e.dataset.accent=['sage','coral','sunflower'].includes(p.accent)?p.accent:'sunflower';e.dataset.motion=p.motion===false||matchMedia('(prefers-reduced-motion:reduce)').matches?'reduced':'full';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=d?'#102e28':'#f7f7ef'})}catch(e){}})();`;
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
-  return <html lang="en-ZA" suppressHydrationWarning className={`${fraunces.variable} ${outfit.variable} ${jetbrains.variable}`}><head><meta name="mobile-web-app-capable" content="yes" /><script dangerouslySetInnerHTML={{__html: themeBootstrap}} /></head><body><ExperienceProvider>{children}</ExperienceProvider></body></html>;
+  return <html lang="en-ZA" suppressHydrationWarning className={`${fraunces.variable} ${outfit.variable} ${jetbrains.variable}`}><head><meta name="mobile-web-app-capable" content="yes" /><script dangerouslySetInnerHTML={{__html: themeBootstrap}} /></head><body><ExperienceProvider>{children}</ExperienceProvider><Analytics /></body></html>;
 }
