@@ -35,7 +35,9 @@ import {
   Volume2,
   VolumeX,
   Sliders,
-  Activity,
+  ChevronLeft,
+  ChevronRight,
+  Crosshair,
 } from 'lucide-react';
 import SubComponentInspector from '@/components/SubComponentInspector';
 
@@ -271,6 +273,7 @@ interface SpringState {
 
 interface ThreeStudioViewportProps {
   lowBandwidthMode: boolean;
+  motionIntensity?: number;
   onSelectOrderForPayment: (item: {
     name: string;
     description: string;
@@ -280,6 +283,7 @@ interface ThreeStudioViewportProps {
 
 export default function ThreeStudioViewport({
   lowBandwidthMode,
+  motionIntensity = 1,
   onSelectOrderForPayment,
 }: ThreeStudioViewportProps) {
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
@@ -293,6 +297,7 @@ export default function ThreeStudioViewport({
   const [selectedPartId, setSelectedPartId] = useState<string>(
     VARDA_ASSEMBLIES[0].parts[1].id
   );
+  const [isolatePart, setIsolatePart] = useState<boolean>(false);
   const [inspectorOpen, setInspectorOpen] = useState<boolean>(false);
   const [dockCollapsed, setDockCollapsed] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -317,8 +322,27 @@ export default function ThreeStudioViewport({
 
   const currentAssembly: VardaProductAssembly =
     VARDA_ASSEMBLIES.find((a) => a.id === selectedAssemblyId) || VARDA_ASSEMBLIES[0];
+  const currentPartIndex = Math.max(
+    0,
+    currentAssembly.parts.findIndex((p) => p.id === selectedPartId)
+  );
   const currentPart: AnatomyPart =
-    currentAssembly.parts.find((p) => p.id === selectedPartId) || currentAssembly.parts[0];
+    currentAssembly.parts[currentPartIndex] || currentAssembly.parts[0];
+
+  const handleCyclePart = useCallback(
+    (direction: -1 | 1) => {
+      triggerHaptic('selection');
+      const total = currentAssembly.parts.length;
+      const nextIdx = (currentPartIndex + direction + total) % total;
+      const nextPart = currentAssembly.parts[nextIdx];
+      setSelectedPartId(nextPart.id);
+      const spring = partSpringsMapRef.current?.get(nextPart.id);
+      if (spring && motionIntensity > 0) {
+        spring.scaleVel += 1.6 * motionIntensity;
+      }
+    },
+    [currentAssembly.parts, currentPartIndex, motionIntensity]
+  );
 
   // Mutable refs for the WebGL loop so React state updates never recreate the canvas
   const stateRef = useRef({
@@ -328,6 +352,8 @@ export default function ThreeStudioViewport({
     isIsometric,
     explodeFactor,
     selectedPartId,
+    isolatePart,
+    motionIntensity,
     sceneNodes,
     selectedNodeUid,
     snapToGrid,
@@ -344,6 +370,8 @@ export default function ThreeStudioViewport({
       isIsometric,
       explodeFactor,
       selectedPartId,
+      isolatePart,
+      motionIntensity,
       sceneNodes,
       selectedNodeUid,
       snapToGrid,
@@ -357,6 +385,8 @@ export default function ThreeStudioViewport({
     isIsometric,
     explodeFactor,
     selectedPartId,
+    isolatePart,
+    motionIntensity,
     sceneNodes,
     selectedNodeUid,
     snapToGrid,
@@ -1182,17 +1212,19 @@ export default function ThreeStudioViewport({
     // ========================================================================
     const clock = new THREE.Clock();
     let frameId = 0;
+    let shaderTime = 1.4; // Base visual seed so static/reduced-motion still renders rich shader patterns
 
     const animate = () => {
       frameId = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
-      const elapsed = clock.getElapsedTime();
       const st = stateRef.current;
+      const mScale = Math.max(0, Math.min(1, st.motionIntensity));
+      shaderTime += dt * mScale;
 
-      // Update GLSL Shader Uniforms
-      fireShaderMat.uniforms.time.value = elapsed;
-      waterShaderMat.uniforms.time.value = elapsed;
-      plasmaShaderMat.uniforms.time.value = elapsed;
+      // Update GLSL Shader Uniforms scaled by user/OS motion preference
+      fireShaderMat.uniforms.time.value = shaderTime;
+      waterShaderMat.uniforms.time.value = shaderTime;
+      plasmaShaderMat.uniforms.time.value = shaderTime;
 
       // Rebuild anatomy meshes if user switched product assembly
       if (st.selectedAssemblyId !== currentBuiltAssemblyId) {
@@ -1235,32 +1267,42 @@ export default function ThreeStudioViewport({
           spring.target.copy(_targetVec3);
           spring.targetScale = isSelected ? 1.07 : 1.0;
 
-          // Second-order Spring Physics (F = -k*x - c*v)
-          const stiffness = 135;
-          const damping = 14;
+          if (mScale === 0) {
+            // Reduced Motion: critically damped smooth direct step with zero bounce
+            spring.pos.lerp(spring.target, Math.min(1, dt * 16));
+            spring.vel.set(0, 0, 0);
+            holder.position.copy(spring.pos);
+            spring.scale += (spring.targetScale - spring.scale) * Math.min(1, dt * 16);
+            spring.scaleVel = 0;
+            holder.scale.setScalar(spring.scale);
+          } else {
+            // Second-order Spring Physics (F = -k*x - c*v)
+            const stiffness = 135;
+            const damping = 14;
 
-          _tempVec3.subVectors(spring.target, spring.pos).multiplyScalar(stiffness);
-          spring.vel.addScaledVector(_tempVec3, dt);
-          spring.vel.multiplyScalar(Math.exp(-damping * dt));
-          spring.pos.addScaledVector(spring.vel, dt);
-          holder.position.copy(spring.pos);
+            _tempVec3.subVectors(spring.target, spring.pos).multiplyScalar(stiffness);
+            spring.vel.addScaledVector(_tempVec3, dt);
+            spring.vel.multiplyScalar(Math.exp(-damping * dt));
+            spring.pos.addScaledVector(spring.vel, dt);
+            holder.position.copy(spring.pos);
 
-          const scaleForce = (spring.targetScale - spring.scale) * 160;
-          spring.scaleVel += scaleForce * dt;
-          spring.scaleVel *= Math.exp(-12 * dt);
-          spring.scale += spring.scaleVel * dt;
-          holder.scale.setScalar(spring.scale);
-
-          // Individual part continuous rotation/motion
-          if (part.rotationAxis && part.rotationSpeed) {
-            holder.rotation[part.rotationAxis] += part.rotationSpeed * dt;
+            const scaleForce = (spring.targetScale - spring.scale) * 160;
+            spring.scaleVel += scaleForce * dt;
+            spring.scaleVel *= Math.exp(-12 * dt);
+            spring.scale += spring.scaleVel * dt;
+            holder.scale.setScalar(spring.scale);
           }
 
-          // Apply active shader override or wireframe mode
+          // Individual part continuous rotation/motion scaled by motionIntensity
+          if (part.rotationAxis && part.rotationSpeed && mScale > 0) {
+            holder.rotation[part.rotationAxis] += part.rotationSpeed * dt * mScale;
+          }
+
+          // Apply active shader override, X-Ray context isolation, or wireframe mode
           holder.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
               const mesh = child as THREE.Mesh;
-              if (st.activeShader === 'wireframe') {
+              if (st.activeShader === 'wireframe' || (st.isolatePart && !isSelected)) {
                 mesh.material = wireframeBlueprintMat;
               } else if (st.activeShader === 'fire' && part.shaderCategory !== 'glass') {
                 if (part.shaderCategory === 'fire' || isSelected) {
@@ -1271,7 +1313,7 @@ export default function ThreeStudioViewport({
                   mesh.material = waterShaderMat;
                 }
               } else if (st.activeShader === 'plasma' && part.shaderCategory !== 'glass') {
-                if (part.shaderCategory === 'plasma') {
+                if (part.shaderCategory === 'plasma' || isSelected) {
                   mesh.material = plasmaShaderMat;
                 }
               }
@@ -1291,9 +1333,10 @@ export default function ThreeStudioViewport({
           const entryA = nodeMeshesMap.get(a.uid);
           if (!entryA) continue;
 
-          // Continuous rotor animation
-          entryA.rotor.rotation.y += dt * 0.9;
-          entryA.rotor.position.y = 0.72 + Math.sin(elapsed * 2.2 + i) * 0.05;
+          // Continuous rotor animation scaled by motionIntensity
+          entryA.rotor.rotation.y += dt * 0.9 * mScale;
+          entryA.rotor.position.y =
+            0.72 + Math.sin(shaderTime * 2.2 + i) * 0.05 * mScale;
 
           for (let j = i + 1; j < nodes.length; j++) {
             const b = nodes[j];
@@ -1379,25 +1422,29 @@ export default function ThreeStudioViewport({
       }
     };
 
-    animate();
-
     const handleResize = () => {
       if (!container) return;
       const w = container.clientWidth || 960;
       const h = container.clientHeight || 600;
       const asp = w / h;
 
+      // Mobile Portrait Aspect Compensation: widen vertical FOV when aspect < 1 so 3D hardware never clips horizontally
+      perspCamera.fov = asp < 1 ? Math.min(54, Math.round(38 / Math.pow(asp, 0.52))) : 38;
       perspCamera.aspect = asp;
       perspCamera.updateProjectionMatrix();
 
-      orthoCamera.left = (-frustumSize * asp) / 2;
-      orthoCamera.right = (frustumSize * asp) / 2;
-      orthoCamera.top = frustumSize / 2;
-      orthoCamera.bottom = -frustumSize / 2;
+      const effectiveFrustum = asp < 1 ? frustumSize / Math.max(asp, 0.62) : frustumSize;
+      orthoCamera.left = (-effectiveFrustum * asp) / 2;
+      orthoCamera.right = (effectiveFrustum * asp) / 2;
+      orthoCamera.top = effectiveFrustum / 2;
+      orthoCamera.bottom = -effectiveFrustum / 2;
       orthoCamera.updateProjectionMatrix();
 
       renderer.setSize(w, h);
     };
+
+    handleResize();
+    animate();
 
     window.addEventListener('resize', handleResize);
     const resizeObserver = new ResizeObserver(() => {
@@ -1466,32 +1513,56 @@ export default function ThreeStudioViewport({
       id="studio"
       className={`${
         isFullscreen
-          ? 'fixed inset-0 z-50 rounded-none w-screen h-screen max-w-none m-0 p-0 flex flex-col'
-          : 'relative w-full rounded-2xl overflow-hidden border border-[#144239]/20 shadow-xl'
+          ? 'fixed inset-0 z-50 rounded-none w-screen h-screen max-w-none m-0 p-0 flex flex-col overflow-y-auto sm:overflow-hidden'
+          : 'relative w-full rounded-3xl overflow-hidden border border-[#144239]/20 shadow-2xl'
       } bg-[#0B241E] text-[#F4F3EC] transition-all duration-300`}
     >
       {/* Anchor alias for backwards-compatibility with #spatial-studio links */}
       <div id="spatial-studio" className="absolute -top-24 pointer-events-none" />
 
       {/* Top Viewport Header Bar: Responsive Mobile-First Header */}
-      <div className="relative z-10 px-3 sm:px-5 py-2.5 sm:py-3.5 bg-[#0E2D26] border-b border-white/10 flex flex-col gap-2.5 sm:gap-3">
+      <div className="relative z-10 px-3.5 sm:px-5 py-3 sm:py-3.5 bg-[#0E2D26] border-b border-white/10 flex flex-col gap-2.5 sm:gap-3">
         {/* Top Row: Wordmark / Title + Status + Action Controls */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span className="font-mono tabular-nums text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#19B86B]/20 text-[#4FFFB0] border border-[#19B86B]/30 shrink-0">
+              {workspaceMode === 'anatomy'
+                ? `${String(currentPartIndex + 1).padStart(2, '0')}/${String(currentAssembly.parts.length).padStart(2, '0')}`
+                : `${String(sceneNodes.length).padStart(2, '0')} NODES`}
+            </span>
             <span className="font-serif text-sm sm:text-lg font-semibold tracking-tight text-[#F4F3EC] truncate">
               {workspaceMode === 'anatomy'
                 ? currentAssembly.name
                 : 'Micro-Grid Spatial Configurator'}
             </span>
-            <span className="text-[10px] sm:text-xs font-mono tabular-nums text-[#E6C465] bg-[#091D18] px-2 py-0.5 rounded border border-white/10 shrink-0">
+            <span className="hidden xs:inline-block text-[10px] sm:text-xs font-mono tabular-nums text-[#E6C465] bg-[#091D18] px-2.5 py-0.5 rounded-lg border border-white/10 shrink-0">
               {workspaceMode === 'anatomy'
                 ? `R ${formatZarPrice(currentAssembly.priceZar)}`
-                : `${sceneNodes.length} Modules · R ${formatZarPrice(totalSceneZar)}`}
+                : `R ${formatZarPrice(totalSceneZar)} · ${netScenePowerKw >= 0 ? '+' : ''}${netScenePowerKw.toFixed(1)} kW`}
             </span>
           </div>
 
-          {/* Quick Action Buttons (Perspective, Inspector, Audio, Fullscreen) */}
+          {/* Quick Action Buttons (X-Ray, Perspective, Inspector, Audio, Fullscreen) */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {workspaceMode === 'anatomy' && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setIsolatePart((prev) => !prev);
+                }}
+                title="Toggle X-Ray Context Isolation (Wireframe unselected parts)"
+                className={`p-2 sm:px-2.5 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  isolatePart
+                    ? 'bg-[#4FFFB0] text-[#082019] border-[#4FFFB0] font-semibold'
+                    : 'bg-[#12382F] text-[#C4C6AF] border-white/15 hover:text-white'
+                }`}
+              >
+                <Crosshair className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">X-Ray Isolate</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
@@ -1499,9 +1570,9 @@ export default function ThreeStudioViewport({
                 setIsIsometric((prev) => !prev);
               }}
               title={isIsometric ? 'Switch to Perspective 3D' : 'Switch to Isometric Ortho'}
-              className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                 isIsometric
-                  ? 'bg-[#E6C465] text-[#0B241E] border-[#E6C465]'
+                  ? 'bg-[#E6C465] text-[#0B241E] border-[#E6C465] font-semibold'
                   : 'bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]'
               }`}
             >
@@ -1518,7 +1589,7 @@ export default function ThreeStudioViewport({
                 }}
                 aria-label="Toggle Component Inspector"
                 title="Inspect Material & Energy Data"
-                className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                   inspectorOpen
                     ? 'bg-[#19B86B] text-[#082019] border-[#19B86B] font-semibold'
                     : 'bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]'
@@ -1526,7 +1597,6 @@ export default function ThreeStudioViewport({
               >
                 <Sliders className="w-3.5 h-3.5" />
                 <span className="hidden md:inline">{inspectorOpen ? 'Hide' : 'Inspector'}</span>
-                {inspectorOpen && <span className="sm:hidden w-1.5 h-1.5 rounded-full bg-[#082019]" />}
               </button>
             )}
 
@@ -1538,7 +1608,7 @@ export default function ThreeStudioViewport({
               }}
               aria-label="Toggle tactile audio"
               title={soundEnabled ? 'Mute 3D audio' : 'Enable 3D audio'}
-              className="p-2 rounded-lg bg-[#12382F] text-[#C4C6AF] hover:text-white border border-white/10 cursor-pointer"
+              className="p-2 rounded-xl bg-[#12382F] text-[#C4C6AF] hover:text-white border border-white/10 cursor-pointer"
             >
               {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </button>
@@ -1551,7 +1621,7 @@ export default function ThreeStudioViewport({
               }}
               aria-label="Toggle Fullscreen 3D View"
               title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen 3D View'}
-              className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                 isFullscreen
                   ? 'bg-[#E6C465] text-[#0B241E] border-[#E6C465] font-semibold'
                   : 'bg-[#12382F] text-[#C4C6AF] hover:text-white border-white/10'
@@ -1572,45 +1642,58 @@ export default function ThreeStudioViewport({
           </div>
         </div>
 
-        {/* Bottom Row: Mode Segmented Switch (Touch tabs on mobile) */}
-        <div className="flex items-center p-1 rounded-xl bg-[#091D18] border border-white/10 w-full sm:w-auto self-start">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('selection');
-              setWorkspaceMode('anatomy');
-            }}
-            className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 min-h-[38px] sm:min-h-[32px] cursor-pointer ${
-              workspaceMode === 'anatomy'
-                ? 'bg-[#19B86B] text-[#082019] font-bold shadow-sm'
-                : 'text-[#C4C6AF] hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>3D Anatomy & Shaders</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('selection');
-              setWorkspaceMode('scene-editor');
-            }}
-            className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 min-h-[38px] sm:min-h-[32px] cursor-pointer ${
-              workspaceMode === 'scene-editor'
-                ? 'bg-[#E6C465] text-[#091D18] font-bold shadow-sm'
-                : 'text-[#C4C6AF] hover:text-white'
-            }`}
-          >
-            <Move className="w-3.5 h-3.5" />
-            <span>Scene Drag & Physics</span>
-          </button>
+        {/* Bottom Row: Mode Segmented Switch + Motion Intensity Readout */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center p-1 rounded-xl bg-[#091D18] border border-white/10 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('selection');
+                setWorkspaceMode('anatomy');
+              }}
+              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 min-h-[36px] sm:min-h-[32px] cursor-pointer ${
+                workspaceMode === 'anatomy'
+                  ? 'bg-[#19B86B] text-[#082019] font-bold shadow-sm'
+                  : 'text-[#C4C6AF] hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>3D Anatomy & Shaders</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('selection');
+                setWorkspaceMode('scene-editor');
+              }}
+              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 min-h-[36px] sm:min-h-[32px] cursor-pointer ${
+                workspaceMode === 'scene-editor'
+                  ? 'bg-[#E6C465] text-[#091D18] font-bold shadow-sm'
+                  : 'text-[#C4C6AF] hover:text-white'
+              }`}
+            >
+              <Move className="w-3.5 h-3.5" />
+              <span>Scene Drag & Physics</span>
+            </button>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono tabular-nums text-[#C4C6AF]">
+            <span className="px-2 py-1 rounded-lg bg-[#091D18] border border-white/10">
+              Motion: {Math.round(motionIntensity * 100)}%
+            </span>
+            <span className="px-2 py-1 rounded-lg bg-[#091D18] border border-white/10 text-[#4FFFB0]">
+              Explode: {Math.round(explodeFactor * 100)}%
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Main 3D Viewport Container (100% unobstructed center) */}
+      {/* Main 3D Viewport Container (Unobstructed on Mobile & Desktop) */}
       <div
         className={`relative w-full ${
-          isFullscreen ? 'flex-1 h-full' : 'h-[500px] sm:h-[580px] lg:h-[650px]'
+          isFullscreen
+            ? 'h-[58vh] sm:flex-1 sm:h-full'
+            : 'h-[370px] xs:h-[410px] sm:h-[600px] lg:h-[660px]'
         } select-none overflow-hidden`}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
@@ -1637,78 +1720,144 @@ export default function ThreeStudioViewport({
           </div>
         )}
 
-        {/* Mobile Compact HUD Chip (Leaves 3D viewport clear on phones) */}
-        <div className="sm:hidden absolute top-2.5 left-2.5 z-10 pointer-events-auto bg-[#0D2A23]/90 backdrop-blur-md border border-white/15 rounded-xl px-2.5 py-1.5 flex items-center gap-2 shadow-lg max-w-[calc(100%-110px)]">
-          <div className="w-2 h-2 rounded-full bg-[#19B86B] animate-pulse shrink-0" />
+        {/* Mobile Top-Left Compact HUD Chip */}
+        <div className="sm:hidden absolute top-2.5 left-2.5 z-10 pointer-events-auto bg-[#0D2A23]/90 backdrop-blur-md border border-white/15 rounded-xl px-2.5 py-1.5 flex items-center gap-2 shadow-lg max-w-[calc(100%-105px)]">
+          <div className="w-2 h-2 rotate-45 bg-[#19B86B] shrink-0" />
           <div className="text-[11px] font-medium leading-tight truncate">
             <span className="text-white font-semibold truncate block">
-              {workspaceMode === 'anatomy' ? currentPart.name : `${sceneNodes.length} Scene Modules`}
+              {workspaceMode === 'anatomy'
+                ? currentPart.name
+                : `${sceneNodes.length} Active Modules`}
             </span>
-            <span className="text-[#A1B8AD] text-[10px]">
-              {workspaceMode === 'anatomy' ? `${currentPart.massKg}kg · ${activeShader.toUpperCase()}` : 'Collision Physics Active'}
+            <span className="font-mono tabular-nums text-[#A1B8AD] text-[10px]">
+              {workspaceMode === 'anatomy'
+                ? `${currentPart.massKg} kg · ${activeShader.toUpperCase()}`
+                : `R ${formatZarPrice(totalSceneZar)}`}
             </span>
           </div>
-          {workspaceMode === 'anatomy' && (
+        </div>
+
+        {/* Mobile Bottom Floating Anatomy Stepper Bar (Keeps 3D Viewport 100% Clear) */}
+        {workspaceMode === 'anatomy' && (
+          <div className="sm:hidden absolute bottom-2.5 inset-x-2.5 z-10 flex items-center justify-between gap-1.5 bg-[#091D18]/90 backdrop-blur-md border border-white/15 rounded-xl p-1.5 shadow-lg">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => handleCyclePart(-1)}
+                aria-label="Previous anatomy part"
+                className="p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="font-mono tabular-nums text-[11px] font-bold text-[#E6C465] px-1.5">
+                {String(currentPartIndex + 1).padStart(2, '0')}/{String(currentAssembly.parts.length).padStart(2, '0')}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleCyclePart(1)}
+                aria-label="Next anatomy part"
+                className="p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setExplodeFactor((f) => (f > 0.45 ? 0 : 0.85));
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-[#143D34] text-[11px] font-mono tabular-nums font-semibold text-[#4FFFB0] active:scale-95 cursor-pointer"
+            >
+              {explodeFactor > 0.45 ? 'Assemble 0%' : 'Explode 85%'}
+            </button>
+
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('light');
                 setInspectorOpen(true);
               }}
-              className="ml-auto px-2 py-1 rounded-md bg-[#19B86B] text-[#082019] text-[10px] font-bold flex items-center gap-1 active:scale-95 shrink-0 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-[#19B86B] text-[#082019] text-[11px] font-bold flex items-center gap-1 active:scale-95 shrink-0 cursor-pointer"
             >
               <Sliders className="w-3 h-3" />
-              <span>Inspect</span>
+              <span>Specs</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Desktop Telemetry Spec Strip */}
-        <div className="hidden sm:block absolute top-4 left-4 z-10 pointer-events-auto max-w-sm bg-[#0D2A23]/95 border border-white/15 rounded-xl p-3.5 shadow-lg">
+        {/* Desktop Telemetry Spec Card */}
+        <div className="hidden sm:block absolute top-4 left-4 z-10 pointer-events-auto w-[340px] bg-[#0D2A23]/95 backdrop-blur-md border border-white/15 rounded-2xl p-4 shadow-xl">
           {workspaceMode === 'anatomy' ? (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between gap-2 text-xs text-[#C4C6AF]">
-                <span>Selected Component Anatomy</span>
-                <span className="font-mono tabular-nums text-[#E6C465]">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono tabular-nums font-bold text-[#19B86B]">
+                    #{String(currentPartIndex + 1).padStart(2, '0')}
+                  </span>
+                  <span>Component Anatomy</span>
+                </div>
+                <span className="font-mono tabular-nums font-semibold text-[#E6C465]">
                   {currentPart.massKg} kg
                 </span>
               </div>
-              <h3 className="text-sm font-semibold text-white">{currentPart.name}</h3>
-              <p className="text-xs text-[#C4C6AF]">
+              <h3 className="font-serif text-base font-semibold text-white leading-snug">
+                {currentPart.name}
+              </h3>
+              <p className="text-xs text-[#C4C6AF] leading-relaxed">
                 {currentPart.role} · {currentPart.materialSpec}
               </p>
               <div className="pt-1 flex items-center justify-between text-xs font-mono tabular-nums text-[#4FFFB0]">
                 <span>{currentPart.telemetry}</span>
-                <span>Shader: {lowBandwidthMode ? 'WIREFRAME' : activeShader.toUpperCase()}</span>
+                <span>{lowBandwidthMode ? 'WIREFRAME' : activeShader.toUpperCase()}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('light');
-                  setInspectorOpen(true);
-                }}
-                className="mt-1.5 w-full py-1.5 px-2.5 rounded-lg bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-xs text-[#E6C465] hover:text-white flex items-center justify-center gap-1.5 transition-colors font-medium cursor-pointer"
-              >
-                <Sliders className="w-3.5 h-3.5 text-[#19B86B]" />
-                <span>Inspect Material & Energy Data</span>
-              </button>
+              <div className="pt-1.5 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleCyclePart(-1)}
+                  className="p-2 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-[#C4C6AF] hover:text-white cursor-pointer"
+                  title="Previous Sub-Component"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setInspectorOpen(true);
+                  }}
+                  className="flex-1 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-xs text-[#E6C465] hover:text-white flex items-center justify-center gap-1.5 transition-colors font-semibold cursor-pointer"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-[#19B86B]" />
+                  <span>Inspect Material & Energy</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCyclePart(1)}
+                  className="p-2 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-[#C4C6AF] hover:text-white cursor-pointer"
+                  title="Next Sub-Component"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2 text-xs text-[#C4C6AF]">
                 <span>Real-Time Collision & Physics Engine</span>
                 <span className="font-mono tabular-nums text-[#E6C465]">
-                  {activeCollisions.length === 0 ? 'CLEAR' : `${activeCollisions.length} OVERLAP`}
+                  {activeCollisions.length === 0 ? '0 OVERLAP' : `${activeCollisions.length} OVERLAP`}
                 </span>
               </div>
               {activeCollisions.length > 0 ? (
-                <div className="p-2 rounded-lg bg-[#4C1414] border border-[#EF4444]/50 text-xs text-[#FCA5A5] flex items-start gap-2">
+                <div className="p-2.5 rounded-xl bg-[#4C1414] border border-[#EF4444]/50 text-xs text-[#FCA5A5] flex items-start gap-2">
                   <ShieldAlert className="w-4 h-4 text-[#EF4444] shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold text-white">
                       Bounding-Sphere Collision Detected
                     </p>
-                    <p className="font-mono text-[11px]">{activeCollisions[0]}</p>
+                    <p className="font-mono tabular-nums text-[11px]">{activeCollisions[0]}</p>
                   </div>
                 </div>
               ) : (
@@ -1721,151 +1870,190 @@ export default function ThreeStudioViewport({
         </div>
 
         {/* Top-Right Touch Navigation Hint */}
-        <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0D2A23]/85 backdrop-blur-sm border border-white/10 text-[10px] sm:text-xs text-[#C4C6AF] pointer-events-none">
+        <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0D2A23]/85 backdrop-blur-sm border border-white/10 text-[10px] sm:text-xs text-[#C4C6AF] pointer-events-none">
           <span className="hidden sm:inline">Orbit: 1-finger drag · Zoom: 2-finger pinch · Tap part to inspect</span>
-          <span className="sm:hidden">1-finger rotate · Tap part</span>
+          <span className="sm:hidden font-mono tabular-nums">Orbit · Pinch</span>
         </div>
 
-        {/* Collapsible Unified Bottom Control Dock */}
-        <div
-          className="absolute bottom-2.5 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 w-[96%] max-w-[940px] transition-transform duration-200"
-          style={{
-            transform: dockCollapsed
-              ? 'translate(-50%, calc(100% - 32px))'
-              : 'translate(-50%, 0)',
+        {/* Sub-Component Inspector Sidebar / Mobile Drawer */}
+        <SubComponentInspector
+          part={currentPart}
+          assemblyId={selectedAssemblyId}
+          isOpen={inspectorOpen}
+          onClose={() => setInspectorOpen(false)}
+          onPulsePart={() => {
+            const spring = partSpringsMapRef.current?.get(currentPart.id);
+            if (spring && motionIntensity > 0) {
+              spring.scaleVel += 2.4 * motionIntensity;
+            }
+            playTactileTone('select');
           }}
-        >
-          {/* Collapse / Expand Handle */}
-          <div className="flex justify-center mb-1">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setDockCollapsed((c) => !c);
-              }}
-              className="px-3.5 py-1 rounded-full bg-[#0E2D26] border border-white/15 text-[11px] sm:text-xs font-medium text-[#C4C6AF] hover:text-white flex items-center gap-1.5 shadow-md whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              {dockCollapsed ? (
-                <>
-                  <Maximize2 className="w-3 h-3" />▴ Show 3D Controls
-                </>
-              ) : (
-                <>
-                  <Minimize2 className="w-3 h-3" />▾ Hide Controls
-                </>
-              )}
-            </button>
-          </div>
+          onSelectShader={(sh) => setActiveShader(sh)}
+        />
+      </div>
 
-          {/* Dock Body */}
-          <div className="bg-[#0E2D26]/95 border border-white/15 rounded-2xl p-2.5 sm:p-4 shadow-2xl space-y-2.5 max-h-[48vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">
-            {workspaceMode === 'anatomy' ? (
+      {/* Responsive Control Deck: Stacked cleanly below canvas on Mobile (<640px), Floating Collapsible Dock on Desktop (sm+) */}
+      <div
+        className={`relative z-20 w-full bg-[#091D18] border-t border-white/10 p-3 sm:p-0 sm:bg-transparent sm:border-0 sm: -mt-0 sm:absolute sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[96%] sm:max-w-[960px] transition-transform duration-200 ${
+          dockCollapsed ? 'sm:translate-y-[calc(100%-36px)]' : 'sm:translate-y-0'
+        }`}
+      >
+        {/* Desktop Collapse / Expand Handle */}
+        <div className="hidden sm:flex justify-center mb-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              setDockCollapsed((c) => !c);
+            }}
+            className="px-3.5 py-1 rounded-xl bg-[#0E2D26] border border-white/15 text-xs font-medium text-[#C4C6AF] hover:text-white flex items-center gap-1.5 shadow-md whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            {dockCollapsed ? (
               <>
-                {/* Top Row: Assembly Selector, Explode Spring Slider, Checkout CTA */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  {/* Assembly Switcher */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
-                    {VARDA_ASSEMBLIES.map((asm) => (
-                      <button
-                        key={asm.id}
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('selection');
-                          setSelectedAssemblyId(asm.id);
-                          setSelectedPartId(asm.parts[0].id);
-                          setActiveShader(asm.recommendedShader);
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                          selectedAssemblyId === asm.id
-                            ? 'bg-[#F4F3EC] text-[#0E2D26] font-semibold'
-                            : 'bg-[#143D34] text-[#C4C6AF] hover:text-white'
-                        }`}
-                      >
+                <Maximize2 className="w-3 h-3" />▴ Show 3D Studio Deck
+              </>
+            ) : (
+              <>
+                <Minimize2 className="w-3 h-3" />▾ Minimize Deck
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Control Deck Body */}
+        <div className="sm:bg-[#0E2D26]/95 sm:backdrop-blur-md sm:border sm:border-white/15 rounded-2xl sm:p-4 sm:shadow-2xl space-y-3">
+          {workspaceMode === 'anatomy' ? (
+            <>
+              {/* Row 1: Assembly Switcher, Explode Presets & Slider, Order CTA */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                {/* Assembly Switcher */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
+                  {VARDA_ASSEMBLIES.map((asm, idx) => (
+                    <button
+                      key={asm.id}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setSelectedAssemblyId(asm.id);
+                        setSelectedPartId(asm.parts[0].id);
+                        setActiveShader(asm.recommendedShader);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                        selectedAssemblyId === asm.id
+                          ? 'bg-[#F4F3EC] text-[#0E2D26] font-bold shadow-xs'
+                          : 'bg-[#143D34] text-[#C4C6AF] hover:text-white'
+                      }`}
+                    >
+                      <span className="font-mono tabular-nums text-[10px] opacity-70">
+                        0{idx + 1}
+                      </span>
+                      <span>
                         {asm.id === 'karoo-inverter-vault'
                           ? 'Karoo-X8 Inverter'
                           : 'Drakensberg Hydro-Solar'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Exploded View Spring Slider + Numeric Presets */}
+                <div className="flex items-center gap-2 bg-[#091D18] sm:bg-[#091D18]/80 px-2.5 py-1 rounded-xl border border-white/10">
+                  <label
+                    htmlFor="explode-slider"
+                    className="text-[11px] font-mono tabular-nums text-[#C4C6AF] whitespace-nowrap"
+                  >
+                    Explode {Math.round(explodeFactor * 100)}%:
+                  </label>
+                  <input
+                    id="explode-slider"
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.02}
+                    value={explodeFactor}
+                    onChange={(e) => setExplodeFactor(parseFloat(e.target.value))}
+                    className="w-20 sm:w-24 accent-[#E6C465] cursor-pointer"
+                  />
+                  <div className="hidden md:flex items-center gap-1">
+                    {[0, 0.35, 0.85].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setExplodeFactor(preset);
+                        }}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono tabular-nums cursor-pointer ${
+                          Math.abs(explodeFactor - preset) < 0.05
+                            ? 'bg-[#E6C465] text-[#091D18] font-bold'
+                            : 'bg-[#143D34] text-[#C4C6AF] hover:text-white'
+                        }`}
+                      >
+                        {Math.round(preset * 100)}%
                       </button>
                     ))}
                   </div>
+                </div>
 
-                  {/* Exploded View Spring Slider */}
-                  <div className="flex items-center gap-2">
-                    <label
-                      htmlFor="explode-slider"
-                      className="text-xs text-[#C4C6AF] whitespace-nowrap hidden xs:inline"
-                    >
-                      Explode:
-                    </label>
-                    <input
-                      id="explode-slider"
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.02}
-                      value={explodeFactor}
-                      onChange={(e) => setExplodeFactor(parseFloat(e.target.value))}
-                      className="w-20 sm:w-24 accent-[#E6C465] cursor-pointer"
-                    />
+                {/* Direct SA Checkout Button */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onSelectOrderForPayment({
+                      name: currentAssembly.name,
+                      description: currentAssembly.subtitle,
+                      amountZar: currentAssembly.priceZar,
+                    })
+                  }
+                  className="w-full sm:w-auto justify-center px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#E6C465] hover:bg-[#f0cf73] text-[#0B241E] text-xs font-bold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>Order Assembly ·</span>
+                  <span className="font-mono tabular-nums">
+                    R {formatZarPrice(currentAssembly.priceZar)}
+                  </span>
+                </button>
+              </div>
+
+              {/* Row 2: Shaders Switcher Row (Fire, Water, Plasma, Isometric Wireframe, PBR) */}
+              <div className="flex items-center gap-1 bg-[#0E2D26] sm:bg-[#091D18] p-1 rounded-xl border border-white/10 overflow-x-auto scrollbar-none max-w-full">
+                {(
+                  [
+                    {id: 'plasma', label: 'Plasma Field', icon: Zap},
+                    {id: 'fire', label: 'Fire Thermal', icon: Flame},
+                    {id: 'water', label: 'Hydro Wave', icon: Droplets},
+                    {id: 'wireframe', label: '38KB Wireframe', icon: Box},
+                    {id: 'pbr', label: 'Studio PBR', icon: Eye},
+                  ] as const
+                ).map((sh) => {
+                  const Icon = sh.icon;
+                  const isActive = (lowBandwidthMode ? 'wireframe' : activeShader) === sh.id;
+                  return (
                     <button
+                      key={sh.id}
                       type="button"
-                      onClick={() => setExplodeFactor(explodeFactor > 0.5 ? 0 : 0.85)}
-                      className="px-2 py-1 rounded-md bg-[#143D34] text-xs text-[#E6C465] hover:bg-[#1B4F43] whitespace-nowrap shrink-0 cursor-pointer"
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setActiveShader(sh.id);
+                      }}
+                      className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                        isActive
+                          ? 'bg-[#19B86B] text-[#072018] font-bold'
+                          : 'text-[#C4C6AF] hover:text-white'
+                      }`}
                     >
-                      {explodeFactor > 0.5 ? 'Assemble' : 'Explode'}
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{sh.label}</span>
                     </button>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  {/* Direct SA Checkout Button */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onSelectOrderForPayment({
-                        name: currentAssembly.name,
-                        description: currentAssembly.subtitle,
-                        amountZar: currentAssembly.priceZar,
-                      })
-                    }
-                    className="px-3 sm:px-3.5 py-1.5 rounded-lg bg-[#E6C465] hover:bg-[#f0cf73] text-[#0B241E] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                    <span>Order · R {formatZarPrice(currentAssembly.priceZar)}</span>
-                  </button>
-                </div>
-
-                {/* Shaders Switcher Row (Fire, Water, Plasma, Isometric Wireframe, PBR) */}
-                <div className="flex items-center gap-1 bg-[#091D18] p-1 rounded-lg border border-white/10 overflow-x-auto scrollbar-none max-w-full">
-                  {(
-                    [
-                      {id: 'plasma', label: 'Plasma', icon: Zap},
-                      {id: 'fire', label: 'Fire Core', icon: Flame},
-                      {id: 'water', label: 'Hydro Wave', icon: Droplets},
-                      {id: 'wireframe', label: 'Wireframe', icon: Box},
-                      {id: 'pbr', label: 'Studio PBR', icon: Eye},
-                    ] as const
-                  ).map((sh) => {
-                    const Icon = sh.icon;
-                    const isActive = (lowBandwidthMode ? 'wireframe' : activeShader) === sh.id;
-                    return (
-                      <button
-                        key={sh.id}
-                        type="button"
-                        onClick={() => setActiveShader(sh.id)}
-                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer ${
-                          isActive
-                            ? 'bg-[#19B86B] text-[#072018] font-semibold'
-                            : 'text-[#C4C6AF] hover:text-white'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span>{sh.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Bottom Row: Interactive Part Anatomy Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {currentAssembly.parts.map((part) => (
+              {/* Row 3: Numbered Interactive Part Anatomy Selector */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+                {currentAssembly.parts.map((part, pIdx) => {
+                  const isPartSelected = selectedPartId === part.id;
+                  return (
                     <button
                       key={part.id}
                       type="button"
@@ -1874,125 +2062,124 @@ export default function ThreeStudioViewport({
                         setInspectorOpen(true);
                         playTactileTone('select');
                         const spring = partSpringsMapRef.current?.get(part.id);
-                        if (spring) {
-                          spring.scaleVel += 1.8;
+                        if (spring && motionIntensity > 0) {
+                          spring.scaleVel += 1.8 * motionIntensity;
                         }
                       }}
-                      className={`px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs transition-colors whitespace-nowrap shrink-0 min-h-[34px] sm:min-h-0 flex items-center justify-center cursor-pointer ${
-                        selectedPartId === part.id
-                          ? 'bg-[#19B86B]/25 border border-[#19B86B] text-white font-medium shadow-sm'
-                          : 'bg-[#12352D] text-[#C4C6AF] hover:text-white border border-transparent'
+                      className={`px-2.5 py-1.5 rounded-xl text-xs transition-colors whitespace-nowrap shrink-0 min-h-[34px] sm:min-h-0 flex items-center gap-1.5 cursor-pointer ${
+                        isPartSelected
+                          ? 'bg-[#19B86B]/25 border border-[#19B86B] text-white font-semibold shadow-xs'
+                          : 'bg-[#12352D] text-[#C4C6AF] hover:text-white border border-white/5'
                       }`}
                     >
-                      {part.name}
+                      <span
+                        className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
+                          isPartSelected
+                            ? 'bg-[#19B86B] text-[#082019] font-bold'
+                            : 'bg-[#091D18] text-[#E6C465]'
+                        }`}
+                      >
+                        {String(pIdx + 1).padStart(2, '0')}
+                      </span>
+                      <span>{part.name}</span>
+                      <span className="font-mono tabular-nums text-[10px] opacity-65">
+                        {part.massKg}kg
+                      </span>
                     </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              /* Scene & Collision Editor Dock */
-              <div className="space-y-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs text-[#C4C6AF]">
-                    <span className="font-semibold text-white">
-                      3D Asset Library
-                    </span>
-                    <span className="hidden xs:inline">·</span>
-                    <span className="hidden xs:inline">Tap or drag cards onto the 3D pad to spawn</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setSnapToGrid((s) => !s)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                        snapToGrid
-                          ? 'bg-[#19B86B] text-[#082019] border-[#19B86B]'
-                          : 'bg-[#12382F] text-[#C4C6AF] border-white/10'
-                      }`}
-                    >
-                      {snapToGrid ? 'Snap: 0.5m ON' : 'Free Physics'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleRemoveSelectedNode}
-                      className="px-2.5 py-1 rounded-lg bg-[#3A1818] hover:bg-[#522020] text-[#FCA5A5] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Remove</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSceneNodes(INITIAL_SCENE_NODES)}
-                      className="px-2.5 py-1 rounded-lg bg-[#12382F] hover:bg-[#194B3F] text-[#C4C6AF] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Reset</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onSelectOrderForPayment({
-                          name: `Custom Varda Micro-Grid Bundle (${sceneNodes.length} Modules)`,
-                          description: sceneNodes.map((n) => n.label).join(' + '),
-                          amountZar: totalSceneZar,
-                        })
-                      }
-                      className="px-3 py-1 rounded-lg bg-[#E6C465] text-[#091D18] text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
-                    >
-                      Checkout · R {formatZarPrice(totalSceneZar)}
-                    </button>
-                  </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            /* Scene & Collision Editor Dock */
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs text-[#C4C6AF]">
+                  <span className="font-semibold text-white">
+                    3D Asset Library
+                  </span>
+                  <span className="hidden xs:inline">·</span>
+                  <span className="hidden xs:inline">Tap or drag cards onto the 3D pad to spawn</span>
                 </div>
 
-                {/* Draggable & Tappable Asset Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {SCENE_NODE_TEMPLATES.map((tpl) => (
-                    <div
-                      key={tpl.templateId}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData('text/plain', tpl.templateId);
-                        playTactileTone('dragstart');
-                      }}
-                      onClick={() => handleAddSceneNode(tpl)}
-                      className="p-2 sm:p-2.5 rounded-xl bg-[#12352D] hover:bg-[#18473C] border border-white/10 cursor-pointer transition-colors flex flex-col justify-between gap-1 active:scale-95"
-                    >
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-semibold text-white truncate">
-                          {tpl.label}
-                        </span>
-                        <Plus className="w-3.5 h-3.5 text-[#19B86B] shrink-0" />
-                      </div>
-                      <span className="text-[10px] sm:text-[11px] text-[#C4C6AF] truncate">
-                        {tpl.subtitle}
-                      </span>
-                      <span className="text-[10px] sm:text-[11px] font-mono tabular-nums text-[#E6C465]">
-                        R {formatZarPrice(tpl.priceZar)}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setSnapToGrid((s) => !s)}
+                    className={`px-2.5 py-1 rounded-xl text-xs font-mono tabular-nums font-medium border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                      snapToGrid
+                        ? 'bg-[#19B86B] text-[#082019] border-[#19B86B] font-bold'
+                        : 'bg-[#12382F] text-[#C4C6AF] border-white/10'
+                    }`}
+                  >
+                    {snapToGrid ? 'Snap: 0.5m ON' : 'Free Physics'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRemoveSelectedNode}
+                    className="px-2.5 py-1 rounded-xl bg-[#3A1818] hover:bg-[#522020] text-[#FCA5A5] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Remove</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSceneNodes(INITIAL_SCENE_NODES)}
+                    className="px-2.5 py-1 rounded-xl bg-[#12382F] hover:bg-[#194B3F] text-[#C4C6AF] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onSelectOrderForPayment({
+                        name: `Custom Varda Micro-Grid Bundle (${sceneNodes.length} Modules)`,
+                        description: sceneNodes.map((n) => n.label).join(' + '),
+                        amountZar: totalSceneZar,
+                      })
+                    }
+                    className="px-3 py-1 rounded-xl bg-[#E6C465] text-[#091D18] text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer shadow-sm font-mono tabular-nums"
+                  >
+                    Checkout · R {formatZarPrice(totalSceneZar)}
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Sub-Component Inspector Sidebar (Clicking 3D sub-components opens this) */}
-        <SubComponentInspector
-          part={currentPart}
-          assemblyId={selectedAssemblyId}
-          isOpen={inspectorOpen}
-          onClose={() => setInspectorOpen(false)}
-          onPulsePart={() => {
-            const spring = partSpringsMapRef.current?.get(currentPart.id);
-            if (spring) {
-              spring.scaleVel += 2.4;
-            }
-            playTactileTone('select');
-          }}
-          onSelectShader={(sh) => setActiveShader(sh)}
-        />
+              {/* Draggable & Tappable Asset Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {SCENE_NODE_TEMPLATES.map((tpl, idx) => (
+                  <div
+                    key={tpl.templateId}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', tpl.templateId);
+                      playTactileTone('dragstart');
+                    }}
+                    onClick={() => handleAddSceneNode(tpl)}
+                    className="p-2.5 rounded-xl bg-[#12352D] hover:bg-[#18473C] border border-white/10 cursor-pointer transition-colors flex flex-col justify-between gap-1 active:scale-95"
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-semibold text-white truncate">
+                        <span className="font-mono tabular-nums text-[10px] text-[#4FFFB0] mr-1">
+                          0{idx + 1}
+                        </span>
+                        {tpl.label}
+                      </span>
+                      <Plus className="w-3.5 h-3.5 text-[#19B86B] shrink-0" />
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] text-[#C4C6AF] truncate">
+                      {tpl.subtitle}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-mono tabular-nums text-[#E6C465]">
+                      R {formatZarPrice(tpl.priceZar)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
