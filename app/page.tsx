@@ -9,7 +9,12 @@ import RecentOrdersList from '@/components/RecentOrdersList';
 import PWAInstallButton from '@/components/PWAInstallButton';
 import MobileNavBar from '@/components/MobileNavBar';
 import {VARDA_ASSEMBLIES} from '@/lib/sa-data';
-import {triggerHaptic} from '@/lib/haptics';
+import {
+  triggerHaptic,
+  getHapticIntensity,
+  setHapticIntensity,
+  type HapticIntensity,
+} from '@/lib/haptics';
 import {shareContent} from '@/lib/native-share';
 import {
   Box,
@@ -21,6 +26,7 @@ import {
   Zap,
   ShieldCheck,
   Activity,
+  Vibrate,
 } from 'lucide-react';
 
 export type StudioMotionPreference = 'system' | 'full' | 'subtle' | 'reduced';
@@ -36,6 +42,9 @@ export default function VardaHomePage() {
   const [motionPref, setMotionPref] = useState<StudioMotionPreference>('system');
   const [osPrefersReduced, setOsPrefersReduced] = useState<boolean>(false);
 
+  // Haptic Feedback Intensity State ('none' | 'light' | 'heavy') persisted in localStorage
+  const [hapticPref, setHapticPref] = useState<HapticIntensity>('light');
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -46,6 +55,8 @@ export default function VardaHomePage() {
     } catch {
       // Ignore storage access errors
     }
+
+    setHapticPref(getHapticIntensity());
 
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setOsPrefersReduced(mediaQuery.matches);
@@ -64,6 +75,14 @@ export default function VardaHomePage() {
       localStorage.setItem(MOTION_STORAGE_KEY, nextPref);
     } catch {
       // Ignore storage write errors
+    }
+  };
+
+  const handleSelectHapticPref = (nextIntensity: HapticIntensity) => {
+    setHapticIntensity(nextIntensity);
+    setHapticPref(nextIntensity);
+    if (nextIntensity !== 'none') {
+      triggerHaptic(nextIntensity === 'heavy' ? 'heavy' : 'light');
     }
   };
 
@@ -439,76 +458,143 @@ export default function VardaHomePage() {
       </main>
 
       {/* ====================================================================
-          ARCHITECTURAL FOOTER WITH 3D MOTION-PREFERENCES TOGGLE
+          ARCHITECTURAL FOOTER WITH 3D MOTION & HAPTIC FEEDBACK SETTINGS
          ==================================================================== */}
       <footer className="border-t border-[#144239]/15 bg-[#EAE8DC] px-4 sm:px-8 lg:px-12 py-8">
         <div className="max-w-[1380px] mx-auto space-y-6">
-          {/* Top Row: Motion Preferences Control Bar for 3D Studio */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#F4F3EC] border border-[#144239]/12 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[#144239] text-[#E6C465]">
-                  <Activity className="w-3.5 h-3.5" />
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-[#144239]">
-                  3D Studio Motion & Kinematics Intensity
-                </span>
-                <span className="font-mono tabular-nums text-[11px] px-2 py-0.5 rounded-md bg-[#144239]/10 text-[#144239] font-semibold">
-                  Active: {Math.round(effectiveMotionIntensity * 100)}% ({effectiveMotionIntensity.toFixed(2)}x)
-                </span>
-                <span className="font-mono tabular-nums text-[10px] px-2 py-0.5 rounded-md border border-[#144239]/15 text-[#144239]/75">
-                  OS prefers-reduced-motion: {osPrefersReduced ? 'REDUCE' : 'NO-PREFERENCE'}
-                </span>
+          {/* Settings Grid: 3D Motion Intensity + Haptic Feedback Intensity */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {/* Card 1: Motion Preferences Control Bar for 3D Studio */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#F4F3EC] border border-[#144239]/12 flex flex-col justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[#144239] text-[#E6C465]">
+                    <Activity className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-[#144239]">
+                    3D Studio Motion & Kinematics Intensity
+                  </span>
+                  <span className="font-mono tabular-nums text-[11px] px-2 py-0.5 rounded-md bg-[#144239]/10 text-[#144239] font-semibold">
+                    Active: {Math.round(effectiveMotionIntensity * 100)}% ({effectiveMotionIntensity.toFixed(2)}x)
+                  </span>
+                  <span className="font-mono tabular-nums text-[10px] px-2 py-0.5 rounded-md border border-[#144239]/15 text-[#144239]/75">
+                    OS: {osPrefersReduced ? 'REDUCE' : 'STANDARD'}
+                  </span>
+                </div>
+                <p className="text-xs text-[#11362E]/75">
+                  Adjusts WebGL GLSL shader velocity, continuous part rotation, and Hooke’s law spring bounce while respecting system accessibility settings.
+                </p>
               </div>
-              <p className="text-xs text-[#11362E]/75">
-                Adjusts WebGL GLSL shader velocity, continuous part rotation, and Hooke’s law spring bounce while respecting system accessibility settings.
-              </p>
-            </div>
 
-            {/* Segmented Motion Intensity Selector */}
-            <div
-              role="group"
-              aria-label="3D Studio Animation Intensity"
-              className="flex flex-wrap items-center gap-1 bg-[#E5E3D5] p-1 rounded-xl border border-[#144239]/12 self-start lg:self-center"
-            >
-              {(
-                [
-                  {
-                    id: 'system',
-                    label: 'System Sync',
-                    badge: osPrefersReduced ? '0%' : '100%',
-                  },
-                  {id: 'full', label: 'Full Motion', badge: '100%'},
-                  {id: 'subtle', label: 'Subtle', badge: '45%'},
-                  {id: 'reduced', label: 'Reduced', badge: '0%'},
-                ] as const
-              ).map((opt) => {
-                const isSelected = motionPref === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => handleSelectMotionPref(opt.id)}
-                    aria-pressed={isSelected}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs'
-                        : 'text-[#144239]/75 hover:text-[#144239]'
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    <span
-                      className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
+              {/* Segmented Motion Intensity Selector */}
+              <div
+                role="group"
+                aria-label="3D Studio Animation Intensity"
+                className="flex flex-wrap items-center gap-1 bg-[#E5E3D5] p-1 rounded-xl border border-[#144239]/12 self-start"
+              >
+                {(
+                  [
+                    {
+                      id: 'system',
+                      label: 'System Sync',
+                      badge: osPrefersReduced ? '0%' : '100%',
+                    },
+                    {id: 'full', label: 'Full Motion', badge: '100%'},
+                    {id: 'subtle', label: 'Subtle', badge: '45%'},
+                    {id: 'reduced', label: 'Reduced', badge: '0%'},
+                  ] as const
+                ).map((opt) => {
+                  const isSelected = motionPref === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleSelectMotionPref(opt.id)}
+                      aria-pressed={isSelected}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                         isSelected
-                          ? 'bg-[#E6C465] text-[#0B241E] font-bold'
-                          : 'bg-[#144239]/10 text-[#144239]'
+                          ? 'bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs'
+                          : 'text-[#144239]/75 hover:text-[#144239]'
                       }`}
                     >
-                      {opt.badge}
-                    </span>
-                  </button>
-                );
-              })}
+                      <span>{opt.label}</span>
+                      <span
+                        className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
+                          isSelected
+                            ? 'bg-[#E6C465] text-[#0B241E] font-bold'
+                            : 'bg-[#144239]/10 text-[#144239]'
+                        }`}
+                      >
+                        {opt.badge}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Card 2: Tactile Haptic Feedback Intensity Settings (None, Light, Heavy) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#F4F3EC] border border-[#144239]/12 flex flex-col justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[#144239] text-[#E6C465]">
+                    <Vibrate className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-[#144239]">
+                    Tactile Haptic Feedback Intensity
+                  </span>
+                  <span className="font-mono tabular-nums text-[11px] px-2 py-0.5 rounded-md bg-[#144239]/10 text-[#144239] font-semibold uppercase">
+                    Mode: {hapticPref}
+                  </span>
+                  <span className="font-mono tabular-nums text-[10px] px-2 py-0.5 rounded-md border border-[#144239]/15 text-[#144239]/75">
+                    localStorage: varda_haptic_intensity_v1
+                  </span>
+                </div>
+                <p className="text-xs text-[#11362E]/75">
+                  Configures hardware vibration pulse duration across 3D component selection, collision alerts, and payment settlements.
+                </p>
+              </div>
+
+              {/* Segmented Haptic Intensity Selector (None, Light, Heavy) */}
+              <div
+                role="group"
+                aria-label="Haptic Feedback Intensity"
+                className="flex flex-wrap items-center gap-1 bg-[#E5E3D5] p-1 rounded-xl border border-[#144239]/12 self-start"
+              >
+                {(
+                  [
+                    {id: 'none', label: 'None', pulse: '0ms'},
+                    {id: 'light', label: 'Light', pulse: '10ms'},
+                    {id: 'heavy', label: 'Heavy', pulse: '85ms'},
+                  ] as const
+                ).map((opt) => {
+                  const isSelected = hapticPref === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleSelectHapticPref(opt.id)}
+                      aria-pressed={isSelected}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs'
+                          : 'text-[#144239]/75 hover:text-[#144239]'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      <span
+                        className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
+                          isSelected
+                            ? 'bg-[#E6C465] text-[#0B241E] font-bold'
+                            : 'bg-[#144239]/10 text-[#144239]'
+                        }`}
+                      >
+                        {opt.pulse}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
