@@ -38,8 +38,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Crosshair,
+  Thermometer,
 } from 'lucide-react';
 import SubComponentInspector from '@/components/SubComponentInspector';
+import StudioEngineeringSuite from '@/components/StudioEngineeringSuite';
 
 // ============================================================================
 // CUSTOM GLSL SHADERS (FIRE, WATER, PLASMA)
@@ -128,9 +130,11 @@ const FIRE_VERTEX_SHADER = `
 const FIRE_FRAGMENT_SHADER = `
   uniform float time;
   uniform float intensity;
+  uniform vec4 uClipPlane;
   ${COMMON_NOISE_GLSL}
 
   void main() {
+    if (dot(vWorldPos, uClipPlane.xyz) + uClipPlane.w < 0.0) discard;
     vec3 samplePos = vLocalPos * 3.2 - vec3(0.0, time * 2.8, 0.0);
     float n = fbm(samplePos);
     float n2 = fbm(samplePos * 2.1 + vec3(time * 0.7));
@@ -183,10 +187,12 @@ const WATER_VERTEX_SHADER = `
 
 const WATER_FRAGMENT_SHADER = `
   uniform float time;
+  uniform vec4 uClipPlane;
   varying float vWaveHeight;
   ${COMMON_NOISE_GLSL}
 
   void main() {
+    if (dot(vWorldPos, uClipPlane.xyz) + uClipPlane.w < 0.0) discard;
     vec3 viewDir = normalize(cameraPosition - vWorldPos);
     float fresnel = pow(1.0 - max(0.0, dot(viewDir, vNormal)), 3.0);
 
@@ -231,9 +237,11 @@ const PLASMA_VERTEX_SHADER = `
 const PLASMA_FRAGMENT_SHADER = `
   uniform float time;
   uniform float intensity;
+  uniform vec4 uClipPlane;
   ${COMMON_NOISE_GLSL}
 
   void main() {
+    if (dot(vWorldPos, uClipPlane.xyz) + uClipPlane.w < 0.0) discard;
     vec3 viewDir = normalize(cameraPosition - vWorldPos);
     float fresnel = pow(1.0 - max(0.0, dot(viewDir, vNormal)), 2.4);
 
@@ -253,6 +261,53 @@ const PLASMA_FRAGMENT_SHADER = `
     col += goldSpark * pow(fresnel, 4.0) * 0.65;
 
     gl_FragColor = vec4(col * (0.95 + 0.2 * intensity), 0.96);
+  }
+`;
+
+// 4. FLIR THERMAL INFRARED (IR) HEATMAP SHADER WITH ISOTHERM CONTOURS
+const THERMAL_VERTEX_SHADER = `
+  uniform float time;
+  uniform float intensity;
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vWorldPos;
+  varying vec3 vLocalPos;
+
+  void main() {
+    vUv = uv;
+    vLocalPos = position;
+    vNormal = normalize(normalMatrix * normal);
+    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+    vWorldPos = worldPosition.xyz;
+    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+  }
+`;
+
+const THERMAL_FRAGMENT_SHADER = `
+  uniform float time;
+  uniform float intensity;
+  uniform vec4 uClipPlane;
+  ${COMMON_NOISE_GLSL}
+
+  void main() {
+    if (dot(vWorldPos, uClipPlane.xyz) + uClipPlane.w < 0.0) discard;
+    float coreDist = length(vWorldPos.xz);
+    float convection = fbm(vWorldPos * 3.0 - vec3(0.0, time * 1.15, 0.0));
+    float temp = clamp(1.0 - coreDist * 0.46 + convection * 0.34 + (vWorldPos.y * 0.14), 0.0, 1.0);
+
+    vec3 coldCobalt = vec3(0.11, 0.10, 0.34);
+    vec3 midEmerald = vec3(0.06, 0.72, 0.50);
+    vec3 hotOchre   = vec3(0.96, 0.62, 0.04);
+    vec3 peakWhite  = vec3(1.00, 0.97, 0.86);
+
+    vec3 col = mix(coldCobalt, midEmerald, smoothstep(0.0, 0.38, temp));
+    col = mix(col, hotOchre, smoothstep(0.38, 0.72, temp));
+    col = mix(col, peakWhite, smoothstep(0.72, 1.0, temp));
+
+    float contour = smoothstep(0.92, 0.98, abs(sin(temp * 26.0)));
+    col = mix(col, vec3(1.0, 1.0, 1.0), contour * 0.32);
+
+    gl_FragColor = vec4(col * (0.95 + 0.15 * intensity), 0.98);
   }
 `;
 
@@ -298,6 +353,9 @@ export default function ThreeStudioViewport({
     VARDA_ASSEMBLIES[0].parts[1].id
   );
   const [isolatePart, setIsolatePart] = useState<boolean>(false);
+  const [clipPercent, setClipPercent] = useState<number>(0);
+  const [clipAxis, setClipAxis] = useState<'y' | 'x'>('y');
+  const [eskomStage, setEskomStage] = useState<number>(4);
   const [inspectorOpen, setInspectorOpen] = useState<boolean>(false);
   const [dockCollapsed, setDockCollapsed] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -353,6 +411,9 @@ export default function ThreeStudioViewport({
     explodeFactor,
     selectedPartId,
     isolatePart,
+    clipPercent,
+    clipAxis,
+    eskomStage,
     motionIntensity,
     sceneNodes,
     selectedNodeUid,
@@ -371,6 +432,9 @@ export default function ThreeStudioViewport({
       explodeFactor,
       selectedPartId,
       isolatePart,
+      clipPercent,
+      clipAxis,
+      eskomStage,
       motionIntensity,
       sceneNodes,
       selectedNodeUid,
@@ -386,6 +450,9 @@ export default function ThreeStudioViewport({
     explodeFactor,
     selectedPartId,
     isolatePart,
+    clipPercent,
+    clipAxis,
+    eskomStage,
     motionIntensity,
     sceneNodes,
     selectedNodeUid,
@@ -609,6 +676,9 @@ export default function ThreeStudioViewport({
     renderer.toneMappingExposure = 1.12;
     renderer.shadowMap.enabled = !isHeadless;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.localClippingEnabled = true;
+
+    const activeClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 50);
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
@@ -687,9 +757,42 @@ export default function ThreeStudioViewport({
     contactPlane.position.y = 0.01;
     scene.add(contactPlane);
 
-    // Custom GLSL Shader Materials
+    // 3D Laser Cross-Section Plane Indicator (Visible when clipPercent > 0)
+    const sliceLaserGroup = new THREE.Group();
+    const sliceRingMesh = new THREE.Mesh(
+      new THREE.RingGeometry(1.55, 1.62, 64),
+      new THREE.MeshBasicMaterial({
+        color: '#4FFFB0',
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85,
+      })
+    );
+    sliceRingMesh.rotation.x = -Math.PI / 2;
+    const sliceFillMesh = new THREE.Mesh(
+      new THREE.CircleGeometry(1.55, 64),
+      new THREE.MeshBasicMaterial({
+        color: '#19B86B',
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.09,
+        depthWrite: false,
+      })
+    );
+    sliceFillMesh.rotation.x = -Math.PI / 2;
+    sliceLaserGroup.add(sliceRingMesh, sliceFillMesh);
+    sliceLaserGroup.visible = false;
+    scene.add(sliceLaserGroup);
+
+    // Custom GLSL Shader Materials with uClipPlane uniform
+    const defaultClipVec = new THREE.Vector4(0, -1, 0, 50);
+
     const fireShaderMat = new THREE.ShaderMaterial({
-      uniforms: {time: {value: 0}, intensity: {value: 1.0}},
+      uniforms: {
+        time: {value: 0},
+        intensity: {value: 1.0},
+        uClipPlane: {value: defaultClipVec.clone()},
+      },
       vertexShader: FIRE_VERTEX_SHADER,
       fragmentShader: FIRE_FRAGMENT_SHADER,
       transparent: true,
@@ -697,7 +800,11 @@ export default function ThreeStudioViewport({
     });
 
     const waterShaderMat = new THREE.ShaderMaterial({
-      uniforms: {time: {value: 0}, intensity: {value: 1.0}},
+      uniforms: {
+        time: {value: 0},
+        intensity: {value: 1.0},
+        uClipPlane: {value: defaultClipVec.clone()},
+      },
       vertexShader: WATER_VERTEX_SHADER,
       fragmentShader: WATER_FRAGMENT_SHADER,
       transparent: true,
@@ -705,9 +812,25 @@ export default function ThreeStudioViewport({
     });
 
     const plasmaShaderMat = new THREE.ShaderMaterial({
-      uniforms: {time: {value: 0}, intensity: {value: 1.0}},
+      uniforms: {
+        time: {value: 0},
+        intensity: {value: 1.0},
+        uClipPlane: {value: defaultClipVec.clone()},
+      },
       vertexShader: PLASMA_VERTEX_SHADER,
       fragmentShader: PLASMA_FRAGMENT_SHADER,
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+
+    const thermalShaderMat = new THREE.ShaderMaterial({
+      uniforms: {
+        time: {value: 0},
+        intensity: {value: 1.0},
+        uClipPlane: {value: defaultClipVec.clone()},
+      },
+      vertexShader: THERMAL_VERTEX_SHADER,
+      fragmentShader: THERMAL_FRAGMENT_SHADER,
       transparent: true,
       side: THREE.DoubleSide,
     });
@@ -719,26 +842,33 @@ export default function ThreeStudioViewport({
       wireframe: true,
       roughness: 0.2,
       metalness: 0.8,
+      clippingPlanes: [activeClipPlane],
     });
 
-    // PBR Structural Materials
+    // PBR Structural Materials (with activeClipPlane support)
     const forestAnodizedMat = new THREE.MeshPhysicalMaterial({
       color: '#174C3F',
       metalness: 0.82,
       roughness: 0.24,
       clearcoat: 0.4,
+      side: THREE.DoubleSide,
+      clippingPlanes: [activeClipPlane],
     });
 
     const brushedGoldMat = new THREE.MeshPhysicalMaterial({
       color: '#E6C465',
       metalness: 0.92,
       roughness: 0.18,
+      side: THREE.DoubleSide,
+      clippingPlanes: [activeClipPlane],
     });
 
     const obsidianIronMat = new THREE.MeshStandardMaterial({
       color: '#18221F',
       metalness: 0.65,
       roughness: 0.52,
+      side: THREE.DoubleSide,
+      clippingPlanes: [activeClipPlane],
     });
 
     const frostedGlassMat = new THREE.MeshPhysicalMaterial({
@@ -746,6 +876,7 @@ export default function ThreeStudioViewport({
       transmission: 0.9,
       opacity: 1,
       transparent: true,
+      clippingPlanes: [activeClipPlane],
       roughness: 0.12,
       ior: 1.52,
       thickness: 1.2,
@@ -1225,6 +1356,55 @@ export default function ThreeStudioViewport({
       fireShaderMat.uniforms.time.value = shaderTime;
       waterShaderMat.uniforms.time.value = shaderTime;
       plasmaShaderMat.uniforms.time.value = shaderTime;
+      thermalShaderMat.uniforms.time.value = shaderTime;
+
+      // Update Real-Time 3D Cross-Section Clip Plane & Laser Indicator
+      if (st.clipPercent > 0) {
+        const t = st.clipPercent / 100;
+        if (st.clipAxis === 'y') {
+          const cutY = 2.15 - t * 2.35;
+          activeClipPlane.normal.set(0, -1, 0);
+          activeClipPlane.constant = cutY;
+          sliceLaserGroup.visible = true;
+          sliceLaserGroup.rotation.set(0, 0, 0);
+          sliceLaserGroup.position.set(0, cutY, 0);
+        } else {
+          const cutX = 1.65 - t * 3.3;
+          activeClipPlane.normal.set(-1, 0, 0);
+          activeClipPlane.constant = cutX;
+          sliceLaserGroup.visible = true;
+          sliceLaserGroup.rotation.set(0, 0, Math.PI / 2);
+          sliceLaserGroup.position.set(cutX, 1.0, 0);
+        }
+      } else {
+        activeClipPlane.normal.set(0, -1, 0);
+        activeClipPlane.constant = 50;
+        sliceLaserGroup.visible = false;
+      }
+
+      const clipVecX = activeClipPlane.normal.x;
+      const clipVecY = activeClipPlane.normal.y;
+      const clipVecZ = activeClipPlane.normal.z;
+      const clipVecW = activeClipPlane.constant;
+      fireShaderMat.uniforms.uClipPlane.value.set(clipVecX, clipVecY, clipVecZ, clipVecW);
+      waterShaderMat.uniforms.uClipPlane.value.set(clipVecX, clipVecY, clipVecZ, clipVecW);
+      plasmaShaderMat.uniforms.uClipPlane.value.set(clipVecX, clipVecY, clipVecZ, clipVecW);
+      thermalShaderMat.uniforms.uClipPlane.value.set(clipVecX, clipVecY, clipVecZ, clipVecW);
+
+      // Modulate Studio Lighting for Eskom Load-Shedding Stage Simulation
+      if (st.eskomStage >= 6) {
+        keyLight.intensity = 1.55;
+        rimLight.color.set('#E6C465');
+        rimLight.intensity = 2.2;
+      } else if (st.eskomStage >= 1) {
+        keyLight.intensity = 2.0;
+        rimLight.color.set('#2EE58D');
+        rimLight.intensity = 1.85;
+      } else {
+        keyLight.intensity = 2.4;
+        rimLight.color.set('#2EE58D');
+        rimLight.intensity = 1.5;
+      }
 
       // Rebuild anatomy meshes if user switched product assembly
       if (st.selectedAssemblyId !== currentBuiltAssemblyId) {
@@ -1298,12 +1478,14 @@ export default function ThreeStudioViewport({
             holder.rotation[part.rotationAxis] += part.rotationSpeed * dt * mScale;
           }
 
-          // Apply active shader override, X-Ray context isolation, or wireframe mode
+          // Apply active shader override, X-Ray context isolation, Thermal IR, or wireframe mode
           holder.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
               const mesh = child as THREE.Mesh;
               if (st.activeShader === 'wireframe' || (st.isolatePart && !isSelected)) {
                 mesh.material = wireframeBlueprintMat;
+              } else if (st.activeShader === 'thermal' && part.shaderCategory !== 'glass') {
+                mesh.material = thermalShaderMat;
               } else if (st.activeShader === 'fire' && part.shaderCategory !== 'glass') {
                 if (part.shaderCategory === 'fire' || isSelected) {
                   mesh.material = fireShaderMat;
@@ -1688,13 +1870,15 @@ export default function ThreeStudioViewport({
         </div>
       </div>
 
-      {/* Main 3D Viewport Container (Unobstructed on Mobile & Desktop) */}
-      <div
-        className={`relative w-full ${
-          isFullscreen
-            ? 'h-[58vh] sm:flex-1 sm:h-full'
-            : 'h-[370px] xs:h-[410px] sm:h-[600px] lg:h-[660px]'
-        } select-none overflow-hidden`}
+      {/* Wrapper for 3D Viewport + Control Deck so desktop floating dock anchors to the 3D canvas */}
+      <div className="relative w-full overflow-hidden">
+        {/* Main 3D Viewport Container (Unobstructed on Mobile & Desktop) */}
+        <div
+          className={`relative w-full ${
+            isFullscreen
+              ? 'h-[58vh] sm:flex-1 sm:h-full'
+              : 'h-[370px] xs:h-[410px] sm:h-[600px] lg:h-[660px]'
+          } select-none overflow-hidden`}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
@@ -2015,13 +2199,14 @@ export default function ThreeStudioViewport({
                 </button>
               </div>
 
-              {/* Row 2: Shaders Switcher Row (Fire, Water, Plasma, Isometric Wireframe, PBR) */}
+              {/* Row 2: Shaders Switcher Row (Fire, Water, Plasma, Thermal IR, Isometric Wireframe, PBR) */}
               <div className="flex items-center gap-1 bg-[#0E2D26] sm:bg-[#091D18] p-1 rounded-xl border border-white/10 overflow-x-auto scrollbar-none max-w-full">
                 {(
                   [
                     {id: 'plasma', label: 'Plasma Field', icon: Zap},
                     {id: 'fire', label: 'Fire Thermal', icon: Flame},
                     {id: 'water', label: 'Hydro Wave', icon: Droplets},
+                    {id: 'thermal', label: 'Thermal IR', icon: Thermometer},
                     {id: 'wireframe', label: '38KB Wireframe', icon: Box},
                     {id: 'pbr', label: 'Studio PBR', icon: Eye},
                   ] as const
@@ -2181,6 +2366,25 @@ export default function ThreeStudioViewport({
           )}
         </div>
       </div>
+      </div>
+
+      {/* Integrated Engineering Suite: Load-Shedding Stage 1-8 ROI Simulator, 3D Cross-Section Clip-Plane, and Exportable BOM & Stokvel Split */}
+      {!isFullscreen && (
+        <StudioEngineeringSuite
+          workspaceMode={workspaceMode}
+          currentAssembly={currentAssembly}
+          sceneNodes={sceneNodes}
+          clipPercent={clipPercent}
+          onClipPercentChange={setClipPercent}
+          clipAxis={clipAxis}
+          onClipAxisChange={setClipAxis}
+          eskomStage={eskomStage}
+          onEskomStageChange={setEskomStage}
+          activeShader={activeShader}
+          onSelectShader={setActiveShader}
+          onSelectOrderForPayment={onSelectOrderForPayment}
+        />
+      )}
     </section>
   );
 }

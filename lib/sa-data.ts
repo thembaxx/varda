@@ -1,4 +1,4 @@
-export type ShaderMode = 'pbr' | 'wireframe' | 'plasma' | 'fire' | 'water';
+export type ShaderMode = 'pbr' | 'wireframe' | 'plasma' | 'fire' | 'water' | 'thermal';
 
 /**
  * Deterministic ZAR currency formatter ensuring exact server and client hydration parity.

@@ -1,11 +1,10 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   type AnatomyPart,
+  type ShaderMode,
   getPartInspectorData,
-  type PartMaterialData,
-  type PartEnergyEfficiencyData,
 } from '@/lib/sa-data';
 import {triggerHaptic} from '@/lib/haptics';
 import {
@@ -18,15 +17,12 @@ import {
   Box,
   ShieldCheck,
   Sparkles,
-  TrendingUp,
   Sliders,
-  Maximize2,
-  CheckCircle2,
   Clock,
-  Compass,
   Activity,
-  ArrowRight,
-  Info,
+  Volume2,
+  VolumeX,
+  Thermometer,
 } from 'lucide-react';
 
 interface SubComponentInspectorProps {
@@ -35,7 +31,7 @@ interface SubComponentInspectorProps {
   isOpen: boolean;
   onClose: () => void;
   onPulsePart?: () => void;
-  onSelectShader?: (shader: 'pbr' | 'plasma' | 'fire' | 'water' | 'wireframe') => void;
+  onSelectShader?: (shader: ShaderMode) => void;
 }
 
 export default function SubComponentInspector({
@@ -48,6 +44,74 @@ export default function SubComponentInspector({
 }: SubComponentInspectorProps) {
   const [activeTab, setActiveTab] = useState<'material' | 'energy' | 'simulation'>('energy');
   const [simulatedLoadPct, setSimulatedLoadPct] = useState<number>(75);
+  const [acousticActive, setAcousticActive] = useState<boolean>(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscNodesRef = useRef<{osc1: OscillatorNode; osc2: OscillatorNode; gain: GainNode} | null>(null);
+
+  // Clean up WebAudio harmonic synth when closing or unmounting
+  useEffect(() => {
+    if (!isOpen || !acousticActive) {
+      if (oscNodesRef.current) {
+        try {
+          oscNodesRef.current.osc1.stop();
+          oscNodesRef.current.osc2.stop();
+          oscNodesRef.current.gain.disconnect();
+        } catch {
+          // Ignore already stopped
+        }
+        oscNodesRef.current = null;
+      }
+      return;
+    }
+
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        void ctx.resume();
+      }
+
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      // 50.0 Hz SA Grid Fundamental + Load-dependent harmonic overtone
+      const baseFreq = part.shaderCategory === 'water' ? 64 : 50;
+      osc1.type = 'sine';
+      osc2.type = 'triangle';
+      osc1.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+      osc2.frequency.setValueAtTime(baseFreq * 3 + simulatedLoadPct * 0.65, ctx.currentTime);
+
+      gain.gain.setValueAtTime(0.018, ctx.currentTime);
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start();
+      osc2.start();
+      oscNodesRef.current = {osc1, osc2, gain};
+    } catch {
+      // Ignore WebAudio restrictions
+    }
+
+    return () => {
+      if (oscNodesRef.current) {
+        try {
+          oscNodesRef.current.osc1.stop();
+          oscNodesRef.current.osc2.stop();
+          oscNodesRef.current.gain.disconnect();
+        } catch {
+          // Ignore
+        }
+        oscNodesRef.current = null;
+      }
+    };
+  }, [isOpen, acousticActive, part.shaderCategory, simulatedLoadPct]);
 
   if (!isOpen) return null;
 
@@ -66,6 +130,7 @@ export default function SubComponentInspector({
   const dynamicArbitrageHourlyZar = (
     (energy.peakTariffArbitrageZarPerKwh * (part.massKg * 0.18) * loadFactor)
   ).toFixed(2);
+  const dynamicTempCelsius = (31.5 + loadFactor * 36.8).toFixed(1);
 
   const getShaderIcon = (category: string) => {
     switch (category) {
@@ -417,7 +482,7 @@ export default function SubComponentInspector({
             <div className="p-3.5 rounded-xl bg-[#0E2F27] border border-white/15 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-white">Dynamic Electrical Load Test</span>
-                <span className="px-2 py-0.5 rounded font-mono text-xs bg-[#19B86B] text-[#072018] font-bold">
+                <span className="px-2 py-0.5 rounded font-mono tabular-nums text-xs bg-[#19B86B] text-[#072018] font-bold">
                   {simulatedLoadPct}% Load
                 </span>
               </div>
@@ -434,7 +499,7 @@ export default function SubComponentInspector({
                   }}
                   className="w-full accent-[#19B86B] cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] font-mono text-[#A1B8AD]">
+                <div className="flex justify-between text-[10px] font-mono tabular-nums text-[#A1B8AD]">
                   <span>10% Idle</span>
                   <span>50% Nominal</span>
                   <span>75% Optimal</span>
@@ -444,21 +509,104 @@ export default function SubComponentInspector({
             </div>
 
             {/* Dynamic Calculated Outputs */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
-                <span className="text-[10px] text-[#A1B8AD]">Instantaneous Efficiency</span>
-                <p className="text-xl font-mono font-bold text-[#4FFFB0]">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
+                <span className="text-[10px] text-[#A1B8AD] block truncate">Efficiency</span>
+                <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#4FFFB0]">
                   {dynamicEfficiency}%
                 </p>
-                <span className="text-[10px] text-[#A1B8AD]">Resonant Harmonic Lock</span>
+                <span className="text-[9px] text-[#A1B8AD] block">Harmonic Lock</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
-                <span className="text-[10px] text-[#A1B8AD]">Thermal Dissipation Flux</span>
-                <p className="text-xl font-mono font-bold text-[#FB923C]">
+              <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
+                <span className="text-[10px] text-[#A1B8AD] block truncate">Thermal Flux</span>
+                <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#FB923C]">
                   {dynamicHeatDissipation} W
                 </p>
-                <span className="text-[10px] text-[#A1B8AD]">Active Cooling Balance</span>
+                <span className="text-[9px] text-[#A1B8AD] block">Dissipation</span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
+                <span className="text-[10px] text-[#A1B8AD] block truncate">Core Temp</span>
+                <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#F5DF98]">
+                  {dynamicTempCelsius}°C
+                </p>
+                <span className="text-[9px] text-[#A1B8AD] block">FLIR Sensor</span>
+              </div>
+            </div>
+
+            {/* Spatial Audio & 50.0 Hz Acoustic Harmonics Visualizer */}
+            <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-xs font-semibold text-white block">
+                    50.0 Hz Acoustic Harmonics Visualizer
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-[#A1B8AD]">
+                    Fundamental: 50.0 Hz · Carrier: {(150 + simulatedLoadPct * 0.65).toFixed(1)} Hz · THD &lt; 0.8%
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setAcousticActive((a) => !a);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                    acousticActive
+                      ? 'bg-[#19B86B] text-[#072018]'
+                      : 'bg-[#143D34] text-[#C4C6AF] hover:text-white border border-white/10'
+                  }`}
+                >
+                  {acousticActive ? (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Synth ON</span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5" />
+                      <span>Listen 50Hz</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 16-Band Harmonic Spectrum Bars */}
+              <div className="h-14 rounded-lg bg-[#061512] border border-white/5 px-2.5 py-2 flex items-end justify-between gap-1">
+                {[50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 750, 900, 1200, 1600, 2400].map(
+                  (freq, idx) => {
+                    // Harmonic envelope peaking at 50Hz fundamental and 3rd/5th odd harmonics
+                    const baseHeight =
+                      idx === 0
+                        ? 95
+                        : idx === 2
+                        ? 42 + loadFactor * 36
+                        : idx === 4
+                        ? 28 + loadFactor * 28
+                        : Math.max(12, Math.round((Math.sin(idx * 1.7 + loadFactor * 4) * 0.5 + 0.5) * 58 * loadFactor));
+                    return (
+                      <div key={freq} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                        <div
+                          className={`w-full rounded-t transition-all duration-200 ${
+                            idx === 0
+                              ? 'bg-[#E6C465]'
+                              : acousticActive
+                              ? 'bg-[#4FFFB0] animate-pulse'
+                              : 'bg-[#19B86B]/70'
+                          }`}
+                          style={{height: `${Math.min(100, baseHeight)}%`}}
+                        />
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+              <div className="flex justify-between text-[9px] font-mono tabular-nums text-[#89A397]">
+                <span>50.0 Hz (SA Grid)</span>
+                <span>150 Hz (3rd)</span>
+                <span>450 Hz (SiC PWM)</span>
+                <span>2.4 kHz</span>
               </div>
             </div>
 
@@ -468,7 +616,7 @@ export default function SubComponentInspector({
               </span>
               <div className="p-2.5 rounded-lg bg-[#071A15] border border-white/5 flex items-center justify-between">
                 <span className="text-[#A1B8AD]">Hourly Eskom TOU Offset:</span>
-                <span className="font-mono text-sm font-bold text-[#E6C465]">
+                <span className="font-mono tabular-nums text-sm font-bold text-[#E6C465]">
                   R {dynamicArbitrageHourlyZar} / hr
                 </span>
               </div>
@@ -490,10 +638,24 @@ export default function SubComponentInspector({
                 triggerHaptic('medium');
                 onPulsePart();
               }}
-              className="flex-1 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1B5246] text-[#E6C465] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/10"
+              className="flex-1 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1B5246] text-[#E6C465] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/10 cursor-pointer"
             >
               <Activity className="w-3.5 h-3.5 text-[#19B86B]" />
-              Pulse 3D Component
+              <span>Pulse Spring</span>
+            </button>
+          )}
+
+          {onSelectShader && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('selection');
+                onSelectShader('thermal');
+              }}
+              className="flex-1 py-2 px-3 rounded-xl bg-[#3B1528] hover:bg-[#521D37] text-[#FDA4AF] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-[#F43F5E]/30 cursor-pointer"
+            >
+              <Thermometer className="w-3.5 h-3.5 text-[#FB7185]" />
+              <span>FLIR Thermal</span>
             </button>
           )}
 
