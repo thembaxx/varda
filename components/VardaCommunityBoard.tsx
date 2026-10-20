@@ -17,12 +17,10 @@ import {
   Plus,
   KeyRound,
   Home,
-  Bike,
   BookOpen,
   Sprout,
   Check,
   MapPin,
-  Sparkles,
   Users,
   Clock,
   ArrowUpRight,
@@ -550,8 +548,11 @@ export default function VardaCommunityBoard({
                     <button
                       key={spot.id}
                       type="button"
-                      onClick={() => setSelectedSpotId(spot.id)}
-                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors flex items-center justify-between gap-2 ${
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setSelectedSpotId(spot.id);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors flex items-center justify-between gap-2 cursor-pointer ${
                         selectedSpotId === spot.id
                           ? 'bg-[#144239] text-white'
                           : 'bg-white/45 hover:bg-white/70 text-[#144239]'
@@ -574,6 +575,33 @@ export default function VardaCommunityBoard({
                       </span>
                     </button>
                   ))}
+                </div>
+
+                {/* Selected Neighbourhood Partner Perk & Quick Voucher */}
+                <div className="p-3 rounded-xl bg-white/80 border border-[#144239]/15 flex items-center justify-between gap-2 text-xs">
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#144239] truncate">
+                      {selectedSpot.name} · {selectedSpot.category}
+                    </p>
+                    <p className="text-[11px] text-[#144239]/75 font-mono tabular-nums truncate">
+                      {selectedSpot.discount} · {selectedSpot.walkTime} walk
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('medium');
+                      onTriggerCheckout({
+                        name: `${selectedSpot.name} — Resident Partner Pass`,
+                        description: `${selectedSpot.discount} (${selectedSpot.category} · ${selectedSpot.walkTime})`,
+                        amountZar: 180,
+                      });
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-[#144239] text-[#E6C465] font-mono tabular-nums text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer hover:bg-[#1B574B]"
+                  >
+                    <span>R 180 Pass</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             </div>
