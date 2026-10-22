@@ -8,6 +8,7 @@ import SouthAfricaPaymentHub from '@/components/SouthAfricaPaymentHub';
 import RecentOrdersList from '@/components/RecentOrdersList';
 import PWAInstallButton from '@/components/PWAInstallButton';
 import MobileNavBar from '@/components/MobileNavBar';
+import ThemeControls from '@/components/ThemeControls';
 import {VARDA_ASSEMBLIES} from '@/lib/sa-data';
 import {
   triggerHaptic,
@@ -200,6 +201,7 @@ export default function VardaHomePage() {
             <span>Share</span>
           </button>
 
+          <ThemeControls />
           <PWAInstallButton />
 
           <a
