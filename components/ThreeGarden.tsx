@@ -16,7 +16,10 @@ export default function ThreeGarden() {
     if (!container) return;
     let renderer: THREE.WebGLRenderer;
     try { renderer = new THREE.WebGLRenderer({alpha: true, antialias: true, powerPreference: 'low-power'}); }
-    catch { setAvailable(false); return; }
+    catch {
+      const pending = window.setTimeout(() => setAvailable(false), 0);
+      return () => window.clearTimeout(pending);
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;

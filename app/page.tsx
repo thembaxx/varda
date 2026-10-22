@@ -47,25 +47,31 @@ export default function VardaHomePage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      const saved = localStorage.getItem(MOTION_STORAGE_KEY) as StudioMotionPreference | null;
-      if (saved && ['system', 'full', 'subtle', 'reduced'].includes(saved)) {
-        setMotionPref(saved);
-      }
-    } catch {
-      // Ignore storage access errors
-    }
-
-    setHapticPref(getHapticIntensity());
-
+    let active = true;
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setOsPrefersReduced(mediaQuery.matches);
+
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const saved = localStorage.getItem(MOTION_STORAGE_KEY) as StudioMotionPreference | null;
+        if (saved && ['system', 'full', 'subtle', 'reduced'].includes(saved)) {
+          setMotionPref(saved);
+        }
+      } catch {
+        // Ignore storage access errors.
+      }
+      setHapticPref(getHapticIntensity());
+      setOsPrefersReduced(mediaQuery.matches);
+    });
 
     const handleChange = (e: MediaQueryListEvent) => {
       setOsPrefersReduced(e.matches);
     };
     mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    return () => {
+      active = false;
+      mediaQuery.removeEventListener('change', handleChange);
+    };
   }, []);
 
   const handleSelectMotionPref = (nextPref: StudioMotionPreference) => {
