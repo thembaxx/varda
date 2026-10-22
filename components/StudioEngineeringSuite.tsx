@@ -122,7 +122,15 @@ export default function StudioEngineeringSuite({
     let currentSoc = 78; // Start at 78% at 00:00 SAST
     let minSoc = 100;
 
-    const hours = Array.from({length: 24}, (_, h) => {
+    const hours: Array<{
+      hour: number;
+      label: string;
+      solarKw: number;
+      loadKw: number;
+      blackout: boolean;
+      soc: number;
+    }> = [];
+    for (let h = 0; h < 24; h += 1) {
       // Solar bell curve between 06:00 and 18:00 SAST
       const sunFactor =
         h >= 6 && h <= 18 ? Math.sin(((h - 6) / 12) * Math.PI) : 0;
@@ -147,15 +155,15 @@ export default function StudioEngineeringSuite({
 
       minSoc = Math.min(minSoc, currentSoc);
 
-      return {
+      hours.push({
         hour: h,
         label: `${String(h).padStart(2, '0')}:00`,
         solarKw,
         loadKw,
         blackout,
         soc: Math.round(currentSoc),
-      };
-    });
+      });
+    }
 
     const totalSolarHarvestKwh = hours.reduce((sum, hour) => sum + hour.solarKw, 0);
 
