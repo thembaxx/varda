@@ -37,17 +37,22 @@ export default function ExperienceProvider({children}: {children: React.ReactNod
   const offline = preferences.offline || !online;
 
   useEffect(() => {
-    try { setPreferences(readPreferences(localStorage.getItem(PREFERENCES_KEY))); } catch { /* Use defaults. */ }
-    setReady(true);
+    let active = true;
     const syncNetwork = () => setOnline(navigator.onLine);
     const syncStorage = (event: StorageEvent) => {
       if (event.key === PREFERENCES_KEY) setPreferences(readPreferences(event.newValue));
     };
-    syncNetwork();
+    queueMicrotask(() => {
+      if (!active) return;
+      try { setPreferences(readPreferences(localStorage.getItem(PREFERENCES_KEY))); } catch { /* Use defaults. */ }
+      setReady(true);
+      syncNetwork();
+    });
     window.addEventListener('online', syncNetwork);
     window.addEventListener('offline', syncNetwork);
     window.addEventListener('storage', syncStorage);
     return () => {
+      active = false;
       window.removeEventListener('online', syncNetwork);
       window.removeEventListener('offline', syncNetwork);
       window.removeEventListener('storage', syncStorage);
