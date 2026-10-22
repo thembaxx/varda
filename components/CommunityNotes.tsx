@@ -40,8 +40,8 @@ export default function CommunityNotes({onAccount}: {onAccount: () => void}) {
         const stored: unknown = JSON.parse(localStorage.getItem('varda.community-cache.v1') || '[]');
         if (Array.isArray(stored) && stored.every(isPost)) setPosts(stored);
       } catch { /* Storage is optional. */ }
+      void load();
     });
-    void load();
     return () => { active = false; };
   }, [load]);
 
