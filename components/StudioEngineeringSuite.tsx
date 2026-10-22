@@ -121,14 +121,12 @@ export default function StudioEngineeringSuite({
 
     let currentSoc = 78; // Start at 78% at 00:00 SAST
     let minSoc = 100;
-    let totalSolarHarvestKwh = 0;
 
     const hours = Array.from({length: 24}, (_, h) => {
       // Solar bell curve between 06:00 and 18:00 SAST
       const sunFactor =
         h >= 6 && h <= 18 ? Math.sin(((h - 6) / 12) * Math.PI) : 0;
       const solarKw = Number((metrics.peakSolarKw * sunFactor * 0.86).toFixed(2));
-      totalSolarHarvestKwh += solarKw;
 
       // Evening & morning residential load spikes
       const demandMultiplier =
@@ -158,6 +156,8 @@ export default function StudioEngineeringSuite({
         soc: Math.round(currentSoc),
       };
     });
+
+    const totalSolarHarvestKwh = hours.reduce((sum, hour) => sum + hour.solarKw, 0);
 
     // Eskom peak tariff arbitrage & solar harvest savings at R 3.42 / kWh
     const dailySavingsZar = Math.round(
@@ -245,7 +245,7 @@ export default function StudioEngineeringSuite({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `varda-bom-${currentAssembly.id}-${Date.now()}.txt`;
+    a.download = `varda-bom-${currentAssembly.id}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
