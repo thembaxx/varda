@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import {Analytics} from '@vercel/analytics/next';
 import ExperienceProvider from '@/components/ExperienceProvider';
 import './globals.css';
+import './theme.css';
 
 const fraunces = localFont({src: [{path: './fonts/fraunces-normal.woff2', weight: '400 700', style: 'normal'}, {path: './fonts/fraunces-italic.woff2', weight: '400 700', style: 'italic'}], variable: '--font-fraunces', display: 'swap'});
 const outfit = localFont({src: './fonts/outfit-normal.woff2', variable: '--font-outfit', weight: '400 700', display: 'swap'});
