@@ -33,8 +33,16 @@ export default function CommunityNotes({onAccount}: {onAccount: () => void}) {
     } catch { setLoadError(true); }
   }, [offline]);
   useEffect(() => {
-    try { const stored: unknown = JSON.parse(localStorage.getItem('varda.community-cache.v1') || '[]'); if (Array.isArray(stored) && stored.every(isPost)) setPosts(stored); } catch {}
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const stored: unknown = JSON.parse(localStorage.getItem('varda.community-cache.v1') || '[]');
+        if (Array.isArray(stored) && stored.every(isPost)) setPosts(stored);
+      } catch { /* Storage is optional. */ }
+    });
     void load();
+    return () => { active = false; };
   }, [load]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
