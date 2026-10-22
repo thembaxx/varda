@@ -7,11 +7,17 @@ export function useLocalState<T>(key: string, fallback: T, validate: (value: unk
   const [value, setValue] = useState(fallback);
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    try {
-      const parsed: unknown = JSON.parse(localStorage.getItem(key) || 'null');
-      if (validate(parsed)) setValue(parsed);
-    } catch { /* Private browsing can disable storage. */ }
-    setReady(true);
+    let active = true;
+    // Hydrate after mount without synchronously cascading from the effect.
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const parsed: unknown = JSON.parse(localStorage.getItem(key) || 'null');
+        if (validate(parsed)) setValue(parsed);
+      } catch { /* Private browsing can disable storage. */ }
+      setReady(true);
+    });
+    return () => { active = false; };
   }, [key, validate]);
   useEffect(() => {
     if (ready) {
