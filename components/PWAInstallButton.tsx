@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, {useState} from 'react';
-import {usePWAInstall} from '@/hooks/usePWAInstall';
-import {triggerHaptic} from '@/lib/haptics';
+import React, { useState } from "react";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { triggerHaptic } from "@/lib/haptics";
 import {
   Download,
   Smartphone,
@@ -12,10 +12,10 @@ import {
   Monitor,
   CheckCircle2,
   Sparkles,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default function PWAInstallButton() {
-  const {isInstallable, isInstalled, isIOS, install, mounted} = usePWAInstall();
+  const { isInstallable, isInstalled, isIOS, install, mounted } = usePWAInstall();
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [showDesktopGuide, setShowDesktopGuide] = useState(false);
 
@@ -52,10 +52,10 @@ export default function PWAInstallButton() {
       <button
         type="button"
         onClick={async () => {
-          triggerHaptic('medium');
+          triggerHaptic("medium");
           const installed = await install();
           if (installed) {
-            triggerHaptic('success');
+            triggerHaptic("success");
           }
         }}
         className="px-3 py-1.5 rounded-xl bg-[#144239] hover:bg-[#1B574B] active:scale-95 text-[#F4F3EC] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
@@ -74,7 +74,7 @@ export default function PWAInstallButton() {
         <button
           type="button"
           onClick={() => {
-            triggerHaptic('light');
+            triggerHaptic("light");
             setShowIOSGuide(true);
           }}
           className="px-3 py-1.5 rounded-xl bg-[#144239] hover:bg-[#1B574B] active:scale-95 text-[#F4F3EC] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
@@ -120,22 +120,21 @@ export default function PWAInstallButton() {
                 <div className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
                   <PlusSquare className="w-5 h-5 text-[#E6C465] shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-white block mb-0.5">
-                      Step 2: Add to Home Screen
-                    </strong>
+                    <strong className="text-white block mb-0.5">Step 2: Add to Home Screen</strong>
                     Scroll down and select <strong>&quot;Add to Home Screen&quot;</strong>.
                   </div>
                 </div>
 
                 <p className="text-[11px] text-[#C4C6AF]/80 italic">
-                  Varda runs full-screen with offline-cached 3D models, custom GLSL shaders, and local South African payment ledger.
+                  Varda runs full-screen with offline-cached 3D models, custom GLSL shaders, and
+                  local South African payment ledger.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => {
-                  triggerHaptic('selection');
+                  triggerHaptic("selection");
                   setShowIOSGuide(false);
                 }}
                 className="w-full py-2.5 rounded-xl bg-[#E6C465] text-[#0B241E] text-xs font-bold hover:bg-[#f0cf73] transition-colors cursor-pointer"
@@ -155,7 +154,7 @@ export default function PWAInstallButton() {
       <button
         type="button"
         onClick={() => {
-          triggerHaptic('light');
+          triggerHaptic("light");
           setShowDesktopGuide(true);
         }}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#144239] hover:bg-[#1B574B] active:scale-95 text-[#F4F3EC] text-xs font-semibold transition-all shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
@@ -190,7 +189,8 @@ export default function PWAInstallButton() {
             </div>
 
             <p className="text-xs text-[#C4C6AF] leading-relaxed">
-              Install Varda to your desktop or device launcher for zero-latency 3D rendering and offline access during load-shedding.
+              Install Varda to your desktop or device launcher for zero-latency 3D rendering and
+              offline access during load-shedding.
             </p>
 
             <div className="space-y-2.5 text-xs">
@@ -199,7 +199,9 @@ export default function PWAInstallButton() {
                   <Sparkles className="w-3.5 h-3.5 text-[#4FFFB0]" /> Google Chrome & Microsoft Edge
                 </span>
                 <p className="text-[#C4C6AF]">
-                  Click the <strong>Install</strong> icon in the address bar (top right) or open menu <span className="font-mono text-white">⋮</span> &rarr; <em>Install Varda</em>.
+                  Click the <strong>Install</strong> icon in the address bar (top right) or open
+                  menu <span className="font-mono text-white">⋮</span> &rarr; <em>Install Varda</em>
+                  .
                 </p>
               </div>
 
@@ -208,7 +210,8 @@ export default function PWAInstallButton() {
                   <Smartphone className="w-3.5 h-3.5 text-[#E6C465]" /> Android & iOS Mobile
                 </span>
                 <p className="text-[#C4C6AF]">
-                  Tap browser menu &rarr; <strong>&quot;Add to Home Screen&quot;</strong> or <strong>&quot;Install app&quot;</strong>.
+                  Tap browser menu &rarr; <strong>&quot;Add to Home Screen&quot;</strong> or{" "}
+                  <strong>&quot;Install app&quot;</strong>.
                 </p>
               </div>
             </div>
@@ -216,7 +219,7 @@ export default function PWAInstallButton() {
             <button
               type="button"
               onClick={() => {
-                triggerHaptic('selection');
+                triggerHaptic("selection");
                 setShowDesktopGuide(false);
               }}
               className="w-full py-2.5 rounded-xl bg-[#E6C465] text-[#0B241E] text-xs font-bold hover:bg-[#f0cf73] transition-colors cursor-pointer"

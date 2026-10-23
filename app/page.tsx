@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import React, {useState, useEffect} from 'react';
-import Image from 'next/image';
-import {motion} from 'motion/react';
-import ThreeStudioViewport from '@/components/ThreeStudioViewport';
-import VardaCommunityBoard from '@/components/VardaCommunityBoard';
-import SouthAfricaPaymentHub from '@/components/SouthAfricaPaymentHub';
-import RecentOrdersList from '@/components/RecentOrdersList';
-import PWAInstallButton from '@/components/PWAInstallButton';
-import MobileNavBar from '@/components/MobileNavBar';
-import ThemeControls from '@/components/ThemeControls';
-import {VARDA_ASSEMBLIES} from '@/lib/sa-data';
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { motion } from "motion/react";
+import ThreeStudioViewport from "@/components/ThreeStudioViewport";
+import VardaCommunityBoard from "@/components/VardaCommunityBoard";
+import SouthAfricaPaymentHub from "@/components/SouthAfricaPaymentHub";
+import RecentOrdersList from "@/components/RecentOrdersList";
+import PWAInstallButton from "@/components/PWAInstallButton";
+import MobileNavBar from "@/components/MobileNavBar";
+import ThemeControls from "@/components/ThemeControls";
+import { VARDA_ASSEMBLIES } from "@/lib/sa-data";
 import {
   triggerHaptic,
   getHapticIntensity,
   setHapticIntensity,
   type HapticIntensity,
-} from '@/lib/haptics';
-import {shareContent} from '@/lib/native-share';
+} from "@/lib/haptics";
+import { shareContent } from "@/lib/native-share";
 import {
   Box,
   WifiOff,
@@ -29,11 +29,11 @@ import {
   ShieldCheck,
   Activity,
   Vibrate,
-} from 'lucide-react';
+} from "lucide-react";
 
-export type StudioMotionPreference = 'system' | 'full' | 'subtle' | 'reduced';
+export type StudioMotionPreference = "system" | "full" | "subtle" | "reduced";
 
-const MOTION_STORAGE_KEY = 'varda_studio_motion_pref_v1';
+const MOTION_STORAGE_KEY = "varda_studio_motion_pref_v1";
 
 export default function VardaHomePage() {
   const [lowBandwidthMode, setLowBandwidthMode] = useState<boolean>(false);
@@ -41,22 +41,22 @@ export default function VardaHomePage() {
   const [shareToast, setShareToast] = useState<string | null>(null);
 
   // Motion Preferences State (respecting system-level prefers-reduced-motion)
-  const [motionPref, setMotionPref] = useState<StudioMotionPreference>('system');
+  const [motionPref, setMotionPref] = useState<StudioMotionPreference>("system");
   const [osPrefersReduced, setOsPrefersReduced] = useState<boolean>(false);
 
   // Haptic Feedback Intensity State ('none' | 'light' | 'heavy') persisted in localStorage
-  const [hapticPref, setHapticPref] = useState<HapticIntensity>('light');
+  const [hapticPref, setHapticPref] = useState<HapticIntensity>("light");
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     let active = true;
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     queueMicrotask(() => {
       if (!active) return;
       try {
         const saved = localStorage.getItem(MOTION_STORAGE_KEY) as StudioMotionPreference | null;
-        if (saved && ['system', 'full', 'subtle', 'reduced'].includes(saved)) {
+        if (saved && ["system", "full", "subtle", "reduced"].includes(saved)) {
           setMotionPref(saved);
         }
       } catch {
@@ -69,15 +69,15 @@ export default function VardaHomePage() {
     const handleChange = (e: MediaQueryListEvent) => {
       setOsPrefersReduced(e.matches);
     };
-    mediaQuery.addEventListener('change', handleChange);
+    mediaQuery.addEventListener("change", handleChange);
     return () => {
       active = false;
-      mediaQuery.removeEventListener('change', handleChange);
+      mediaQuery.removeEventListener("change", handleChange);
     };
   }, []);
 
   const handleSelectMotionPref = (nextPref: StudioMotionPreference) => {
-    triggerHaptic('selection');
+    triggerHaptic("selection");
     setMotionPref(nextPref);
     try {
       localStorage.setItem(MOTION_STORAGE_KEY, nextPref);
@@ -89,22 +89,22 @@ export default function VardaHomePage() {
   const handleSelectHapticPref = (nextIntensity: HapticIntensity) => {
     setHapticIntensity(nextIntensity);
     setHapticPref(nextIntensity);
-    if (nextIntensity !== 'none') {
-      triggerHaptic(nextIntensity === 'heavy' ? 'heavy' : 'light');
+    if (nextIntensity !== "none") {
+      triggerHaptic(nextIntensity === "heavy" ? "heavy" : "light");
     }
   };
 
   // Compute effective 3D studio animation intensity (0.0 to 1.0)
   const effectiveMotionIntensity: number =
-    motionPref === 'reduced'
+    motionPref === "reduced"
       ? 0
-      : motionPref === 'subtle'
-      ? 0.45
-      : motionPref === 'full'
-      ? 1
-      : osPrefersReduced
-      ? 0
-      : 1;
+      : motionPref === "subtle"
+        ? 0.45
+        : motionPref === "full"
+          ? 1
+          : osPrefersReduced
+            ? 0
+            : 1;
 
   const [selectedOrder, setSelectedOrder] = useState<{
     name: string;
@@ -121,25 +121,25 @@ export default function VardaHomePage() {
     description: string;
     amountZar: number;
   }) => {
-    triggerHaptic('medium');
+    triggerHaptic("medium");
     setSelectedOrder(item);
-    const el = document.getElementById('sa-payments');
+    const el = document.getElementById("sa-payments");
     if (el) {
-      el.scrollIntoView({behavior: 'smooth'});
+      el.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   const handleTopShare = async () => {
-    triggerHaptic('light');
+    triggerHaptic("light");
     const res = await shareContent({
-      title: 'Varda — 3D Spatial & Eco-Living Platform',
-      text: 'Inspect 3D solar-hydro hardware with custom GLSL shaders, community living board, and South African payment settlements.',
+      title: "Varda — 3D Spatial & Eco-Living Platform",
+      text: "Inspect 3D solar-hydro hardware with custom GLSL shaders, community living board, and South African payment settlements.",
     });
-    if (res === 'copied') {
-      setShareToast('Link Copied to Clipboard!');
+    if (res === "copied") {
+      setShareToast("Link Copied to Clipboard!");
       setTimeout(() => setShareToast(null), 2200);
-    } else if (res === 'shared') {
-      setShareToast('Shared via System Share!');
+    } else if (res === "shared") {
+      setShareToast("Shared via System Share!");
       setTimeout(() => setShareToast(null), 2200);
     }
   };
@@ -155,7 +155,14 @@ export default function VardaHomePage() {
           href="#"
           className="inline-flex items-center gap-2 font-sans text-xl sm:text-2xl font-bold tracking-[-0.04em] text-[#144239] whitespace-nowrap shrink-0 hover:opacity-90 transition-opacity"
         >
-          <Image src="/icon.svg" alt="" width={36} height={36} unoptimized className="size-9 shrink-0 rounded-xl" />
+          <Image
+            src="/icon.svg"
+            alt=""
+            width={36}
+            height={36}
+            unoptimized
+            className="size-9 shrink-0 rounded-xl"
+          />
           <span>Varda</span>
         </a>
 
@@ -208,7 +215,7 @@ export default function VardaHomePage() {
 
           <a
             href="#sa-payments"
-            onClick={() => triggerHaptic('selection')}
+            onClick={() => triggerHaptic("selection")}
             className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold text-[#F4F3EC] bg-[#144239] rounded-xl hover:bg-[#1B574B] active:scale-95 transition-all whitespace-nowrap shrink-0 shadow-sm"
           >
             <span className="hidden sm:inline">PayFast & Ozow </span>Checkout
@@ -232,9 +239,9 @@ export default function VardaHomePage() {
         <section className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-end">
             <motion.div
-              initial={{opacity: 0, y: 12}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.25}}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
               className="lg:col-span-8 space-y-3 sm:space-y-4"
             >
               <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[#144239]/75">
@@ -250,22 +257,23 @@ export default function VardaHomePage() {
 
               <h1
                 className="font-serif text-3xl sm:text-5xl lg:text-[3.5rem] font-semibold text-[#11362E] tracking-tight leading-[1.12] sm:leading-[1.08]"
-                style={{textWrap: 'balance'}}
+                style={{ textWrap: "balance" }}
               >
-                Interactive <span className="font-mono tabular-nums">3D</span> micro-grid anatomy, WebGL shaders & community living.
+                Interactive <span className="font-mono tabular-nums">3D</span> micro-grid anatomy,
+                WebGL shaders & community living.
               </h1>
             </motion.div>
 
             <motion.div
-              initial={{opacity: 0, y: 12}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.25, delay: 0.05}}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: 0.05 }}
               className="lg:col-span-4 space-y-4"
             >
               <p className="text-xs sm:text-base text-[#11362E]/80 leading-relaxed">
-                Inspect multi-part solar and hydro hardware with custom GLSL fire,
-                water, and plasma shaders, test real-time <span className="font-mono tabular-nums">3D</span> collision physics, and
-                settle via PayFast, Ozow Instant EFT, PayShap, or offline USSD.
+                Inspect multi-part solar and hydro hardware with custom GLSL fire, water, and plasma
+                shaders, test real-time <span className="font-mono tabular-nums">3D</span> collision
+                physics, and settle via PayFast, Ozow Instant EFT, PayShap, or offline USSD.
               </p>
 
               {/* Workspace Quick Toggles for South African Low-Bandwidth & Offline Mode */}
@@ -273,40 +281,36 @@ export default function VardaHomePage() {
                 <button
                   type="button"
                   onClick={() => {
-                    triggerHaptic('light');
+                    triggerHaptic("light");
                     setLowBandwidthMode((b) => !b);
                   }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                     lowBandwidthMode
-                      ? 'bg-[#144239] text-[#E6C465] shadow-sm'
-                      : 'bg-[#E5E4D8] text-[#144239] hover:bg-[#DAD8C8]'
+                      ? "bg-[#144239] text-[#E6C465] shadow-sm"
+                      : "bg-[#E5E4D8] text-[#144239] hover:bg-[#DAD8C8]"
                   }`}
                 >
                   <Box className="w-3.5 h-3.5" />
                   <span className="font-mono tabular-nums">
-                    {lowBandwidthMode
-                      ? '2G/3G Wireframe: ON (38 KB)'
-                      : 'Enable 2G/3G (38 KB)'}
+                    {lowBandwidthMode ? "2G/3G Wireframe: ON (38 KB)" : "Enable 2G/3G (38 KB)"}
                   </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
-                    triggerHaptic('warning');
+                    triggerHaptic("warning");
                     setIsOfflineSimulated((o) => !o);
                   }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                     isOfflineSimulated
-                      ? 'bg-[#8E1B24] text-white shadow-sm'
-                      : 'bg-[#E5E4D8] text-[#144239] hover:bg-[#DAD8C8]'
+                      ? "bg-[#8E1B24] text-white shadow-sm"
+                      : "bg-[#E5E4D8] text-[#144239] hover:bg-[#DAD8C8]"
                   }`}
                 >
                   <WifiOff className="w-3.5 h-3.5" />
                   <span>
-                    {isOfflineSimulated
-                      ? 'Offline USSD Queue: ON'
-                      : 'Simulate Load-Shedding'}
+                    {isOfflineSimulated ? "Offline USSD Queue: ON" : "Simulate Load-Shedding"}
                   </span>
                 </button>
               </div>
@@ -324,28 +328,28 @@ export default function VardaHomePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-2">
             {[
               {
-                index: '01',
-                label: 'Custom GLSL Shaders',
-                value: '60 FPS · 3 Pipelines',
-                context: 'Procedural Fire, Water & Plasma vertex/fragment shaders',
+                index: "01",
+                label: "Custom GLSL Shaders",
+                value: "60 FPS · 3 Pipelines",
+                context: "Procedural Fire, Water & Plasma vertex/fragment shaders",
               },
               {
-                index: '02',
-                label: 'Low-Bandwidth Footprint',
-                value: '38 KB · 0.4s Load',
-                context: 'Zero external .glb 404s · Optimized for 2G/3G networks',
+                index: "02",
+                label: "Low-Bandwidth Footprint",
+                value: "38 KB · 0.4s Load",
+                context: "Zero external .glb 404s · Optimized for 2G/3G networks",
               },
               {
-                index: '03',
-                label: 'Collision & Kinematics',
-                value: '135 N/m · 7–8 Parts',
-                context: 'Real-time bounding-sphere repulsion & spring anatomy',
+                index: "03",
+                label: "Collision & Kinematics",
+                value: "135 N/m · 7–8 Parts",
+                context: "Real-time bounding-sphere repulsion & spring anatomy",
               },
               {
-                index: '04',
-                label: 'SA Payment Settlement',
-                value: 'MD5 + SHA-512 ZAR',
-                context: 'PayFast, Ozow Instant EFT, PayShap & USSD offline vault',
+                index: "04",
+                label: "SA Payment Settlement",
+                value: "MD5 + SHA-512 ZAR",
+                context: "PayFast, Ozow Instant EFT, PayShap & USSD offline vault",
               },
             ].map((stat) => (
               <div
@@ -421,10 +425,11 @@ export default function VardaHomePage() {
                 Multi-Part 3D Anatomy & Spring Kinematics
               </h3>
               <p className="text-xs text-[#11362E]/80 leading-relaxed">
-                Every Varda hardware assembly is constructed procedurally in Three.js
-                with <span className="font-mono tabular-nums font-semibold">7–8</span> individually selectable sub-components. Second-order Hooke’s
-                law spring equations (<span className="font-mono tabular-nums">135 N/m</span>) smoothly interpolate exploded views and tactile
-                part isolation without layout thrashing.
+                Every Varda hardware assembly is constructed procedurally in Three.js with{" "}
+                <span className="font-mono tabular-nums font-semibold">7–8</span> individually
+                selectable sub-components. Second-order Hooke’s law spring equations (
+                <span className="font-mono tabular-nums">135 N/m</span>) smoothly interpolate
+                exploded views and tactile part isolation without layout thrashing.
               </p>
             </div>
 
@@ -439,10 +444,11 @@ export default function VardaHomePage() {
                 GLSL Fire, Water & Plasma Shaders
               </h3>
               <p className="text-xs text-[#11362E]/80 leading-relaxed">
-                Custom WebGL vertex and fragment shaders simulate solar-thermal heat
-                convection (Fire), rainwater vortex waves with Fresnel caustics
-                (Water), and high-frequency toroidal inverter fields (Plasma), with
-                instant fallback to <span className="font-mono tabular-nums font-semibold">38 KB</span> Isometric Wireframes.
+                Custom WebGL vertex and fragment shaders simulate solar-thermal heat convection
+                (Fire), rainwater vortex waves with Fresnel caustics (Water), and high-frequency
+                toroidal inverter fields (Plasma), with instant fallback to{" "}
+                <span className="font-mono tabular-nums font-semibold">38 KB</span> Isometric
+                Wireframes.
               </p>
             </div>
 
@@ -457,10 +463,12 @@ export default function VardaHomePage() {
                 PayFast MD5 & Ozow SHA-512 Verification
               </h3>
               <p className="text-xs text-[#11362E]/80 leading-relaxed">
-                Server-side Next.js API routes generate URL-encoded PayFast <span className="font-mono tabular-nums">MD5</span>
-                signatures and Ozow <span className="font-mono tabular-nums">SHA-512</span> hashes in ZAR, paired with a persistent
-                LocalStorage offline transaction queue and USSD fallback strings for
-                Stage-<span className="font-mono tabular-nums">8</span> load-shedding resilience.
+                Server-side Next.js API routes generate URL-encoded PayFast{" "}
+                <span className="font-mono tabular-nums">MD5</span>
+                signatures and Ozow <span className="font-mono tabular-nums">SHA-512</span> hashes
+                in ZAR, paired with a persistent LocalStorage offline transaction queue and USSD
+                fallback strings for Stage-<span className="font-mono tabular-nums">8</span>{" "}
+                load-shedding resilience.
               </p>
             </div>
           </div>
@@ -485,14 +493,16 @@ export default function VardaHomePage() {
                     3D Studio Motion & Kinematics Intensity
                   </span>
                   <span className="font-mono tabular-nums text-[11px] px-2 py-0.5 rounded-md bg-[#144239]/10 text-[#144239] font-semibold">
-                    Active: {Math.round(effectiveMotionIntensity * 100)}% ({effectiveMotionIntensity.toFixed(2)}x)
+                    Active: {Math.round(effectiveMotionIntensity * 100)}% (
+                    {effectiveMotionIntensity.toFixed(2)}x)
                   </span>
                   <span className="font-mono tabular-nums text-[10px] px-2 py-0.5 rounded-md border border-[#144239]/15 text-[#144239]/75">
-                    OS: {osPrefersReduced ? 'REDUCE' : 'STANDARD'}
+                    OS: {osPrefersReduced ? "REDUCE" : "STANDARD"}
                   </span>
                 </div>
                 <p className="text-xs text-[#11362E]/75">
-                  Adjusts WebGL GLSL shader velocity, continuous part rotation, and Hooke’s law spring bounce while respecting system accessibility settings.
+                  Adjusts WebGL GLSL shader velocity, continuous part rotation, and Hooke’s law
+                  spring bounce while respecting system accessibility settings.
                 </p>
               </div>
 
@@ -505,13 +515,13 @@ export default function VardaHomePage() {
                 {(
                   [
                     {
-                      id: 'system',
-                      label: 'System Sync',
-                      badge: osPrefersReduced ? '0%' : '100%',
+                      id: "system",
+                      label: "System Sync",
+                      badge: osPrefersReduced ? "0%" : "100%",
                     },
-                    {id: 'full', label: 'Full Motion', badge: '100%'},
-                    {id: 'subtle', label: 'Subtle', badge: '45%'},
-                    {id: 'reduced', label: 'Reduced', badge: '0%'},
+                    { id: "full", label: "Full Motion", badge: "100%" },
+                    { id: "subtle", label: "Subtle", badge: "45%" },
+                    { id: "reduced", label: "Reduced", badge: "0%" },
                   ] as const
                 ).map((opt) => {
                   const isSelected = motionPref === opt.id;
@@ -523,16 +533,16 @@ export default function VardaHomePage() {
                       aria-pressed={isSelected}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                         isSelected
-                          ? 'bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs'
-                          : 'text-[#144239]/75 hover:text-[#144239]'
+                          ? "bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs"
+                          : "text-[#144239]/75 hover:text-[#144239]"
                       }`}
                     >
                       <span>{opt.label}</span>
                       <span
                         className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
                           isSelected
-                            ? 'bg-[#E6C465] text-[#0B241E] font-bold'
-                            : 'bg-[#144239]/10 text-[#144239]'
+                            ? "bg-[#E6C465] text-[#0B241E] font-bold"
+                            : "bg-[#144239]/10 text-[#144239]"
                         }`}
                       >
                         {opt.badge}
@@ -561,7 +571,8 @@ export default function VardaHomePage() {
                   </span>
                 </div>
                 <p className="text-xs text-[#11362E]/75">
-                  Configures hardware vibration pulse duration across 3D component selection, collision alerts, and payment settlements.
+                  Configures hardware vibration pulse duration across 3D component selection,
+                  collision alerts, and payment settlements.
                 </p>
               </div>
 
@@ -573,9 +584,9 @@ export default function VardaHomePage() {
               >
                 {(
                   [
-                    {id: 'none', label: 'None', pulse: '0ms'},
-                    {id: 'light', label: 'Light', pulse: '10ms'},
-                    {id: 'heavy', label: 'Heavy', pulse: '85ms'},
+                    { id: "none", label: "None", pulse: "0ms" },
+                    { id: "light", label: "Light", pulse: "10ms" },
+                    { id: "heavy", label: "Heavy", pulse: "85ms" },
                   ] as const
                 ).map((opt) => {
                   const isSelected = hapticPref === opt.id;
@@ -587,16 +598,16 @@ export default function VardaHomePage() {
                       aria-pressed={isSelected}
                       className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                         isSelected
-                          ? 'bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs'
-                          : 'text-[#144239]/75 hover:text-[#144239]'
+                          ? "bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs"
+                          : "text-[#144239]/75 hover:text-[#144239]"
                       }`}
                     >
                       <span>{opt.label}</span>
                       <span
                         className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
                           isSelected
-                            ? 'bg-[#E6C465] text-[#0B241E] font-bold'
-                            : 'bg-[#144239]/10 text-[#144239]'
+                            ? "bg-[#E6C465] text-[#0B241E] font-bold"
+                            : "bg-[#144239]/10 text-[#144239]"
                         }`}
                       >
                         {opt.pulse}
@@ -613,9 +624,7 @@ export default function VardaHomePage() {
             <div className="flex flex-wrap items-center gap-2 text-center sm:text-left">
               <span className="font-serif font-bold text-sm text-[#144239]">Varda</span>
               <span>·</span>
-              <span>
-                3D Spatial Product Studio & Co-Living Platform (Woodstock · Maboneng)
-              </span>
+              <span>3D Spatial Product Studio & Co-Living Platform (Woodstock · Maboneng)</span>
             </div>
             <div className="flex flex-wrap items-center gap-5 font-medium">
               <a href="#studio" className="hover:text-[#144239] flex items-center gap-1">

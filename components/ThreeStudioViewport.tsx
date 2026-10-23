@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, {useEffect, useRef, useState, useCallback} from 'react';
-import * as THREE from 'three';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   VARDA_ASSEMBLIES,
   INITIAL_SCENE_NODES,
@@ -13,8 +13,8 @@ import {
   type VardaProductAssembly,
   type AnatomyPart,
   type SceneAssetNode,
-} from '@/lib/sa-data';
-import {triggerHaptic} from '@/lib/haptics';
+} from "@/lib/sa-data";
+import { triggerHaptic } from "@/lib/haptics";
 import {
   Layers,
   Box,
@@ -39,9 +39,9 @@ import {
   ChevronRight,
   Crosshair,
   Thermometer,
-} from 'lucide-react';
-import SubComponentInspector from '@/components/SubComponentInspector';
-import StudioEngineeringSuite from '@/components/StudioEngineeringSuite';
+} from "lucide-react";
+import SubComponentInspector from "@/components/SubComponentInspector";
+import StudioEngineeringSuite from "@/components/StudioEngineeringSuite";
 
 // ============================================================================
 // CUSTOM GLSL SHADERS (FIRE, WATER, PLASMA)
@@ -338,11 +338,7 @@ interface SpringState {
 interface ThreeStudioViewportProps {
   lowBandwidthMode: boolean;
   motionIntensity?: number;
-  onSelectOrderForPayment: (item: {
-    name: string;
-    description: string;
-    amountZar: number;
-  }) => void;
+  onSelectOrderForPayment: (item: { name: string; description: string; amountZar: number }) => void;
 }
 
 export default function ThreeStudioViewport({
@@ -353,21 +349,19 @@ export default function ThreeStudioViewport({
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
 
   // Studio State
-  const [workspaceMode, setWorkspaceMode] = useState<'anatomy' | 'scene-editor'>('anatomy');
+  const [workspaceMode, setWorkspaceMode] = useState<"anatomy" | "scene-editor">("anatomy");
   const [selectedAssemblyId, setSelectedAssemblyId] = useState<string>(VARDA_ASSEMBLIES[0].id);
-  const [activeShader, setActiveShader] = useState<ShaderMode>('plasma');
+  const [activeShader, setActiveShader] = useState<ShaderMode>("plasma");
   const [isIsometric, setIsIsometric] = useState<boolean>(false);
   const [explodeFactor, setExplodeFactor] = useState<number>(0.18);
-  const [selectedPartId, setSelectedPartId] = useState<string>(
-    VARDA_ASSEMBLIES[0].parts[1].id
-  );
+  const [selectedPartId, setSelectedPartId] = useState<string>(VARDA_ASSEMBLIES[0].parts[1].id);
   const [isolatePart, setIsolatePart] = useState<boolean>(false);
   const [freeRearrangeMode, setFreeRearrangeMode] = useState<boolean>(true);
   const [lastTossSpeed, setLastTossSpeed] = useState<number>(0);
   const [rearrangedCount, setRearrangedCount] = useState<number>(0);
   const [activeGrabLabel, setActiveGrabLabel] = useState<string | null>(null);
   const [clipPercent, setClipPercent] = useState<number>(0);
-  const [clipAxis, setClipAxis] = useState<'y' | 'x'>('y');
+  const [clipAxis, setClipAxis] = useState<"y" | "x">("y");
   const [eskomStage, setEskomStage] = useState<number>(4);
   const [inspectorOpen, setInspectorOpen] = useState<boolean>(false);
   const [dockCollapsed, setDockCollapsed] = useState<boolean>(false);
@@ -380,14 +374,14 @@ export default function ThreeStudioViewport({
   // Trigger resize when toggling full-screen mode for instantaneous WebGL viewport adaptation
   useEffect(() => {
     const timer = setTimeout(() => {
-      window.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new Event("resize"));
     }, 60);
     return () => clearTimeout(timer);
   }, [isFullscreen]);
 
   // Scene Editor & Collision State
   const [sceneNodes, setSceneNodes] = useState<SceneAssetNode[]>(INITIAL_SCENE_NODES);
-  const [selectedNodeUid, setSelectedNodeUid] = useState<string>('node-1');
+  const [selectedNodeUid, setSelectedNodeUid] = useState<string>("node-1");
   const [activeCollisions, setActiveCollisions] = useState<string[]>([]);
   const [snapToGrid, setSnapToGrid] = useState<boolean>(false);
 
@@ -395,14 +389,14 @@ export default function ThreeStudioViewport({
     VARDA_ASSEMBLIES.find((a) => a.id === selectedAssemblyId) || VARDA_ASSEMBLIES[0];
   const currentPartIndex = Math.max(
     0,
-    currentAssembly.parts.findIndex((p) => p.id === selectedPartId)
+    currentAssembly.parts.findIndex((p) => p.id === selectedPartId),
   );
   const currentPart: AnatomyPart =
     currentAssembly.parts[currentPartIndex] || currentAssembly.parts[0];
 
   const handleCyclePart = useCallback(
     (direction: -1 | 1) => {
-      triggerHaptic('selection');
+      triggerHaptic("selection");
       const total = currentAssembly.parts.length;
       const nextIdx = (currentPartIndex + direction + total) % total;
       const nextPart = currentAssembly.parts[nextIdx];
@@ -412,14 +406,14 @@ export default function ThreeStudioViewport({
         spring.scaleVel += 1.6 * motionIntensity;
       }
     },
-    [currentAssembly.parts, currentPartIndex, motionIntensity]
+    [currentAssembly.parts, currentPartIndex, motionIntensity],
   );
 
   // Mutable refs for the WebGL loop so React state updates never recreate the canvas
   const stateRef = useRef({
     workspaceMode,
     selectedAssemblyId,
-    activeShader: lowBandwidthMode ? ('wireframe' as ShaderMode) : activeShader,
+    activeShader: lowBandwidthMode ? ("wireframe" as ShaderMode) : activeShader,
     isIsometric,
     explodeFactor,
     selectedPartId,
@@ -441,7 +435,7 @@ export default function ThreeStudioViewport({
     stateRef.current = {
       workspaceMode,
       selectedAssemblyId,
-      activeShader: lowBandwidthMode ? 'wireframe' : activeShader,
+      activeShader: lowBandwidthMode ? "wireframe" : activeShader,
       isIsometric,
       explodeFactor,
       selectedPartId,
@@ -480,38 +474,38 @@ export default function ThreeStudioViewport({
   const playTactileTone = useCallback(
     (
       type:
-        | 'select'
-        | 'collide'
-        | 'snap'
-        | 'spawn'
-        | 'dragstart'
-        | 'dragmove'
-        | 'drop'
-        | 'dock-spawn'
-        | 'toss'
+        | "select"
+        | "collide"
+        | "snap"
+        | "spawn"
+        | "dragstart"
+        | "dragmove"
+        | "drop"
+        | "dock-spawn"
+        | "toss",
     ) => {
-      if (!stateRef.current.soundEnabled || typeof window === 'undefined') return;
+      if (!stateRef.current.soundEnabled || typeof window === "undefined") return;
       try {
         const AudioCtx =
           window.AudioContext ||
-          (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         if (!AudioCtx) return;
 
-        if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
           audioCtxRef.current = new AudioCtx();
         }
         const ctx = audioCtxRef.current;
-        if (ctx.state === 'suspended') {
+        if (ctx.state === "suspended") {
           ctx.resume().catch(() => {});
         }
 
         const now = ctx.currentTime;
 
-        if (type === 'dragstart') {
-          triggerHaptic('light');
+        if (type === "dragstart") {
+          triggerHaptic("light");
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine';
+          osc.type = "sine";
           osc.frequency.setValueAtTime(360, now);
           osc.frequency.exponentialRampToValueAtTime(560, now + 0.05);
           gain.gain.setValueAtTime(0.045, now);
@@ -520,12 +514,12 @@ export default function ThreeStudioViewport({
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 0.06);
-        } else if (type === 'toss') {
-          triggerHaptic('heavy');
+        } else if (type === "toss") {
+          triggerHaptic("heavy");
           // Kinetic aerodynamic whoosh + harmonic launch chirp when tossing a 3D part
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine';
+          osc.type = "sine";
           osc.frequency.setValueAtTime(280, now);
           osc.frequency.exponentialRampToValueAtTime(880, now + 0.11);
           gain.gain.setValueAtTime(0.09, now);
@@ -534,10 +528,10 @@ export default function ThreeStudioViewport({
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 0.14);
-        } else if (type === 'dragmove') {
+        } else if (type === "dragmove") {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine';
+          osc.type = "sine";
           osc.frequency.setValueAtTime(820, now);
           osc.frequency.exponentialRampToValueAtTime(680, now + 0.015);
           gain.gain.setValueAtTime(0.018, now);
@@ -546,11 +540,11 @@ export default function ThreeStudioViewport({
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 0.02);
-        } else if (type === 'drop') {
-          triggerHaptic('medium');
+        } else if (type === "drop") {
+          triggerHaptic("medium");
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'triangle';
+          osc.type = "triangle";
           osc.frequency.setValueAtTime(230, now);
           osc.frequency.exponentialRampToValueAtTime(74, now + 0.11);
           gain.gain.setValueAtTime(0.12, now);
@@ -559,11 +553,11 @@ export default function ThreeStudioViewport({
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 0.12);
-        } else if (type === 'snap') {
-          triggerHaptic('selection');
+        } else if (type === "snap") {
+          triggerHaptic("selection");
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine';
+          osc.type = "sine";
           osc.frequency.setValueAtTime(740, now);
           osc.frequency.exponentialRampToValueAtTime(960, now + 0.04);
           gain.gain.setValueAtTime(0.08, now);
@@ -572,13 +566,13 @@ export default function ThreeStudioViewport({
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 0.05);
-        } else if (type === 'dock-spawn' || type === 'spawn') {
-          triggerHaptic('success');
+        } else if (type === "dock-spawn" || type === "spawn") {
+          triggerHaptic("success");
           const osc1 = ctx.createOscillator();
           const osc2 = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc1.type = 'sine';
-          osc2.type = 'sine';
+          osc1.type = "sine";
+          osc2.type = "sine";
           osc1.frequency.setValueAtTime(420, now);
           osc1.frequency.exponentialRampToValueAtTime(580, now + 0.08);
           osc2.frequency.setValueAtTime(640, now + 0.04);
@@ -592,11 +586,11 @@ export default function ThreeStudioViewport({
           osc2.start(now + 0.04);
           osc1.stop(now + 0.14);
           osc2.stop(now + 0.14);
-        } else if (type === 'collide') {
-          triggerHaptic('warning');
+        } else if (type === "collide") {
+          triggerHaptic("warning");
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'triangle';
+          osc.type = "triangle";
           osc.frequency.setValueAtTime(155, now);
           osc.frequency.exponentialRampToValueAtTime(68, now + 0.14);
           gain.gain.setValueAtTime(0.14, now);
@@ -605,11 +599,11 @@ export default function ThreeStudioViewport({
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 0.15);
-        } else if (type === 'select') {
-          triggerHaptic('light');
+        } else if (type === "select") {
+          triggerHaptic("light");
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine';
+          osc.type = "sine";
           osc.frequency.setValueAtTime(520, now);
           osc.frequency.exponentialRampToValueAtTime(780, now + 0.07);
           gain.gain.setValueAtTime(0.06, now);
@@ -623,13 +617,13 @@ export default function ThreeStudioViewport({
         // Ignore audio errors if blocked by browser autoplay policy
       }
     },
-    []
+    [],
   );
 
   // Reset all grabbed/tossed anatomy components back to their calibrated engineering layout
   const handleResetAssemblyLayout = useCallback(() => {
-    triggerHaptic('medium');
-    playTactileTone('snap');
+    triggerHaptic("medium");
+    playTactileTone("snap");
     const springs = partSpringsMapRef.current;
     if (springs) {
       springs.forEach((sp) => {
@@ -645,26 +639,22 @@ export default function ThreeStudioViewport({
 
   // Apply a kinetic toss impulse burst to demonstrate 3D grab & toss physics immediately
   const handleKineticTossBurst = useCallback(() => {
-    triggerHaptic('heavy');
-    playTactileTone('toss');
+    triggerHaptic("heavy");
+    playTactileTone("toss");
     setFreeRearrangeMode(true);
     const springs = partSpringsMapRef.current;
     if (springs) {
       let idx = 0;
       let peakSpeed = 0;
       springs.forEach((sp) => {
-        const angle = (idx * 2.39996) + (Math.random() * 0.4); // Golden angle distribution
+        const angle = idx * 2.39996 + Math.random() * 0.4; // Golden angle distribution
         const speed = 3.2 + (idx % 3) * 1.4;
         peakSpeed = Math.max(peakSpeed, speed);
-        sp.vel.set(
-          Math.cos(angle) * speed,
-          1.2 + (idx % 2) * 0.9,
-          Math.sin(angle) * speed
-        );
+        sp.vel.set(Math.cos(angle) * speed, 1.2 + (idx % 2) * 0.9, Math.sin(angle) * speed);
         sp.angVel.set(
           (Math.random() - 0.5) * 4.5,
           (Math.random() - 0.5) * 4.5,
-          (Math.random() - 0.5) * 4.5
+          (Math.random() - 0.5) * 4.5,
         );
         sp.scaleVel += 1.8;
         idx++;
@@ -676,16 +666,16 @@ export default function ThreeStudioViewport({
 
   // Build procedural canvas dial texture for ground pad
   const createTechnicalGridTexture = useCallback((maxAnisotropy: number) => {
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 1024;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext("2d")!;
 
-    ctx.fillStyle = '#0E2D26';
+    ctx.fillStyle = "#0E2D26";
     ctx.fillRect(0, 0, 1024, 1024);
 
     // Subtle grid lines
-    ctx.strokeStyle = 'rgba(200, 214, 185, 0.12)';
+    ctx.strokeStyle = "rgba(200, 214, 185, 0.12)";
     ctx.lineWidth = 1.5;
     const step = 64;
     for (let i = 0; i <= 1024; i += step) {
@@ -701,7 +691,7 @@ export default function ThreeStudioViewport({
     }
 
     // Concentric isometric calibration rings
-    ctx.strokeStyle = 'rgba(230, 196, 101, 0.28)';
+    ctx.strokeStyle = "rgba(230, 196, 101, 0.28)";
     ctx.lineWidth = 2;
     [180, 320, 440].forEach((radius) => {
       ctx.beginPath();
@@ -725,8 +715,8 @@ export default function ThreeStudioViewport({
     const aspect = width / height;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#0B241E');
-    scene.fog = new THREE.FogExp2('#0B241E', 0.042);
+    scene.background = new THREE.Color("#0B241E");
+    scene.fog = new THREE.FogExp2("#0B241E", 0.042);
 
     // Cameras: Perspective & Orthographic Isometric
     const perspCamera = new THREE.PerspectiveCamera(42, aspect, 0.1, 100);
@@ -739,17 +729,17 @@ export default function ThreeStudioViewport({
       frustumSize / 2,
       -frustumSize / 2,
       0.1,
-      100
+      100,
     );
     orthoCamera.position.set(5.5, 5.5, 5.5);
 
     const isHeadless =
-      typeof navigator !== 'undefined' &&
+      typeof navigator !== "undefined" &&
       (navigator.webdriver || /HeadlessChrome/i.test(navigator.userAgent));
 
     const renderer = new THREE.WebGLRenderer({
       antialias: !isHeadless,
-      powerPreference: 'high-performance',
+      powerPreference: "high-performance",
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(isHeadless ? 1 : Math.min(window.devicePixelRatio, 2));
@@ -762,7 +752,7 @@ export default function ThreeStudioViewport({
 
     const activeClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 50);
 
-    container.innerHTML = '';
+    container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
     // Studio Environment Reflection (RoomEnvironment + PMREMGenerator)
@@ -771,10 +761,10 @@ export default function ThreeStudioViewport({
     pmremGenerator.dispose();
 
     // 3-Point Warm/Cool Studio Lighting Rig
-    const hemiLight = new THREE.HemisphereLight('#D4E8DC', '#0A1F1A', 0.9);
+    const hemiLight = new THREE.HemisphereLight("#D4E8DC", "#0A1F1A", 0.9);
     scene.add(hemiLight);
 
-    const keyLight = new THREE.DirectionalLight('#FFF3D6', 2.4);
+    const keyLight = new THREE.DirectionalLight("#FFF3D6", 2.4);
     keyLight.position.set(5, 8, 5);
     keyLight.castShadow = !isHeadless;
     keyLight.shadow.mapSize.set(1024, 1024);
@@ -789,7 +779,7 @@ export default function ThreeStudioViewport({
     keyLight.shadow.normalBias = 0.02;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight('#2EE58D', 1.5);
+    const rimLight = new THREE.DirectionalLight("#2EE58D", 1.5);
     rimLight.position.set(-5, 4, -5);
     scene.add(rimLight);
 
@@ -816,13 +806,13 @@ export default function ThreeStudioViewport({
     scene.add(padMesh);
 
     // Contact shadow plane directly beneath hero assembly
-    const contactCanvas = document.createElement('canvas');
+    const contactCanvas = document.createElement("canvas");
     contactCanvas.width = 256;
     contactCanvas.height = 256;
-    const cCtx = contactCanvas.getContext('2d')!;
+    const cCtx = contactCanvas.getContext("2d")!;
     const grad = cCtx.createRadialGradient(128, 128, 12, 128, 128, 120);
-    grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0.0)');
+    grad.addColorStop(0, "rgba(0, 0, 0, 0.65)");
+    grad.addColorStop(1, "rgba(0, 0, 0, 0.0)");
     cCtx.fillStyle = grad;
     cCtx.fillRect(0, 0, 256, 256);
     const contactTex = new THREE.CanvasTexture(contactCanvas);
@@ -833,7 +823,7 @@ export default function ThreeStudioViewport({
         transparent: true,
         depthWrite: false,
         opacity: 0.55,
-      })
+      }),
     );
     contactPlane.rotation.x = -Math.PI / 2;
     contactPlane.position.y = 0.01;
@@ -844,22 +834,22 @@ export default function ThreeStudioViewport({
     const sliceRingMesh = new THREE.Mesh(
       new THREE.RingGeometry(1.55, 1.62, 64),
       new THREE.MeshBasicMaterial({
-        color: '#4FFFB0',
+        color: "#4FFFB0",
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.85,
-      })
+      }),
     );
     sliceRingMesh.rotation.x = -Math.PI / 2;
     const sliceFillMesh = new THREE.Mesh(
       new THREE.CircleGeometry(1.55, 64),
       new THREE.MeshBasicMaterial({
-        color: '#19B86B',
+        color: "#19B86B",
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.09,
         depthWrite: false,
-      })
+      }),
     );
     sliceFillMesh.rotation.x = -Math.PI / 2;
     sliceLaserGroup.add(sliceRingMesh, sliceFillMesh);
@@ -871,9 +861,9 @@ export default function ThreeStudioViewport({
 
     const fireShaderMat = new THREE.ShaderMaterial({
       uniforms: {
-        time: {value: 0},
-        intensity: {value: 1.0},
-        uClipPlane: {value: defaultClipVec.clone()},
+        time: { value: 0 },
+        intensity: { value: 1.0 },
+        uClipPlane: { value: defaultClipVec.clone() },
       },
       vertexShader: FIRE_VERTEX_SHADER,
       fragmentShader: FIRE_FRAGMENT_SHADER,
@@ -883,9 +873,9 @@ export default function ThreeStudioViewport({
 
     const waterShaderMat = new THREE.ShaderMaterial({
       uniforms: {
-        time: {value: 0},
-        intensity: {value: 1.0},
-        uClipPlane: {value: defaultClipVec.clone()},
+        time: { value: 0 },
+        intensity: { value: 1.0 },
+        uClipPlane: { value: defaultClipVec.clone() },
       },
       vertexShader: WATER_VERTEX_SHADER,
       fragmentShader: WATER_FRAGMENT_SHADER,
@@ -895,9 +885,9 @@ export default function ThreeStudioViewport({
 
     const plasmaShaderMat = new THREE.ShaderMaterial({
       uniforms: {
-        time: {value: 0},
-        intensity: {value: 1.0},
-        uClipPlane: {value: defaultClipVec.clone()},
+        time: { value: 0 },
+        intensity: { value: 1.0 },
+        uClipPlane: { value: defaultClipVec.clone() },
       },
       vertexShader: PLASMA_VERTEX_SHADER,
       fragmentShader: PLASMA_FRAGMENT_SHADER,
@@ -907,9 +897,9 @@ export default function ThreeStudioViewport({
 
     const thermalShaderMat = new THREE.ShaderMaterial({
       uniforms: {
-        time: {value: 0},
-        intensity: {value: 1.0},
-        uClipPlane: {value: defaultClipVec.clone()},
+        time: { value: 0 },
+        intensity: { value: 1.0 },
+        uClipPlane: { value: defaultClipVec.clone() },
       },
       vertexShader: THERMAL_VERTEX_SHADER,
       fragmentShader: THERMAL_FRAGMENT_SHADER,
@@ -918,8 +908,8 @@ export default function ThreeStudioViewport({
     });
 
     const wireframeBlueprintMat = new THREE.MeshStandardMaterial({
-      color: '#4FFFB0',
-      emissive: '#107C4F',
+      color: "#4FFFB0",
+      emissive: "#107C4F",
       emissiveIntensity: 0.55,
       wireframe: true,
       roughness: 0.2,
@@ -929,7 +919,7 @@ export default function ThreeStudioViewport({
 
     // PBR Structural Materials (with activeClipPlane support)
     const forestAnodizedMat = new THREE.MeshPhysicalMaterial({
-      color: '#174C3F',
+      color: "#174C3F",
       metalness: 0.82,
       roughness: 0.24,
       clearcoat: 0.4,
@@ -938,7 +928,7 @@ export default function ThreeStudioViewport({
     });
 
     const brushedGoldMat = new THREE.MeshPhysicalMaterial({
-      color: '#E6C465',
+      color: "#E6C465",
       metalness: 0.92,
       roughness: 0.18,
       side: THREE.DoubleSide,
@@ -946,7 +936,7 @@ export default function ThreeStudioViewport({
     });
 
     const obsidianIronMat = new THREE.MeshStandardMaterial({
-      color: '#18221F',
+      color: "#18221F",
       metalness: 0.65,
       roughness: 0.52,
       side: THREE.DoubleSide,
@@ -954,7 +944,7 @@ export default function ThreeStudioViewport({
     });
 
     const frostedGlassMat = new THREE.MeshPhysicalMaterial({
-      color: '#D8F5E7',
+      color: "#D8F5E7",
       transmission: 0.9,
       opacity: 1,
       transparent: true,
@@ -987,137 +977,128 @@ export default function ThreeStudioViewport({
 
       assembly.parts.forEach((part) => {
         const partHolder = new THREE.Group();
-        partHolder.userData = {partId: part.id, isAnatomyPart: true};
+        partHolder.userData = { partId: part.id, isAnatomyPart: true };
 
-        if (part.id === 'outer-glass-shield') {
+        if (part.id === "outer-glass-shield") {
           // Translucent frosted glass cube with chamfered frame bars (inspired by IMG_5646)
-          const box = new THREE.Mesh(
-            new THREE.BoxGeometry(2.35, 2.25, 2.05),
-            frostedGlassMat
-          );
+          const box = new THREE.Mesh(new THREE.BoxGeometry(2.35, 2.25, 2.05), frostedGlassMat);
           box.renderOrder = 3;
           partHolder.add(box);
 
           const edges = new THREE.LineSegments(
             new THREE.EdgesGeometry(box.geometry),
-            new THREE.LineBasicMaterial({color: '#67F2B0', transparent: true, opacity: 0.45})
+            new THREE.LineBasicMaterial({ color: "#67F2B0", transparent: true, opacity: 0.45 }),
           );
           partHolder.add(edges);
-          box.userData = {partId: part.id};
+          box.userData = { partId: part.id };
           raycastTargets.push(box);
-        } else if (part.id === 'plasma-toroid-core') {
+        } else if (part.id === "plasma-toroid-core") {
           // Toroidal plasma inductor + inner spinning rotor rings
           const torus = new THREE.Mesh(
             new THREE.TorusKnotGeometry(0.46, 0.13, 96, 24, 2, 3),
-            plasmaShaderMat
+            plasmaShaderMat,
           );
           torus.castShadow = true;
-          torus.userData = {partId: part.id, shaderCategory: 'plasma'};
+          torus.userData = { partId: part.id, shaderCategory: "plasma" };
           partHolder.add(torus);
 
           const outerRing = new THREE.Mesh(
             new THREE.TorusGeometry(0.76, 0.04, 16, 64),
-            brushedGoldMat
+            brushedGoldMat,
           );
           outerRing.rotation.x = Math.PI / 2;
-          outerRing.userData = {partId: part.id};
+          outerRing.userData = { partId: part.id };
           partHolder.add(outerRing);
           raycastTargets.push(torus, outerRing);
-        } else if (part.id === 'lifepo4-blade-west' || part.id === 'lifepo4-blade-east') {
+        } else if (part.id === "lifepo4-blade-west" || part.id === "lifepo4-blade-east") {
           // Prismatic LiFePO4 battery module with cooling fins & brass terminals
           const body = new THREE.Mesh(
             new THREE.BoxGeometry(0.46, 1.35, 1.25),
-            forestAnodizedMat.clone()
+            forestAnodizedMat.clone(),
           );
           body.castShadow = true;
           body.receiveShadow = true;
-          body.userData = {partId: part.id};
+          body.userData = { partId: part.id };
           partHolder.add(body);
 
           const terminalA = new THREE.Mesh(
             new THREE.CylinderGeometry(0.07, 0.07, 0.18, 20),
-            brushedGoldMat
+            brushedGoldMat,
           );
           terminalA.position.set(0, 0.74, -0.35);
-          terminalA.userData = {partId: part.id};
+          terminalA.userData = { partId: part.id };
           partHolder.add(terminalA);
 
           const terminalB = terminalA.clone();
           terminalB.position.set(0, 0.74, 0.35);
           partHolder.add(terminalB);
           raycastTargets.push(body, terminalA, terminalB);
-        } else if (part.id === 'thermal-fire-heatsink') {
+        } else if (part.id === "thermal-fire-heatsink") {
           // Solar thermal manifold with evacuated tubes & custom GLSL Fire shader core
           const core = new THREE.Mesh(
             new THREE.CylinderGeometry(0.42, 0.42, 1.28, 32, 24),
-            fireShaderMat
+            fireShaderMat,
           );
           core.rotation.z = Math.PI / 2;
-          core.userData = {partId: part.id, shaderCategory: 'fire'};
+          core.userData = { partId: part.id, shaderCategory: "fire" };
           partHolder.add(core);
 
           for (let i = -2; i <= 2; i++) {
             const fin = new THREE.Mesh(
               new THREE.TorusGeometry(0.48, 0.025, 12, 32),
-              brushedGoldMat
+              brushedGoldMat,
             );
             fin.rotation.y = Math.PI / 2;
             fin.position.x = i * 0.24;
-            fin.userData = {partId: part.id};
+            fin.userData = { partId: part.id };
             partHolder.add(fin);
             raycastTargets.push(fin);
           }
           raycastTargets.push(core);
-        } else if (part.id === 'hydro-cooling-loop') {
+        } else if (part.id === "hydro-cooling-loop") {
           // Hydro catchment cylinder with animated GLSL Water wave shader
           const waterTank = new THREE.Mesh(
             new THREE.CylinderGeometry(0.52, 0.52, 0.72, 36, 24),
-            waterShaderMat
+            waterShaderMat,
           );
-          waterTank.userData = {partId: part.id, shaderCategory: 'water'};
+          waterTank.userData = { partId: part.id, shaderCategory: "water" };
           partHolder.add(waterTank);
 
           const collar = new THREE.Mesh(
             new THREE.TorusGeometry(0.54, 0.035, 16, 48),
-            forestAnodizedMat.clone()
+            forestAnodizedMat.clone(),
           );
           collar.rotation.x = Math.PI / 2;
           collar.position.y = 0.34;
-          collar.userData = {partId: part.id};
+          collar.userData = { partId: part.id };
           partHolder.add(collar);
           raycastTargets.push(waterTank, collar);
-        } else if (part.id === 'payshap-nfc-terminal') {
+        } else if (part.id === "payshap-nfc-terminal") {
           // Tactile emerald wallet/card NFC terminal inspired by IMG_5648 & IMG_5649
           const walletBody = new THREE.Mesh(
             new THREE.BoxGeometry(0.68, 0.58, 0.16),
             new THREE.MeshPhysicalMaterial({
-              color: '#19B86B',
+              color: "#19B86B",
               roughness: 0.28,
               metalness: 0.25,
               clearcoat: 0.6,
-            })
+            }),
           );
-          walletBody.userData = {partId: part.id};
+          walletBody.userData = { partId: part.id };
           partHolder.add(walletBody);
 
-          const smartCard = new THREE.Mesh(
-            new THREE.BoxGeometry(0.52, 0.34, 0.04),
-            brushedGoldMat
-          );
+          const smartCard = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.34, 0.04), brushedGoldMat);
           smartCard.position.set(0.12, 0.18, 0.11);
           smartCard.rotation.z = -0.12;
-          smartCard.userData = {partId: part.id};
+          smartCard.userData = { partId: part.id };
           partHolder.add(smartCard);
           raycastTargets.push(walletBody, smartCard);
         } else {
           // Seismic Base Plinth + Busbar
-          const plinth = new THREE.Mesh(
-            new THREE.BoxGeometry(2.45, 0.28, 2.15),
-            obsidianIronMat
-          );
+          const plinth = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.28, 2.15), obsidianIronMat);
           plinth.castShadow = true;
           plinth.receiveShadow = true;
-          plinth.userData = {partId: part.id};
+          plinth.userData = { partId: part.id };
           partHolder.add(plinth);
           raycastTargets.push(plinth);
         }
@@ -1145,14 +1126,14 @@ export default function ThreeStudioViewport({
     // 3D Grab Tether & Velocity Vector Line Indicator
     const tetherPositions = new Float32Array(9); // Anchor -> Grabbed Pos -> Predicted Toss Tip
     const tetherGeo = new THREE.BufferGeometry();
-    tetherGeo.setAttribute('position', new THREE.BufferAttribute(tetherPositions, 3));
+    tetherGeo.setAttribute("position", new THREE.BufferAttribute(tetherPositions, 3));
     const grabTetherLine = new THREE.Line(
       tetherGeo,
       new THREE.LineBasicMaterial({
-        color: '#E6C465',
+        color: "#E6C465",
         transparent: true,
         opacity: 0.85,
-      })
+      }),
     );
     grabTetherLine.visible = false;
     scene.add(grabTetherLine);
@@ -1168,11 +1149,11 @@ export default function ThreeStudioViewport({
     const orbitalTrack = new THREE.Mesh(
       new THREE.TorusGeometry(2.15, 0.06, 16, 96),
       new THREE.MeshPhysicalMaterial({
-        color: '#9BE8C5',
+        color: "#9BE8C5",
         transmission: 0.75,
         transparent: true,
         roughness: 0.15,
-      })
+      }),
     );
     orbitalTrack.rotation.x = Math.PI / 2;
     orbitalTrack.position.y = 0.08;
@@ -1205,83 +1186,77 @@ export default function ThreeStudioViewport({
         if (!entry) {
           const root = new THREE.Group();
           root.position.set(node.position[0], 0, node.position[2]);
-          root.userData = {nodeUid: node.uid};
+          root.userData = { nodeUid: node.uid };
 
           // Base pedestal
           const pedestal = new THREE.Mesh(
             new THREE.CylinderGeometry(node.radius * 0.78, node.radius * 0.85, 0.22, 32),
-            obsidianIronMat
+            obsidianIronMat,
           );
           pedestal.position.y = 0.11;
           pedestal.castShadow = true;
           pedestal.receiveShadow = true;
-          pedestal.userData = {nodeUid: node.uid};
+          pedestal.userData = { nodeUid: node.uid };
           root.add(pedestal);
 
           // Main functional core according to template
           let rotor: THREE.Object3D;
-          if (node.templateId === 'solar-core') {
+          if (node.templateId === "solar-core") {
             rotor = new THREE.Mesh(
               new THREE.TorusKnotGeometry(0.38, 0.11, 64, 16),
-              plasmaShaderMat
+              plasmaShaderMat,
             );
             rotor.position.y = 0.85;
-          } else if (node.templateId === 'hydro-tank') {
+          } else if (node.templateId === "hydro-tank") {
             rotor = new THREE.Mesh(
               new THREE.CylinderGeometry(0.48, 0.48, 0.95, 32, 16),
-              waterShaderMat
+              waterShaderMat,
             );
             rotor.position.y = 0.7;
-          } else if (node.templateId === 'thermal-geyser') {
-            rotor = new THREE.Mesh(
-              new THREE.SphereGeometry(0.46, 32, 24),
-              fireShaderMat
-            );
+          } else if (node.templateId === "thermal-geyser") {
+            rotor = new THREE.Mesh(new THREE.SphereGeometry(0.46, 32, 24), fireShaderMat);
             rotor.position.y = 0.78;
-          } else if (node.templateId === 'pay-vault') {
+          } else if (node.templateId === "pay-vault") {
             rotor = new THREE.Mesh(
               new THREE.BoxGeometry(0.75, 0.65, 0.28),
               new THREE.MeshPhysicalMaterial({
-                color: '#19B86B',
+                color: "#19B86B",
                 metalness: 0.35,
                 roughness: 0.22,
                 clearcoat: 0.8,
-              })
+              }),
             );
             rotor.position.y = 0.68;
           } else {
-            rotor = new THREE.Mesh(
-              new THREE.OctahedronGeometry(0.46, 1),
-              wireframeBlueprintMat
-            );
+            rotor = new THREE.Mesh(new THREE.OctahedronGeometry(0.46, 1), wireframeBlueprintMat);
             rotor.position.y = 0.75;
           }
           rotor.castShadow = true;
-          rotor.userData = {nodeUid: node.uid};
+          rotor.userData = { nodeUid: node.uid };
           root.add(rotor);
 
           // Collision / Selection Perimeter Ring on Ground
           const ringMat = new THREE.MeshBasicMaterial({
-            color: '#2EE58D',
+            color: "#2EE58D",
             side: THREE.DoubleSide,
             transparent: true,
             opacity: 0.75,
           });
           const ring = new THREE.Mesh(
             new THREE.RingGeometry(node.radius * 0.92, node.radius, 48),
-            ringMat
+            ringMat,
           );
           ring.rotation.x = -Math.PI / 2;
           ring.position.y = 0.03;
           root.add(ring);
 
           editorGroup.add(root);
-          entry = {root, ring, rotor, vel: new THREE.Vector3()};
+          entry = { root, ring, rotor, vel: new THREE.Vector3() };
           nodeMeshesMap.set(node.uid, entry);
         }
 
         entry.root.children.forEach((child) => {
-          child.userData = {nodeUid: node.uid};
+          child.userData = { nodeUid: node.uid };
           editorDragTargets.push(child);
         });
       });
@@ -1296,7 +1271,7 @@ export default function ThreeStudioViewport({
     const pointer = new THREE.Vector2();
     let draggingPartId: string | null = null;
     let draggingNodeUid: string | null = null;
-    let lastCollisionHash = '';
+    let lastCollisionHash = "";
     let lastDragAudioTime = 0;
     let lastBounceAudioTime = 0;
     let lastAudioX = 0;
@@ -1323,11 +1298,9 @@ export default function ThreeStudioViewport({
       bz: number,
       vx: number,
       vy: number,
-      vz: number
+      vz: number,
     ) => {
-      const posAttr = grabTetherLine.geometry.getAttribute(
-        'position'
-      ) as THREE.BufferAttribute;
+      const posAttr = grabTetherLine.geometry.getAttribute("position") as THREE.BufferAttribute;
       posAttr.setXYZ(0, ax, ay, az);
       posAttr.setXYZ(1, bx, by, bz);
       posAttr.setXYZ(2, bx + vx * 0.18, by + vy * 0.18, bz + vz * 0.18);
@@ -1342,7 +1315,7 @@ export default function ThreeStudioViewport({
       const activeCam = stateRef.current.isIsometric ? orthoCamera : perspCamera;
       raycaster.setFromCamera(pointer, activeCam);
 
-      if (stateRef.current.workspaceMode === 'anatomy') {
+      if (stateRef.current.workspaceMode === "anatomy") {
         const hits = raycaster.intersectObjects(raycastTargets, false);
         if (hits.length > 0) {
           const hitPartId = hits[0].object.userData.partId;
@@ -1358,7 +1331,7 @@ export default function ThreeStudioViewport({
             setActiveGrabLabel(foundPart ? foundPart.name : hitPartId);
 
             controls.enabled = false;
-            renderer.domElement.style.cursor = 'grabbing';
+            renderer.domElement.style.cursor = "grabbing";
             try {
               renderer.domElement.setPointerCapture(e.pointerId);
             } catch {
@@ -1381,10 +1354,10 @@ export default function ThreeStudioViewport({
             lastAudioZ = holder.position.z;
             spring.vel.set(0, 0, 0);
             spring.angVel.set(0, 0, 0);
-            playTactileTone('dragstart');
+            playTactileTone("dragstart");
           }
         }
-      } else if (stateRef.current.workspaceMode === 'scene-editor') {
+      } else if (stateRef.current.workspaceMode === "scene-editor") {
         const hits = raycaster.intersectObjects(editorDragTargets, false);
         if (hits.length > 0) {
           const uid = hits[0].object.userData.nodeUid;
@@ -1394,7 +1367,7 @@ export default function ThreeStudioViewport({
             const foundNode = stateRef.current.sceneNodes.find((n) => n.uid === uid);
             setActiveGrabLabel(foundNode ? foundNode.label : uid);
             controls.enabled = false;
-            renderer.domElement.style.cursor = 'grabbing';
+            renderer.domElement.style.cursor = "grabbing";
             try {
               renderer.domElement.setPointerCapture(e.pointerId);
             } catch {
@@ -1409,7 +1382,7 @@ export default function ThreeStudioViewport({
               lastAudioX = entry.root.position.x;
               lastAudioZ = entry.root.position.z;
             }
-            playTactileTone('dragstart');
+            playTactileTone("dragstart");
           }
         }
       }
@@ -1421,7 +1394,7 @@ export default function ThreeStudioViewport({
       const activeCam = stateRef.current.isIsometric ? orthoCamera : perspCamera;
 
       // 1. Anatomy 3D Hardware Sub-Component Grab & Rearrange
-      if (draggingPartId && stateRef.current.workspaceMode === 'anatomy') {
+      if (draggingPartId && stateRef.current.workspaceMode === "anatomy") {
         raycaster.setFromCamera(pointer, activeCam);
         if (raycaster.ray.intersectPlane(_partDragPlane, _dragIntersect)) {
           _dragIntersect.add(_grabOffset);
@@ -1446,21 +1419,15 @@ export default function ThreeStudioViewport({
 
           if (holder && spring && part) {
             const baseX =
-              part.defaultPosition[0] +
-              part.explodeOffset[0] * stateRef.current.explodeFactor;
+              part.defaultPosition[0] + part.explodeOffset[0] * stateRef.current.explodeFactor;
             const baseY =
               part.defaultPosition[1] +
               part.explodeOffset[1] * stateRef.current.explodeFactor +
               0.14;
             const baseZ =
-              part.defaultPosition[2] +
-              part.explodeOffset[2] * stateRef.current.explodeFactor;
+              part.defaultPosition[2] + part.explodeOffset[2] * stateRef.current.explodeFactor;
 
-            spring.customOffset.set(
-              clampedX - baseX,
-              clampedY - baseY,
-              clampedZ - baseZ
-            );
+            spring.customOffset.set(clampedX - baseX, clampedY - baseY, clampedZ - baseZ);
             spring.pos.set(clampedX, clampedY, clampedZ);
             holder.position.copy(spring.pos);
 
@@ -1474,7 +1441,7 @@ export default function ThreeStudioViewport({
               clampedZ,
               _smoothedThrowVel.x,
               _smoothedThrowVel.y,
-              _smoothedThrowVel.z
+              _smoothedThrowVel.z,
             );
           }
 
@@ -1483,25 +1450,21 @@ export default function ThreeStudioViewport({
             lastDragAudioTime = now;
             lastAudioX = clampedX;
             lastAudioZ = clampedZ;
-            playTactileTone('dragmove');
+            playTactileTone("dragmove");
           }
         }
         return;
       }
 
       // 2. Scene Editor 3D Module Grab & Toss Tracking
-      if (draggingNodeUid && stateRef.current.workspaceMode === 'scene-editor') {
+      if (draggingNodeUid && stateRef.current.workspaceMode === "scene-editor") {
         raycaster.setFromCamera(pointer, activeCam);
         if (raycaster.ray.intersectPlane(_groundPlane, _dragIntersect)) {
           const clampedX = THREE.MathUtils.clamp(_dragIntersect.x, -3.7, 3.7);
           const clampedZ = THREE.MathUtils.clamp(_dragIntersect.z, -3.7, 3.7);
 
-          const finalX = stateRef.current.snapToGrid
-            ? Math.round(clampedX * 2) / 2
-            : clampedX;
-          const finalZ = stateRef.current.snapToGrid
-            ? Math.round(clampedZ * 2) / 2
-            : clampedZ;
+          const finalX = stateRef.current.snapToGrid ? Math.round(clampedX * 2) / 2 : clampedX;
+          const finalZ = stateRef.current.snapToGrid ? Math.round(clampedZ * 2) / 2 : clampedZ;
 
           const now = performance.now();
           const dtMove = Math.max(0.004, (now - lastDragTimestamp) / 1000);
@@ -1525,7 +1488,7 @@ export default function ThreeStudioViewport({
               finalZ,
               _smoothedThrowVel.x,
               0,
-              _smoothedThrowVel.z
+              _smoothedThrowVel.z,
             );
           }
 
@@ -1534,7 +1497,7 @@ export default function ThreeStudioViewport({
             lastDragAudioTime = now;
             lastAudioX = finalX;
             lastAudioZ = finalZ;
-            playTactileTone('dragmove');
+            playTactileTone("dragmove");
           }
 
           setSceneNodes((prev) =>
@@ -1542,14 +1505,10 @@ export default function ThreeStudioViewport({
               n.uid === draggingNodeUid
                 ? {
                     ...n,
-                    position: [
-                      Number(finalX.toFixed(2)),
-                      0,
-                      Number(finalZ.toFixed(2)),
-                    ],
+                    position: [Number(finalX.toFixed(2)), 0, Number(finalZ.toFixed(2))],
                   }
-                : n
-            )
+                : n,
+            ),
           );
         }
       }
@@ -1569,7 +1528,7 @@ export default function ThreeStudioViewport({
         const releasedId = draggingPartId;
         draggingPartId = null;
         controls.enabled = true;
-        renderer.domElement.style.cursor = 'grab';
+        renderer.domElement.style.cursor = "grab";
 
         const spring = partSpringsMap.get(releasedId);
         if (pointerMovedDist < 8) {
@@ -1579,7 +1538,7 @@ export default function ThreeStudioViewport({
             spring.scaleVel += 1.8;
           }
           setInspectorOpen(true);
-          playTactileTone('select');
+          playTactileTone("select");
           return;
         }
 
@@ -1590,17 +1549,13 @@ export default function ThreeStudioViewport({
 
           if (tossSpeed > 0.75) {
             spring.vel.copy(_smoothedThrowVel).normalize().multiplyScalar(tossSpeed);
-            spring.angVel.set(
-              spring.vel.z * 0.85,
-              spring.vel.x * 0.65,
-              -spring.vel.x * 0.75
-            );
+            spring.angVel.set(spring.vel.z * 0.85, spring.vel.x * 0.65, -spring.vel.x * 0.75);
             spring.scaleVel += 1.5;
             setLastTossSpeed(Number(tossSpeed.toFixed(1)));
-            playTactileTone('toss');
+            playTactileTone("toss");
           } else {
             spring.vel.set(0, 0, 0);
-            playTactileTone('drop');
+            playTactileTone("drop");
           }
         }
 
@@ -1629,24 +1584,24 @@ export default function ThreeStudioViewport({
             .normalize()
             .multiplyScalar(tossSpeed);
           setLastTossSpeed(Number(tossSpeed.toFixed(1)));
-          playTactileTone('toss');
+          playTactileTone("toss");
         } else if (stateRef.current.snapToGrid) {
-          playTactileTone('snap');
+          playTactileTone("snap");
         } else {
-          playTactileTone('drop');
+          playTactileTone("drop");
         }
 
         draggingNodeUid = null;
         controls.enabled = true;
-        renderer.domElement.style.cursor = 'grab';
+        renderer.domElement.style.cursor = "grab";
         return;
       }
     };
 
-    renderer.domElement.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
+    renderer.domElement.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
 
     // Pre-compile shaders
     renderer.compile(scene, perspCamera);
@@ -1678,7 +1633,7 @@ export default function ThreeStudioViewport({
       // Update Real-Time 3D Cross-Section Clip Plane & Laser Indicator
       if (st.clipPercent > 0) {
         const t = st.clipPercent / 100;
-        if (st.clipAxis === 'y') {
+        if (st.clipAxis === "y") {
           const cutY = 2.15 - t * 2.35;
           activeClipPlane.normal.set(0, -1, 0);
           activeClipPlane.constant = cutY;
@@ -1711,15 +1666,15 @@ export default function ThreeStudioViewport({
       // Modulate Studio Lighting for Eskom Load-Shedding Stage Simulation
       if (st.eskomStage >= 6) {
         keyLight.intensity = 1.55;
-        rimLight.color.set('#E6C465');
+        rimLight.color.set("#E6C465");
         rimLight.intensity = 2.2;
       } else if (st.eskomStage >= 1) {
         keyLight.intensity = 2.0;
-        rimLight.color.set('#2EE58D');
+        rimLight.color.set("#2EE58D");
         rimLight.intensity = 1.85;
       } else {
         keyLight.intensity = 2.4;
-        rimLight.color.set('#2EE58D');
+        rimLight.color.set("#2EE58D");
         rimLight.intensity = 1.5;
       }
 
@@ -1727,8 +1682,7 @@ export default function ThreeStudioViewport({
       if (st.selectedAssemblyId !== currentBuiltAssemblyId) {
         currentBuiltAssemblyId = st.selectedAssemblyId;
         const found =
-          VARDA_ASSEMBLIES.find((a) => a.id === st.selectedAssemblyId) ||
-          VARDA_ASSEMBLIES[0];
+          VARDA_ASSEMBLIES.find((a) => a.id === st.selectedAssemblyId) || VARDA_ASSEMBLIES[0];
         buildAnatomyMeshes(found);
       }
 
@@ -1738,13 +1692,12 @@ export default function ThreeStudioViewport({
       }
 
       // Toggle workspace visibility
-      anatomyGroup.visible = st.workspaceMode === 'anatomy';
-      editorGroup.visible = st.workspaceMode === 'scene-editor';
+      anatomyGroup.visible = st.workspaceMode === "anatomy";
+      editorGroup.visible = st.workspaceMode === "scene-editor";
 
-      if (st.workspaceMode === 'anatomy') {
+      if (st.workspaceMode === "anatomy") {
         const assembly =
-          VARDA_ASSEMBLIES.find((a) => a.id === st.selectedAssemblyId) ||
-          VARDA_ASSEMBLIES[0];
+          VARDA_ASSEMBLIES.find((a) => a.id === st.selectedAssemblyId) || VARDA_ASSEMBLIES[0];
 
         // Inter-part 3D bounding-sphere collision repulsion & momentum transfer when rearranged/tossed
         for (let i = 0; i < assembly.parts.length; i++) {
@@ -1793,14 +1746,12 @@ export default function ThreeStudioViewport({
           const isSelected = st.selectedPartId === part.id;
           const isBeingGrabbed = draggingPartId === part.id;
 
-          const baseX =
-            part.defaultPosition[0] + part.explodeOffset[0] * st.explodeFactor;
+          const baseX = part.defaultPosition[0] + part.explodeOffset[0] * st.explodeFactor;
           const baseY =
             part.defaultPosition[1] +
             part.explodeOffset[1] * st.explodeFactor +
             (isSelected ? 0.14 : 0);
-          const baseZ =
-            part.defaultPosition[2] + part.explodeOffset[2] * st.explodeFactor;
+          const baseZ = part.defaultPosition[2] + part.explodeOffset[2] * st.explodeFactor;
 
           if (!isBeingGrabbed) {
             if (st.freeRearrangeMode) {
@@ -1846,7 +1797,7 @@ export default function ThreeStudioViewport({
                 const now = performance.now();
                 if (bounced && now - lastBounceAudioTime > 95) {
                   lastBounceAudioTime = now;
-                  playTactileTone('collide');
+                  playTactileTone("collide");
                 }
               }
             } else {
@@ -1859,7 +1810,7 @@ export default function ThreeStudioViewport({
           _targetVec3.set(
             baseX + spring.customOffset.x,
             baseY + spring.customOffset.y,
-            baseZ + spring.customOffset.z
+            baseZ + spring.customOffset.z,
           );
           spring.target.copy(_targetVec3);
           spring.targetScale = isBeingGrabbed ? 1.13 : isSelected ? 1.07 : 1.0;
@@ -1917,20 +1868,20 @@ export default function ThreeStudioViewport({
           holder.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
               const mesh = child as THREE.Mesh;
-              if (st.activeShader === 'wireframe' || (st.isolatePart && !isSelected)) {
+              if (st.activeShader === "wireframe" || (st.isolatePart && !isSelected)) {
                 mesh.material = wireframeBlueprintMat;
-              } else if (st.activeShader === 'thermal' && part.shaderCategory !== 'glass') {
+              } else if (st.activeShader === "thermal" && part.shaderCategory !== "glass") {
                 mesh.material = thermalShaderMat;
-              } else if (st.activeShader === 'fire' && part.shaderCategory !== 'glass') {
-                if (part.shaderCategory === 'fire' || isSelected) {
+              } else if (st.activeShader === "fire" && part.shaderCategory !== "glass") {
+                if (part.shaderCategory === "fire" || isSelected) {
                   mesh.material = fireShaderMat;
                 }
-              } else if (st.activeShader === 'water' && part.shaderCategory !== 'glass') {
-                if (part.shaderCategory === 'water' || isSelected) {
+              } else if (st.activeShader === "water" && part.shaderCategory !== "glass") {
+                if (part.shaderCategory === "water" || isSelected) {
                   mesh.material = waterShaderMat;
                 }
-              } else if (st.activeShader === 'plasma' && part.shaderCategory !== 'glass') {
-                if (part.shaderCategory === 'plasma' || isSelected) {
+              } else if (st.activeShader === "plasma" && part.shaderCategory !== "glass") {
+                if (part.shaderCategory === "plasma" || isSelected) {
                   mesh.material = plasmaShaderMat;
                 }
               }
@@ -1972,8 +1923,7 @@ export default function ThreeStudioViewport({
 
           // Continuous rotor animation scaled by motionIntensity
           entryA.rotor.rotation.y += dt * 0.9 * mScale;
-          entryA.rotor.position.y =
-            0.72 + Math.sin(shaderTime * 2.2 + i) * 0.05 * mScale;
+          entryA.rotor.position.y = 0.72 + Math.sin(shaderTime * 2.2 + i) * 0.05 * mScale;
 
           for (let j = i + 1; j < nodes.length; j++) {
             const b = nodes[j];
@@ -1999,22 +1949,22 @@ export default function ThreeStudioViewport({
                 entryA.root.position.x = THREE.MathUtils.clamp(
                   entryA.root.position.x + nx * push,
                   -3.7,
-                  3.7
+                  3.7,
                 );
                 entryA.root.position.z = THREE.MathUtils.clamp(
                   entryA.root.position.z + nz * push,
                   -3.7,
-                  3.7
+                  3.7,
                 );
                 entryB.root.position.x = THREE.MathUtils.clamp(
                   entryB.root.position.x - nx * push,
                   -3.7,
-                  3.7
+                  3.7,
                 );
                 entryB.root.position.z = THREE.MathUtils.clamp(
                   entryB.root.position.z - nz * push,
                   -3.7,
-                  3.7
+                  3.7,
                 );
                 entryA.vel.x += nx * overlap * 3.2;
                 entryA.vel.z += nz * overlap * 3.2;
@@ -2029,21 +1979,21 @@ export default function ThreeStudioViewport({
         for (const [uid, entry] of nodeMeshesMap.entries()) {
           const mat = entry.ring.material as THREE.MeshBasicMaterial;
           if (collidingUids.has(uid)) {
-            mat.color.set('#EF4444'); // Crimson collision alert
+            mat.color.set("#EF4444"); // Crimson collision alert
             mat.opacity = 0.95;
           } else if (st.selectedNodeUid === uid) {
-            mat.color.set('#E6C465'); // Ochre gold selected state
+            mat.color.set("#E6C465"); // Ochre gold selected state
             mat.opacity = 0.9;
           } else {
-            mat.color.set('#2EE58D'); // Normal emerald
+            mat.color.set("#2EE58D"); // Normal emerald
             mat.opacity = 0.45;
           }
         }
 
-        const nextHash = collisionPairs.join('|');
+        const nextHash = collisionPairs.join("|");
         if (nextHash !== lastCollisionHash) {
-          if (collisionPairs.length > lastCollisionHash.split('|').filter(Boolean).length) {
-            playTactileTone('collide');
+          if (collisionPairs.length > lastCollisionHash.split("|").filter(Boolean).length) {
+            playTactileTone("collide");
           }
           lastCollisionHash = nextHash;
           setActiveCollisions(collisionPairs);
@@ -2087,7 +2037,7 @@ export default function ThreeStudioViewport({
     handleResize();
     animate();
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     const resizeObserver = new ResizeObserver(() => {
       handleResize();
     });
@@ -2098,43 +2048,46 @@ export default function ThreeStudioViewport({
     return () => {
       cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
-      renderer.domElement.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       controls.dispose();
       renderer.dispose();
     };
   }, [createTechnicalGridTexture, playTactileTone]);
 
   // Add a new 3D node into the scene editor from the drag-and-drop asset dock
-  const handleAddSceneNode = useCallback((template: (typeof SCENE_NODE_TEMPLATES)[number]) => {
-    nodeCounterRef.current += 1;
-    const count = nodeCounterRef.current;
-    const angle = ((count * 137.5) % 360) * (Math.PI / 180);
-    const dist = 1.2 + ((count % 5) * 0.35);
-    const newNode: SceneAssetNode = {
-      uid: `node-${count}`,
-      templateId: template.templateId,
-      label: template.label,
-      shaderType: template.shaderType,
-      position: [
-        Number((Math.cos(angle) * dist).toFixed(2)),
-        0,
-        Number((Math.sin(angle) * dist).toFixed(2)),
-      ],
-      rotationY: 0,
-      scale: 1,
-      radius: template.radius,
-      powerKw: template.powerKw,
-      priceZar: template.priceZar,
-    };
-    setWorkspaceMode('scene-editor');
-    setSceneNodes((prev) => [...prev, newNode]);
-    setSelectedNodeUid(newNode.uid);
-    playTactileTone('dock-spawn');
-  }, [playTactileTone]);
+  const handleAddSceneNode = useCallback(
+    (template: (typeof SCENE_NODE_TEMPLATES)[number]) => {
+      nodeCounterRef.current += 1;
+      const count = nodeCounterRef.current;
+      const angle = ((count * 137.5) % 360) * (Math.PI / 180);
+      const dist = 1.2 + (count % 5) * 0.35;
+      const newNode: SceneAssetNode = {
+        uid: `node-${count}`,
+        templateId: template.templateId,
+        label: template.label,
+        shaderType: template.shaderType,
+        position: [
+          Number((Math.cos(angle) * dist).toFixed(2)),
+          0,
+          Number((Math.sin(angle) * dist).toFixed(2)),
+        ],
+        rotationY: 0,
+        scale: 1,
+        radius: template.radius,
+        powerKw: template.powerKw,
+        priceZar: template.priceZar,
+      };
+      setWorkspaceMode("scene-editor");
+      setSceneNodes((prev) => [...prev, newNode]);
+      setSelectedNodeUid(newNode.uid);
+      playTactileTone("dock-spawn");
+    },
+    [playTactileTone],
+  );
 
   const handleRemoveSelectedNode = () => {
     if (sceneNodes.length <= 1) return;
@@ -2155,8 +2108,8 @@ export default function ThreeStudioViewport({
       id="studio"
       className={`${
         isFullscreen
-          ? 'fixed inset-0 z-50 rounded-none w-screen h-screen max-w-none m-0 p-0 flex flex-col overflow-y-auto sm:overflow-hidden'
-          : 'relative w-full rounded-3xl overflow-hidden border border-[#144239]/20 shadow-2xl'
+          ? "fixed inset-0 z-50 rounded-none w-screen h-screen max-w-none m-0 p-0 flex flex-col overflow-y-auto sm:overflow-hidden"
+          : "relative w-full rounded-3xl overflow-hidden border border-[#144239]/20 shadow-2xl"
       } bg-[#0B241E] text-[#F4F3EC] transition-all duration-300`}
     >
       {/* Anchor alias for backwards-compatibility with #spatial-studio links */}
@@ -2168,36 +2121,36 @@ export default function ThreeStudioViewport({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <span className="font-mono tabular-nums text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#19B86B]/20 text-[#4FFFB0] border border-[#19B86B]/30 shrink-0">
-              {workspaceMode === 'anatomy'
-                ? `${String(currentPartIndex + 1).padStart(2, '0')}/${String(currentAssembly.parts.length).padStart(2, '0')}`
-                : `${String(sceneNodes.length).padStart(2, '0')} NODES`}
+              {workspaceMode === "anatomy"
+                ? `${String(currentPartIndex + 1).padStart(2, "0")}/${String(currentAssembly.parts.length).padStart(2, "0")}`
+                : `${String(sceneNodes.length).padStart(2, "0")} NODES`}
             </span>
             <span className="font-serif text-sm sm:text-lg font-semibold tracking-tight text-[#F4F3EC] truncate">
-              {workspaceMode === 'anatomy'
+              {workspaceMode === "anatomy"
                 ? currentAssembly.name
-                : 'Micro-Grid Spatial Configurator'}
+                : "Micro-Grid Spatial Configurator"}
             </span>
             <span className="hidden xs:inline-block text-[10px] sm:text-xs font-mono tabular-nums text-[#E6C465] bg-[#091D18] px-2.5 py-0.5 rounded-lg border border-white/10 shrink-0">
-              {workspaceMode === 'anatomy'
+              {workspaceMode === "anatomy"
                 ? `R ${formatZarPrice(currentAssembly.priceZar)}`
-                : `R ${formatZarPrice(totalSceneZar)} · ${netScenePowerKw >= 0 ? '+' : ''}${netScenePowerKw.toFixed(1)} kW`}
+                : `R ${formatZarPrice(totalSceneZar)} · ${netScenePowerKw >= 0 ? "+" : ""}${netScenePowerKw.toFixed(1)} kW`}
             </span>
           </div>
 
           {/* Quick Action Buttons (X-Ray, Perspective, Inspector, Audio, Fullscreen) */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {workspaceMode === 'anatomy' && (
+            {workspaceMode === "anatomy" && (
               <button
                 type="button"
                 onClick={() => {
-                  triggerHaptic('light');
+                  triggerHaptic("light");
                   setIsolatePart((prev) => !prev);
                 }}
                 title="Toggle X-Ray Context Isolation (Wireframe unselected parts)"
                 className={`p-2 sm:px-2.5 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                   isolatePart
-                    ? 'bg-[#4FFFB0] text-[#082019] border-[#4FFFB0] font-semibold'
-                    : 'bg-[#12382F] text-[#C4C6AF] border-white/15 hover:text-white'
+                    ? "bg-[#4FFFB0] text-[#082019] border-[#4FFFB0] font-semibold"
+                    : "bg-[#12382F] text-[#C4C6AF] border-white/15 hover:text-white"
                 }`}
               >
                 <Crosshair className="w-3.5 h-3.5" />
@@ -2208,65 +2161,69 @@ export default function ThreeStudioViewport({
             <button
               type="button"
               onClick={() => {
-                triggerHaptic('light');
+                triggerHaptic("light");
                 setIsIsometric((prev) => !prev);
               }}
-              title={isIsometric ? 'Switch to Perspective 3D' : 'Switch to Isometric Ortho'}
+              title={isIsometric ? "Switch to Perspective 3D" : "Switch to Isometric Ortho"}
               className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                 isIsometric
-                  ? 'bg-[#E6C465] text-[#0B241E] border-[#E6C465] font-semibold'
-                  : 'bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]'
+                  ? "bg-[#E6C465] text-[#0B241E] border-[#E6C465] font-semibold"
+                  : "bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]"
               }`}
             >
               <Compass className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{isIsometric ? 'Isometric' : 'Perspective'}</span>
+              <span className="hidden md:inline">{isIsometric ? "Isometric" : "Perspective"}</span>
             </button>
 
-            {workspaceMode === 'anatomy' && (
+            {workspaceMode === "anatomy" && (
               <button
                 type="button"
                 onClick={() => {
-                  triggerHaptic('light');
+                  triggerHaptic("light");
                   setInspectorOpen((open) => !open);
                 }}
                 aria-label="Toggle Component Inspector"
                 title="Inspect Material & Energy Data"
                 className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                   inspectorOpen
-                    ? 'bg-[#19B86B] text-[#082019] border-[#19B86B] font-semibold'
-                    : 'bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]'
+                    ? "bg-[#19B86B] text-[#082019] border-[#19B86B] font-semibold"
+                    : "bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]"
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">{inspectorOpen ? 'Hide' : 'Inspector'}</span>
+                <span className="hidden md:inline">{inspectorOpen ? "Hide" : "Inspector"}</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={() => {
-                triggerHaptic('light');
+                triggerHaptic("light");
                 setSoundEnabled((s) => !s);
               }}
               aria-label="Toggle tactile audio"
-              title={soundEnabled ? 'Mute 3D audio' : 'Enable 3D audio'}
+              title={soundEnabled ? "Mute 3D audio" : "Enable 3D audio"}
               className="p-2 rounded-xl bg-[#12382F] text-[#C4C6AF] hover:text-white border border-white/10 cursor-pointer"
             >
-              {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+              {soundEnabled ? (
+                <Volume2 className="w-3.5 h-3.5" />
+              ) : (
+                <VolumeX className="w-3.5 h-3.5" />
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => {
-                triggerHaptic('medium');
+                triggerHaptic("medium");
                 setIsFullscreen((f) => !f);
               }}
               aria-label="Toggle Fullscreen 3D View"
-              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen 3D View'}
+              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen 3D View"}
               className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                 isFullscreen
-                  ? 'bg-[#E6C465] text-[#0B241E] border-[#E6C465] font-semibold'
-                  : 'bg-[#12382F] text-[#C4C6AF] hover:text-white border-white/10'
+                  ? "bg-[#E6C465] text-[#0B241E] border-[#E6C465] font-semibold"
+                  : "bg-[#12382F] text-[#C4C6AF] hover:text-white border-white/10"
               }`}
             >
               {isFullscreen ? (
@@ -2290,13 +2247,13 @@ export default function ThreeStudioViewport({
             <button
               type="button"
               onClick={() => {
-                triggerHaptic('selection');
-                setWorkspaceMode('anatomy');
+                triggerHaptic("selection");
+                setWorkspaceMode("anatomy");
               }}
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 min-h-[36px] sm:min-h-[32px] cursor-pointer ${
-                workspaceMode === 'anatomy'
-                  ? 'bg-[#19B86B] text-[#082019] font-bold shadow-sm'
-                  : 'text-[#C4C6AF] hover:text-white'
+                workspaceMode === "anatomy"
+                  ? "bg-[#19B86B] text-[#082019] font-bold shadow-sm"
+                  : "text-[#C4C6AF] hover:text-white"
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -2305,13 +2262,13 @@ export default function ThreeStudioViewport({
             <button
               type="button"
               onClick={() => {
-                triggerHaptic('selection');
-                setWorkspaceMode('scene-editor');
+                triggerHaptic("selection");
+                setWorkspaceMode("scene-editor");
               }}
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 sm:py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 min-h-[36px] sm:min-h-[32px] cursor-pointer ${
-                workspaceMode === 'scene-editor'
-                  ? 'bg-[#E6C465] text-[#091D18] font-bold shadow-sm'
-                  : 'text-[#C4C6AF] hover:text-white'
+                workspaceMode === "scene-editor"
+                  ? "bg-[#E6C465] text-[#091D18] font-bold shadow-sm"
+                  : "text-[#C4C6AF] hover:text-white"
               }`}
             >
               <Move className="w-3.5 h-3.5" />
@@ -2336,557 +2293,563 @@ export default function ThreeStudioViewport({
         <div
           className={`relative w-full ${
             isFullscreen
-              ? 'h-[58vh] sm:flex-1 sm:h-full'
-              : 'h-[370px] xs:h-[410px] sm:h-[600px] lg:h-[660px]'
+              ? "h-[58vh] sm:flex-1 sm:h-full"
+              : "h-[370px] xs:h-[410px] sm:h-[600px] lg:h-[660px]"
           } select-none overflow-hidden`}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          e.preventDefault();
-          const tplId = e.dataTransfer.getData('text/plain');
-          const found = SCENE_NODE_TEMPLATES.find((t) => t.templateId === tplId);
-          if (found) {
-            handleAddSceneNode(found);
-          }
-        }}
-      >
-        {/* Dedicated WebGL Canvas Mount Ref with touch-none for smooth mobile interaction */}
-        <div
-          ref={canvasMountRef}
-          className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
-        />
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const tplId = e.dataTransfer.getData("text/plain");
+            const found = SCENE_NODE_TEMPLATES.find((t) => t.templateId === tplId);
+            if (found) {
+              handleAddSceneNode(found);
+            }
+          }}
+        >
+          {/* Dedicated WebGL Canvas Mount Ref with touch-none for smooth mobile interaction */}
+          <div
+            ref={canvasMountRef}
+            className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
+          />
 
-        {!webglReady && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0B241E] text-[#C4C6AF] gap-2">
-            <Cpu className="w-8 h-8 text-[#19B86B] animate-spin" />
-            <p className="text-sm font-medium">
-              Initializing Three.js WebGL Studio & GLSL Shaders...
-            </p>
-          </div>
-        )}
-
-        {/* Mobile Top-Left Compact HUD Chip */}
-        <div className="sm:hidden absolute top-2.5 left-2.5 z-10 pointer-events-auto bg-[#0D2A23]/90 backdrop-blur-md border border-white/15 rounded-xl px-2.5 py-1.5 flex items-center gap-2 shadow-lg max-w-[calc(100%-105px)]">
-          <div className="w-2 h-2 rotate-45 bg-[#19B86B] shrink-0" />
-          <div className="text-[11px] font-medium leading-tight truncate">
-            <span className="text-white font-semibold truncate block">
-              {workspaceMode === 'anatomy'
-                ? currentPart.name
-                : `${sceneNodes.length} Active Modules`}
-            </span>
-            <span className="font-mono tabular-nums text-[#A1B8AD] text-[10px]">
-              {workspaceMode === 'anatomy'
-                ? `${currentPart.massKg} kg · ${activeShader.toUpperCase()}`
-                : `R ${formatZarPrice(totalSceneZar)}`}
-            </span>
-          </div>
-        </div>
-
-        {/* Mobile Bottom Floating Anatomy Stepper Bar (Keeps 3D Viewport 100% Clear) */}
-        {workspaceMode === 'anatomy' && (
-          <div className="sm:hidden absolute bottom-2.5 inset-x-2.5 z-10 flex items-center justify-between gap-1.5 bg-[#091D18]/90 backdrop-blur-md border border-white/15 rounded-xl p-1.5 shadow-lg">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => handleCyclePart(-1)}
-                aria-label="Previous anatomy part"
-                className="p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="font-mono tabular-nums text-[11px] font-bold text-[#E6C465] px-1.5">
-                {String(currentPartIndex + 1).padStart(2, '0')}/{String(currentAssembly.parts.length).padStart(2, '0')}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleCyclePart(1)}
-                aria-label="Next anatomy part"
-                className="p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setExplodeFactor((f) => (f > 0.45 ? 0 : 0.85));
-              }}
-              className="px-2.5 py-1.5 rounded-lg bg-[#143D34] text-[11px] font-mono tabular-nums font-semibold text-[#4FFFB0] active:scale-95 cursor-pointer"
-            >
-              {explodeFactor > 0.45 ? 'Assemble 0%' : 'Explode 85%'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setInspectorOpen(true);
-              }}
-              className="px-3 py-1.5 rounded-lg bg-[#19B86B] text-[#082019] text-[11px] font-bold flex items-center gap-1 active:scale-95 shrink-0 cursor-pointer"
-            >
-              <Sliders className="w-3 h-3" />
-              <span>Specs</span>
-            </button>
-          </div>
-        )}
-
-        {/* Desktop Telemetry Spec Card */}
-        <div className="hidden sm:block absolute top-4 left-4 z-10 pointer-events-auto w-[340px] bg-[#0D2A23]/95 backdrop-blur-md border border-white/15 rounded-2xl p-4 shadow-xl">
-          {workspaceMode === 'anatomy' ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2 text-xs text-[#C4C6AF]">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono tabular-nums font-bold text-[#19B86B]">
-                    #{String(currentPartIndex + 1).padStart(2, '0')}
-                  </span>
-                  <span>Component Anatomy</span>
-                </div>
-                <span className="font-mono tabular-nums font-semibold text-[#E6C465]">
-                  {currentPart.massKg} kg
-                </span>
-              </div>
-              <h3 className="font-serif text-base font-semibold text-white leading-snug">
-                {currentPart.name}
-              </h3>
-              <p className="text-xs text-[#C4C6AF] leading-relaxed">
-                {currentPart.role} · {currentPart.materialSpec}
+          {!webglReady && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0B241E] text-[#C4C6AF] gap-2">
+              <Cpu className="w-8 h-8 text-[#19B86B] animate-spin" />
+              <p className="text-sm font-medium">
+                Initializing Three.js WebGL Studio & GLSL Shaders...
               </p>
-              <div className="pt-1 flex items-center justify-between text-xs font-mono tabular-nums text-[#4FFFB0]">
-                <span>{currentPart.telemetry}</span>
-                <span>{lowBandwidthMode ? 'WIREFRAME' : activeShader.toUpperCase()}</span>
-              </div>
+            </div>
+          )}
 
-              {/* Live Kinetic Grab & Toss Physics Telemetry Bar */}
-              <div className="p-2 rounded-xl bg-[#081C17]/90 border border-[#19B86B]/25 flex items-center justify-between gap-2 text-[11px]">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Move className={`w-3.5 h-3.5 shrink-0 ${activeGrabLabel ? 'text-[#E6C465] animate-pulse' : 'text-[#19B86B]'}`} />
-                  <span className="text-[#C4C6AF] font-medium truncate">
-                    {activeGrabLabel
-                      ? `Grabbing: ${activeGrabLabel}`
-                      : rearrangedCount > 0
-                        ? `${rearrangedCount} Rearranged`
-                        : 'Grab & Toss Physics'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 font-mono tabular-nums shrink-0">
-                  <span className="text-[#4FFFB0] font-semibold">
-                    {lastTossSpeed.toFixed(1)} m/s
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#143D34] text-[#E6C465]">
-                    {freeRearrangeMode ? 'FREE HOLD' : 'SPRING'}
-                  </span>
-                </div>
-              </div>
+          {/* Mobile Top-Left Compact HUD Chip */}
+          <div className="sm:hidden absolute top-2.5 left-2.5 z-10 pointer-events-auto bg-[#0D2A23]/90 backdrop-blur-md border border-white/15 rounded-xl px-2.5 py-1.5 flex items-center gap-2 shadow-lg max-w-[calc(100%-105px)]">
+            <div className="w-2 h-2 rotate-45 bg-[#19B86B] shrink-0" />
+            <div className="text-[11px] font-medium leading-tight truncate">
+              <span className="text-white font-semibold truncate block">
+                {workspaceMode === "anatomy"
+                  ? currentPart.name
+                  : `${sceneNodes.length} Active Modules`}
+              </span>
+              <span className="font-mono tabular-nums text-[#A1B8AD] text-[10px]">
+                {workspaceMode === "anatomy"
+                  ? `${currentPart.massKg} kg · ${activeShader.toUpperCase()}`
+                  : `R ${formatZarPrice(totalSceneZar)}`}
+              </span>
+            </div>
+          </div>
 
-              <div className="pt-1 flex items-center gap-1.5">
+          {/* Mobile Bottom Floating Anatomy Stepper Bar (Keeps 3D Viewport 100% Clear) */}
+          {workspaceMode === "anatomy" && (
+            <div className="sm:hidden absolute bottom-2.5 inset-x-2.5 z-10 flex items-center justify-between gap-1.5 bg-[#091D18]/90 backdrop-blur-md border border-white/15 rounded-xl p-1.5 shadow-lg">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => handleCyclePart(-1)}
-                  className="p-2 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-[#C4C6AF] hover:text-white cursor-pointer"
-                  title="Previous Sub-Component"
+                  aria-label="Previous anatomy part"
+                  className="p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setInspectorOpen(true);
-                  }}
-                  className="flex-1 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-xs text-[#E6C465] hover:text-white flex items-center justify-center gap-1.5 transition-colors font-semibold cursor-pointer"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-[#19B86B]" />
-                  <span>Inspect Material & Energy</span>
-                </button>
+                <span className="font-mono tabular-nums text-[11px] font-bold text-[#E6C465] px-1.5">
+                  {String(currentPartIndex + 1).padStart(2, "0")}/
+                  {String(currentAssembly.parts.length).padStart(2, "0")}
+                </span>
                 <button
                   type="button"
                   onClick={() => handleCyclePart(1)}
-                  className="p-2 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-[#C4C6AF] hover:text-white cursor-pointer"
-                  title="Next Sub-Component"
+                  aria-label="Next anatomy part"
+                  className="p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2 text-xs text-[#C4C6AF]">
-                <span>Real-Time Grab, Toss & Collision Engine</span>
-                <span className="font-mono tabular-nums text-[#E6C465]">
-                  {activeCollisions.length === 0 ? `${lastTossSpeed.toFixed(1)} m/s` : `${activeCollisions.length} OVERLAP`}
-                </span>
-              </div>
-              {activeCollisions.length > 0 ? (
-                <div className="p-2.5 rounded-xl bg-[#4C1414] border border-[#EF4444]/50 text-xs text-[#FCA5A5] flex items-start gap-2">
-                  <ShieldAlert className="w-4 h-4 text-[#EF4444] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-white">
-                      Bounding-Sphere Collision Detected
-                    </p>
-                    <p className="font-mono tabular-nums text-[11px]">{activeCollisions[0]}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-[#C4C6AF]">
-                  Grab and toss 3D modules across the pad with momentum & boundary bounce, or tap cards below to spawn.
-                </p>
-              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setExplodeFactor((f) => (f > 0.45 ? 0 : 0.85));
+                }}
+                className="px-2.5 py-1.5 rounded-lg bg-[#143D34] text-[11px] font-mono tabular-nums font-semibold text-[#4FFFB0] active:scale-95 cursor-pointer"
+              >
+                {explodeFactor > 0.45 ? "Assemble 0%" : "Explode 85%"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setInspectorOpen(true);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-[#19B86B] text-[#082019] text-[11px] font-bold flex items-center gap-1 active:scale-95 shrink-0 cursor-pointer"
+              >
+                <Sliders className="w-3 h-3" />
+                <span>Specs</span>
+              </button>
             </div>
           )}
-        </div>
 
-        {/* Top-Right Touch Navigation Hint */}
-        <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0D2A23]/85 backdrop-blur-sm border border-white/10 text-[10px] sm:text-xs text-[#C4C6AF] pointer-events-none">
-          <span className="hidden sm:inline">Grab & Toss: drag part · Orbit: drag background · Zoom: pinch/scroll</span>
-          <span className="sm:hidden font-mono tabular-nums">Grab & Toss · Orbit · Pinch</span>
-        </div>
-
-        {/* Sub-Component Inspector Sidebar / Mobile Drawer */}
-        <SubComponentInspector
-          part={currentPart}
-          assemblyId={selectedAssemblyId}
-          isOpen={inspectorOpen}
-          onClose={() => setInspectorOpen(false)}
-          onPulsePart={() => {
-            const spring = partSpringsMapRef.current?.get(currentPart.id);
-            if (spring && motionIntensity > 0) {
-              spring.scaleVel += 2.4 * motionIntensity;
-            }
-            playTactileTone('select');
-          }}
-          onSelectShader={(sh) => setActiveShader(sh)}
-        />
-      </div>
-
-      {/* Responsive Control Deck: Stacked cleanly below canvas on Mobile (<640px), Floating Collapsible Dock on Desktop (sm+) */}
-      <div
-        className={`relative z-20 w-full bg-[#091D18] border-t border-white/10 p-3 sm:p-0 sm:bg-transparent sm:border-0 sm: -mt-0 sm:absolute sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[96%] sm:max-w-[960px] transition-transform duration-200 ${
-          dockCollapsed ? 'sm:translate-y-[calc(100%-36px)]' : 'sm:translate-y-0'
-        }`}
-      >
-        {/* Desktop Collapse / Expand Handle */}
-        <div className="hidden sm:flex justify-center mb-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              setDockCollapsed((c) => !c);
-            }}
-            className="px-3.5 py-1 rounded-xl bg-[#0E2D26] border border-white/15 text-xs font-medium text-[#C4C6AF] hover:text-white flex items-center gap-1.5 shadow-md whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            {dockCollapsed ? (
-              <>
-                <Maximize2 className="w-3 h-3" />▴ Show 3D Studio Deck
-              </>
-            ) : (
-              <>
-                <Minimize2 className="w-3 h-3" />▾ Minimize Deck
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Control Deck Body */}
-        <div className="sm:bg-[#0E2D26]/95 sm:backdrop-blur-md sm:border sm:border-white/15 rounded-2xl sm:p-4 sm:shadow-2xl space-y-3">
-          {workspaceMode === 'anatomy' ? (
-            <>
-              {/* Row 1: Assembly Switcher, Explode Presets & Slider, Order CTA */}
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
-                {/* Assembly Switcher */}
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
-                  {VARDA_ASSEMBLIES.map((asm, idx) => (
-                    <button
-                      key={asm.id}
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('selection');
-                        setSelectedAssemblyId(asm.id);
-                        setSelectedPartId(asm.parts[0].id);
-                        setActiveShader(asm.recommendedShader);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                        selectedAssemblyId === asm.id
-                          ? 'bg-[#F4F3EC] text-[#0E2D26] font-bold shadow-xs'
-                          : 'bg-[#143D34] text-[#C4C6AF] hover:text-white'
-                      }`}
-                    >
-                      <span className="font-mono tabular-nums text-[10px] opacity-70">
-                        0{idx + 1}
-                      </span>
-                      <span>
-                        {asm.id === 'karoo-inverter-vault'
-                          ? 'Karoo-X8 Inverter'
-                          : 'Drakensberg Hydro-Solar'}
-                      </span>
-                    </button>
-                  ))}
+          {/* Desktop Telemetry Spec Card */}
+          <div className="hidden sm:block absolute top-4 left-4 z-10 pointer-events-auto w-[340px] bg-[#0D2A23]/95 backdrop-blur-md border border-white/15 rounded-2xl p-4 shadow-xl">
+            {workspaceMode === "anatomy" ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 text-xs text-[#C4C6AF]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono tabular-nums font-bold text-[#19B86B]">
+                      #{String(currentPartIndex + 1).padStart(2, "0")}
+                    </span>
+                    <span>Component Anatomy</span>
+                  </div>
+                  <span className="font-mono tabular-nums font-semibold text-[#E6C465]">
+                    {currentPart.massKg} kg
+                  </span>
+                </div>
+                <h3 className="font-serif text-base font-semibold text-white leading-snug">
+                  {currentPart.name}
+                </h3>
+                <p className="text-xs text-[#C4C6AF] leading-relaxed">
+                  {currentPart.role} · {currentPart.materialSpec}
+                </p>
+                <div className="pt-1 flex items-center justify-between text-xs font-mono tabular-nums text-[#4FFFB0]">
+                  <span>{currentPart.telemetry}</span>
+                  <span>{lowBandwidthMode ? "WIREFRAME" : activeShader.toUpperCase()}</span>
                 </div>
 
-                {/* Exploded View Spring Slider + Numeric Presets */}
-                <div className="flex items-center gap-2 bg-[#091D18] sm:bg-[#091D18]/80 px-2.5 py-1 rounded-xl border border-white/10">
-                  <label
-                    htmlFor="explode-slider"
-                    className="text-[11px] font-mono tabular-nums text-[#C4C6AF] whitespace-nowrap"
-                  >
-                    Explode {Math.round(explodeFactor * 100)}%:
-                  </label>
-                  <input
-                    id="explode-slider"
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.02}
-                    value={explodeFactor}
-                    onChange={(e) => setExplodeFactor(parseFloat(e.target.value))}
-                    className="w-20 sm:w-24 accent-[#E6C465] cursor-pointer"
-                  />
-                  <div className="hidden md:flex items-center gap-1">
-                    {[0, 0.35, 0.85].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('light');
-                          setExplodeFactor(preset);
-                        }}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono tabular-nums cursor-pointer ${
-                          Math.abs(explodeFactor - preset) < 0.05
-                            ? 'bg-[#E6C465] text-[#091D18] font-bold'
-                            : 'bg-[#143D34] text-[#C4C6AF] hover:text-white'
-                        }`}
-                      >
-                        {Math.round(preset * 100)}%
-                      </button>
-                    ))}
+                {/* Live Kinetic Grab & Toss Physics Telemetry Bar */}
+                <div className="p-2 rounded-xl bg-[#081C17]/90 border border-[#19B86B]/25 flex items-center justify-between gap-2 text-[11px]">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Move
+                      className={`w-3.5 h-3.5 shrink-0 ${activeGrabLabel ? "text-[#E6C465] animate-pulse" : "text-[#19B86B]"}`}
+                    />
+                    <span className="text-[#C4C6AF] font-medium truncate">
+                      {activeGrabLabel
+                        ? `Grabbing: ${activeGrabLabel}`
+                        : rearrangedCount > 0
+                          ? `${rearrangedCount} Rearranged`
+                          : "Grab & Toss Physics"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 font-mono tabular-nums shrink-0">
+                    <span className="text-[#4FFFB0] font-semibold">
+                      {lastTossSpeed.toFixed(1)} m/s
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#143D34] text-[#E6C465]">
+                      {freeRearrangeMode ? "FREE HOLD" : "SPRING"}
+                    </span>
                   </div>
                 </div>
 
-                {/* Grab & Toss Rearrange Controls (Free Rearrange Toggle, Kinetic Toss Burst, Reset Layout) */}
-                <div className="flex items-center gap-1.5 bg-[#091D18] sm:bg-[#091D18]/80 px-2 py-1 rounded-xl border border-white/10">
+                <div className="pt-1 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleCyclePart(-1)}
+                    className="p-2 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-[#C4C6AF] hover:text-white cursor-pointer"
+                    title="Previous Sub-Component"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
-                      triggerHaptic('selection');
-                      setFreeRearrangeMode((prev) => !prev);
+                      triggerHaptic("light");
+                      setInspectorOpen(true);
                     }}
-                    className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
-                      freeRearrangeMode
-                        ? 'bg-[#19B86B] text-[#072018] font-bold'
-                        : 'bg-[#143D34] text-[#C4C6AF] hover:text-white'
-                    }`}
-                    title="Toggle between Free Spatial Rearrangement and Elastic Spring-Back"
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-xs text-[#E6C465] hover:text-white flex items-center justify-center gap-1.5 transition-colors font-semibold cursor-pointer"
                   >
-                    <Move className="w-3 h-3" />
-                    <span>{freeRearrangeMode ? 'Free Rearrange' : 'Elastic Snap'}</span>
+                    <Sliders className="w-3.5 h-3.5 text-[#19B86B]" />
+                    <span>Inspect Material & Energy</span>
                   </button>
                   <button
                     type="button"
-                    onClick={handleKineticTossBurst}
-                    className="px-2 py-1 rounded-lg bg-[#143D34] hover:bg-[#1C5246] text-[#E6C465] text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
-                    title="Apply a kinetic 3D toss impulse to all sub-components"
+                    onClick={() => handleCyclePart(1)}
+                    className="p-2 rounded-xl bg-[#143D34] hover:bg-[#1A4F43] border border-white/10 text-[#C4C6AF] hover:text-white cursor-pointer"
+                    title="Next Sub-Component"
                   >
-                    <Zap className="w-3 h-3" />
-                    <span className="hidden sm:inline">Toss Burst</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleResetAssemblyLayout}
-                    className="px-2 py-1 rounded-lg bg-[#143D34] hover:bg-[#1C5246] text-[#C4C6AF] hover:text-white text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
-                    title="Snap all rearranged sub-components back to factory CAD alignment"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span className="hidden sm:inline">Reset</span>
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-
-                {/* Direct SA Checkout Button */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    onSelectOrderForPayment({
-                      name: currentAssembly.name,
-                      description: currentAssembly.subtitle,
-                      amountZar: currentAssembly.priceZar,
-                    })
-                  }
-                  className="w-full sm:w-auto justify-center px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#E6C465] hover:bg-[#f0cf73] text-[#0B241E] text-xs font-bold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Order Assembly ·</span>
-                  <span className="font-mono tabular-nums">
-                    R {formatZarPrice(currentAssembly.priceZar)}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 text-xs text-[#C4C6AF]">
+                  <span>Real-Time Grab, Toss & Collision Engine</span>
+                  <span className="font-mono tabular-nums text-[#E6C465]">
+                    {activeCollisions.length === 0
+                      ? `${lastTossSpeed.toFixed(1)} m/s`
+                      : `${activeCollisions.length} OVERLAP`}
                   </span>
-                </button>
+                </div>
+                {activeCollisions.length > 0 ? (
+                  <div className="p-2.5 rounded-xl bg-[#4C1414] border border-[#EF4444]/50 text-xs text-[#FCA5A5] flex items-start gap-2">
+                    <ShieldAlert className="w-4 h-4 text-[#EF4444] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white">Bounding-Sphere Collision Detected</p>
+                      <p className="font-mono tabular-nums text-[11px]">{activeCollisions[0]}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#C4C6AF]">
+                    Grab and toss 3D modules across the pad with momentum & boundary bounce, or tap
+                    cards below to spawn.
+                  </p>
+                )}
               </div>
+            )}
+          </div>
 
-              {/* Row 2: Shaders Switcher Row (Fire, Water, Plasma, Thermal IR, Isometric Wireframe, PBR) */}
-              <div className="flex items-center gap-1 bg-[#0E2D26] sm:bg-[#091D18] p-1 rounded-xl border border-white/10 overflow-x-auto scrollbar-none max-w-full">
-                {(
-                  [
-                    {id: 'plasma', label: 'Plasma Field', icon: Zap},
-                    {id: 'fire', label: 'Fire Thermal', icon: Flame},
-                    {id: 'water', label: 'Hydro Wave', icon: Droplets},
-                    {id: 'thermal', label: 'Thermal IR', icon: Thermometer},
-                    {id: 'wireframe', label: '38KB Wireframe', icon: Box},
-                    {id: 'pbr', label: 'Studio PBR', icon: Eye},
-                  ] as const
-                ).map((sh) => {
-                  const Icon = sh.icon;
-                  const isActive = (lowBandwidthMode ? 'wireframe' : activeShader) === sh.id;
-                  return (
-                    <button
-                      key={sh.id}
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('selection');
-                        setActiveShader(sh.id);
-                      }}
-                      className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
-                        isActive
-                          ? 'bg-[#19B86B] text-[#072018] font-bold'
-                          : 'text-[#C4C6AF] hover:text-white'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{sh.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Top-Right Touch Navigation Hint */}
+          <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0D2A23]/85 backdrop-blur-sm border border-white/10 text-[10px] sm:text-xs text-[#C4C6AF] pointer-events-none">
+            <span className="hidden sm:inline">
+              Grab & Toss: drag part · Orbit: drag background · Zoom: pinch/scroll
+            </span>
+            <span className="sm:hidden font-mono tabular-nums">Grab & Toss · Orbit · Pinch</span>
+          </div>
 
-              {/* Row 3: Numbered Interactive Part Anatomy Selector */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-                {currentAssembly.parts.map((part, pIdx) => {
-                  const isPartSelected = selectedPartId === part.id;
-                  return (
-                    <button
-                      key={part.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedPartId(part.id);
-                        setInspectorOpen(true);
-                        playTactileTone('select');
-                        const spring = partSpringsMapRef.current?.get(part.id);
-                        if (spring && motionIntensity > 0) {
-                          spring.scaleVel += 1.8 * motionIntensity;
-                        }
-                      }}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs transition-colors whitespace-nowrap shrink-0 min-h-[34px] sm:min-h-0 flex items-center gap-1.5 cursor-pointer ${
-                        isPartSelected
-                          ? 'bg-[#19B86B]/25 border border-[#19B86B] text-white font-semibold shadow-xs'
-                          : 'bg-[#12352D] text-[#C4C6AF] hover:text-white border border-white/5'
-                      }`}
-                    >
-                      <span
-                        className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
-                          isPartSelected
-                            ? 'bg-[#19B86B] text-[#082019] font-bold'
-                            : 'bg-[#091D18] text-[#E6C465]'
+          {/* Sub-Component Inspector Sidebar / Mobile Drawer */}
+          <SubComponentInspector
+            part={currentPart}
+            assemblyId={selectedAssemblyId}
+            isOpen={inspectorOpen}
+            onClose={() => setInspectorOpen(false)}
+            onPulsePart={() => {
+              const spring = partSpringsMapRef.current?.get(currentPart.id);
+              if (spring && motionIntensity > 0) {
+                spring.scaleVel += 2.4 * motionIntensity;
+              }
+              playTactileTone("select");
+            }}
+            onSelectShader={(sh) => setActiveShader(sh)}
+          />
+        </div>
+
+        {/* Responsive Control Deck: Stacked cleanly below canvas on Mobile (<640px), Floating Collapsible Dock on Desktop (sm+) */}
+        <div
+          className={`relative z-20 w-full bg-[#091D18] border-t border-white/10 p-3 sm:p-0 sm:bg-transparent sm:border-0 sm: -mt-0 sm:absolute sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[96%] sm:max-w-[960px] transition-transform duration-200 ${
+            dockCollapsed ? "sm:translate-y-[calc(100%-36px)]" : "sm:translate-y-0"
+          }`}
+        >
+          {/* Desktop Collapse / Expand Handle */}
+          <div className="hidden sm:flex justify-center mb-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setDockCollapsed((c) => !c);
+              }}
+              className="px-3.5 py-1 rounded-xl bg-[#0E2D26] border border-white/15 text-xs font-medium text-[#C4C6AF] hover:text-white flex items-center gap-1.5 shadow-md whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              {dockCollapsed ? (
+                <>
+                  <Maximize2 className="w-3 h-3" />▴ Show 3D Studio Deck
+                </>
+              ) : (
+                <>
+                  <Minimize2 className="w-3 h-3" />▾ Minimize Deck
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Control Deck Body */}
+          <div className="sm:bg-[#0E2D26]/95 sm:backdrop-blur-md sm:border sm:border-white/15 rounded-2xl sm:p-4 sm:shadow-2xl space-y-3">
+            {workspaceMode === "anatomy" ? (
+              <>
+                {/* Row 1: Assembly Switcher, Explode Presets & Slider, Order CTA */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  {/* Assembly Switcher */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
+                    {VARDA_ASSEMBLIES.map((asm, idx) => (
+                      <button
+                        key={asm.id}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("selection");
+                          setSelectedAssemblyId(asm.id);
+                          setSelectedPartId(asm.parts[0].id);
+                          setActiveShader(asm.recommendedShader);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                          selectedAssemblyId === asm.id
+                            ? "bg-[#F4F3EC] text-[#0E2D26] font-bold shadow-xs"
+                            : "bg-[#143D34] text-[#C4C6AF] hover:text-white"
                         }`}
                       >
-                        {String(pIdx + 1).padStart(2, '0')}
-                      </span>
-                      <span>{part.name}</span>
-                      <span className="font-mono tabular-nums text-[10px] opacity-65">
-                        {part.massKg}kg
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            /* Scene & Collision Editor Dock */
-            <div className="space-y-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-xs text-[#C4C6AF]">
-                  <span className="font-semibold text-white">
-                    3D Asset Library
-                  </span>
-                  <span className="hidden xs:inline">·</span>
-                  <span className="hidden xs:inline">Tap or drag cards onto the 3D pad to spawn</span>
-                </div>
+                        <span className="font-mono tabular-nums text-[10px] opacity-70">
+                          0{idx + 1}
+                        </span>
+                        <span>
+                          {asm.id === "karoo-inverter-vault"
+                            ? "Karoo-X8 Inverter"
+                            : "Drakensberg Hydro-Solar"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setSnapToGrid((s) => !s)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-mono tabular-nums font-medium border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                      snapToGrid
-                        ? 'bg-[#19B86B] text-[#082019] border-[#19B86B] font-bold'
-                        : 'bg-[#12382F] text-[#C4C6AF] border-white/10'
-                    }`}
-                  >
-                    {snapToGrid ? 'Snap: 0.5m ON' : 'Free Physics'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRemoveSelectedNode}
-                    className="px-2.5 py-1 rounded-xl bg-[#3A1818] hover:bg-[#522020] text-[#FCA5A5] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Remove</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSceneNodes(INITIAL_SCENE_NODES)}
-                    className="px-2.5 py-1 rounded-xl bg-[#12382F] hover:bg-[#194B3F] text-[#C4C6AF] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset</span>
-                  </button>
+                  {/* Exploded View Spring Slider + Numeric Presets */}
+                  <div className="flex items-center gap-2 bg-[#091D18] sm:bg-[#091D18]/80 px-2.5 py-1 rounded-xl border border-white/10">
+                    <label
+                      htmlFor="explode-slider"
+                      className="text-[11px] font-mono tabular-nums text-[#C4C6AF] whitespace-nowrap"
+                    >
+                      Explode {Math.round(explodeFactor * 100)}%:
+                    </label>
+                    <input
+                      id="explode-slider"
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.02}
+                      value={explodeFactor}
+                      onChange={(e) => setExplodeFactor(parseFloat(e.target.value))}
+                      className="w-20 sm:w-24 accent-[#E6C465] cursor-pointer"
+                    />
+                    <div className="hidden md:flex items-center gap-1">
+                      {[0, 0.35, 0.85].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic("light");
+                            setExplodeFactor(preset);
+                          }}
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono tabular-nums cursor-pointer ${
+                            Math.abs(explodeFactor - preset) < 0.05
+                              ? "bg-[#E6C465] text-[#091D18] font-bold"
+                              : "bg-[#143D34] text-[#C4C6AF] hover:text-white"
+                          }`}
+                        >
+                          {Math.round(preset * 100)}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Grab & Toss Rearrange Controls (Free Rearrange Toggle, Kinetic Toss Burst, Reset Layout) */}
+                  <div className="flex items-center gap-1.5 bg-[#091D18] sm:bg-[#091D18]/80 px-2 py-1 rounded-xl border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("selection");
+                        setFreeRearrangeMode((prev) => !prev);
+                      }}
+                      className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
+                        freeRearrangeMode
+                          ? "bg-[#19B86B] text-[#072018] font-bold"
+                          : "bg-[#143D34] text-[#C4C6AF] hover:text-white"
+                      }`}
+                      title="Toggle between Free Spatial Rearrangement and Elastic Spring-Back"
+                    >
+                      <Move className="w-3 h-3" />
+                      <span>{freeRearrangeMode ? "Free Rearrange" : "Elastic Snap"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleKineticTossBurst}
+                      className="px-2 py-1 rounded-lg bg-[#143D34] hover:bg-[#1C5246] text-[#E6C465] text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
+                      title="Apply a kinetic 3D toss impulse to all sub-components"
+                    >
+                      <Zap className="w-3 h-3" />
+                      <span className="hidden sm:inline">Toss Burst</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetAssemblyLayout}
+                      className="px-2 py-1 rounded-lg bg-[#143D34] hover:bg-[#1C5246] text-[#C4C6AF] hover:text-white text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
+                      title="Snap all rearranged sub-components back to factory CAD alignment"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span className="hidden sm:inline">Reset</span>
+                    </button>
+                  </div>
+
+                  {/* Direct SA Checkout Button */}
                   <button
                     type="button"
                     onClick={() =>
                       onSelectOrderForPayment({
-                        name: `Custom Varda Micro-Grid Bundle (${sceneNodes.length} Modules)`,
-                        description: sceneNodes.map((n) => n.label).join(' + '),
-                        amountZar: totalSceneZar,
+                        name: currentAssembly.name,
+                        description: currentAssembly.subtitle,
+                        amountZar: currentAssembly.priceZar,
                       })
                     }
-                    className="px-3 py-1 rounded-xl bg-[#E6C465] text-[#091D18] text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer shadow-sm font-mono tabular-nums"
+                    className="w-full sm:w-auto justify-center px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#E6C465] hover:bg-[#f0cf73] text-[#0B241E] text-xs font-bold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
                   >
-                    Checkout · R {formatZarPrice(totalSceneZar)}
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>Order Assembly ·</span>
+                    <span className="font-mono tabular-nums">
+                      R {formatZarPrice(currentAssembly.priceZar)}
+                    </span>
                   </button>
                 </div>
-              </div>
 
-              {/* Draggable & Tappable Asset Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {SCENE_NODE_TEMPLATES.map((tpl, idx) => (
-                  <div
-                    key={tpl.templateId}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', tpl.templateId);
-                      playTactileTone('dragstart');
-                    }}
-                    onClick={() => handleAddSceneNode(tpl)}
-                    className="p-2.5 rounded-xl bg-[#12352D] hover:bg-[#18473C] border border-white/10 cursor-pointer transition-colors flex flex-col justify-between gap-1 active:scale-95"
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-semibold text-white truncate">
-                        <span className="font-mono tabular-nums text-[10px] text-[#4FFFB0] mr-1">
-                          0{idx + 1}
+                {/* Row 2: Shaders Switcher Row (Fire, Water, Plasma, Thermal IR, Isometric Wireframe, PBR) */}
+                <div className="flex items-center gap-1 bg-[#0E2D26] sm:bg-[#091D18] p-1 rounded-xl border border-white/10 overflow-x-auto scrollbar-none max-w-full">
+                  {(
+                    [
+                      { id: "plasma", label: "Plasma Field", icon: Zap },
+                      { id: "fire", label: "Fire Thermal", icon: Flame },
+                      { id: "water", label: "Hydro Wave", icon: Droplets },
+                      { id: "thermal", label: "Thermal IR", icon: Thermometer },
+                      { id: "wireframe", label: "38KB Wireframe", icon: Box },
+                      { id: "pbr", label: "Studio PBR", icon: Eye },
+                    ] as const
+                  ).map((sh) => {
+                    const Icon = sh.icon;
+                    const isActive = (lowBandwidthMode ? "wireframe" : activeShader) === sh.id;
+                    return (
+                      <button
+                        key={sh.id}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("selection");
+                          setActiveShader(sh.id);
+                        }}
+                        className={`px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                          isActive
+                            ? "bg-[#19B86B] text-[#072018] font-bold"
+                            : "text-[#C4C6AF] hover:text-white"
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{sh.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Row 3: Numbered Interactive Part Anatomy Selector */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+                  {currentAssembly.parts.map((part, pIdx) => {
+                    const isPartSelected = selectedPartId === part.id;
+                    return (
+                      <button
+                        key={part.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPartId(part.id);
+                          setInspectorOpen(true);
+                          playTactileTone("select");
+                          const spring = partSpringsMapRef.current?.get(part.id);
+                          if (spring && motionIntensity > 0) {
+                            spring.scaleVel += 1.8 * motionIntensity;
+                          }
+                        }}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs transition-colors whitespace-nowrap shrink-0 min-h-[34px] sm:min-h-0 flex items-center gap-1.5 cursor-pointer ${
+                          isPartSelected
+                            ? "bg-[#19B86B]/25 border border-[#19B86B] text-white font-semibold shadow-xs"
+                            : "bg-[#12352D] text-[#C4C6AF] hover:text-white border border-white/5"
+                        }`}
+                      >
+                        <span
+                          className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
+                            isPartSelected
+                              ? "bg-[#19B86B] text-[#082019] font-bold"
+                              : "bg-[#091D18] text-[#E6C465]"
+                          }`}
+                        >
+                          {String(pIdx + 1).padStart(2, "0")}
                         </span>
-                        {tpl.label}
-                      </span>
-                      <Plus className="w-3.5 h-3.5 text-[#19B86B] shrink-0" />
-                    </div>
-                    <span className="text-[10px] sm:text-[11px] text-[#C4C6AF] truncate">
-                      {tpl.subtitle}
-                    </span>
-                    <span className="text-[10px] sm:text-[11px] font-mono tabular-nums text-[#E6C465]">
-                      R {formatZarPrice(tpl.priceZar)}
+                        <span>{part.name}</span>
+                        <span className="font-mono tabular-nums text-[10px] opacity-65">
+                          {part.massKg}kg
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              /* Scene & Collision Editor Dock */
+              <div className="space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs text-[#C4C6AF]">
+                    <span className="font-semibold text-white">3D Asset Library</span>
+                    <span className="hidden xs:inline">·</span>
+                    <span className="hidden xs:inline">
+                      Tap or drag cards onto the 3D pad to spawn
                     </span>
                   </div>
-                ))}
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setSnapToGrid((s) => !s)}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-mono tabular-nums font-medium border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                        snapToGrid
+                          ? "bg-[#19B86B] text-[#082019] border-[#19B86B] font-bold"
+                          : "bg-[#12382F] text-[#C4C6AF] border-white/10"
+                      }`}
+                    >
+                      {snapToGrid ? "Snap: 0.5m ON" : "Free Physics"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveSelectedNode}
+                      className="px-2.5 py-1 rounded-xl bg-[#3A1818] hover:bg-[#522020] text-[#FCA5A5] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSceneNodes(INITIAL_SCENE_NODES)}
+                      className="px-2.5 py-1 rounded-xl bg-[#12382F] hover:bg-[#194B3F] text-[#C4C6AF] text-xs font-medium flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onSelectOrderForPayment({
+                          name: `Custom Varda Micro-Grid Bundle (${sceneNodes.length} Modules)`,
+                          description: sceneNodes.map((n) => n.label).join(" + "),
+                          amountZar: totalSceneZar,
+                        })
+                      }
+                      className="px-3 py-1 rounded-xl bg-[#E6C465] text-[#091D18] text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer shadow-sm font-mono tabular-nums"
+                    >
+                      Checkout · R {formatZarPrice(totalSceneZar)}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Draggable & Tappable Asset Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {SCENE_NODE_TEMPLATES.map((tpl, idx) => (
+                    <div
+                      key={tpl.templateId}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", tpl.templateId);
+                        playTactileTone("dragstart");
+                      }}
+                      onClick={() => handleAddSceneNode(tpl)}
+                      className="p-2.5 rounded-xl bg-[#12352D] hover:bg-[#18473C] border border-white/10 cursor-pointer transition-colors flex flex-col justify-between gap-1 active:scale-95"
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-semibold text-white truncate">
+                          <span className="font-mono tabular-nums text-[10px] text-[#4FFFB0] mr-1">
+                            0{idx + 1}
+                          </span>
+                          {tpl.label}
+                        </span>
+                        <Plus className="w-3.5 h-3.5 text-[#19B86B] shrink-0" />
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] text-[#C4C6AF] truncate">
+                        {tpl.subtitle}
+                      </span>
+                      <span className="text-[10px] sm:text-[11px] font-mono tabular-nums text-[#E6C465]">
+                        R {formatZarPrice(tpl.priceZar)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
       </div>
 
       {/* Integrated Engineering Suite: Load-Shedding Stage 1-8 ROI Simulator, 3D Cross-Section Clip-Plane, and Exportable BOM & Stokvel Split */}

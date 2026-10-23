@@ -1,6 +1,6 @@
 /* Varda caches only the public app shell. Accounts, API responses, and payments never enter the cache. */
-const SHELL = 'varda-shell-IY5U4rnOCLMMqvrSRJ4Yo';
-const ASSETS = 'varda-assets-IY5U4rnOCLMMqvrSRJ4Yo';
+const SHELL = 'varda-shell-TQQTgCF_nPAll8rmCGiEK';
+const ASSETS = 'varda-assets-TQQTgCF_nPAll8rmCGiEK';
 const STATE = 'varda-state-v3';
 const OFFLINE_KEY = '/__varda_offline_preference';
 let offlineMode = caches.open(STATE).then(cache => cache.match(OFFLINE_KEY)).then(response => response ? response.json() : false).catch(() => false);

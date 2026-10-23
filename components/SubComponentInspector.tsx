@@ -1,12 +1,8 @@
-'use client';
+"use client";
 
-import React, {useState, useEffect, useRef} from 'react';
-import {
-  type AnatomyPart,
-  type ShaderMode,
-  getPartInspectorData,
-} from '@/lib/sa-data';
-import {triggerHaptic} from '@/lib/haptics';
+import React, { useState, useEffect, useRef } from "react";
+import { type AnatomyPart, type ShaderMode, getPartInspectorData } from "@/lib/sa-data";
+import { triggerHaptic } from "@/lib/haptics";
 import {
   X,
   Zap,
@@ -23,7 +19,7 @@ import {
   Volume2,
   VolumeX,
   Thermometer,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface SubComponentInspectorProps {
   part: AnatomyPart;
@@ -42,11 +38,13 @@ export default function SubComponentInspector({
   onPulsePart,
   onSelectShader,
 }: SubComponentInspectorProps) {
-  const [activeTab, setActiveTab] = useState<'material' | 'energy' | 'simulation'>('energy');
+  const [activeTab, setActiveTab] = useState<"material" | "energy" | "simulation">("energy");
   const [simulatedLoadPct, setSimulatedLoadPct] = useState<number>(75);
   const [acousticActive, setAcousticActive] = useState<boolean>(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const oscNodesRef = useRef<{osc1: OscillatorNode; osc2: OscillatorNode; gain: GainNode} | null>(null);
+  const oscNodesRef = useRef<{ osc1: OscillatorNode; osc2: OscillatorNode; gain: GainNode } | null>(
+    null,
+  );
 
   // Clean up WebAudio harmonic synth when closing or unmounting
   useEffect(() => {
@@ -67,12 +65,12 @@ export default function SubComponentInspector({
     try {
       const AudioCtx =
         window.AudioContext ||
-        (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
-      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
         audioCtxRef.current = new AudioCtx();
       }
       const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') {
+      if (ctx.state === "suspended") {
         void ctx.resume();
       }
 
@@ -81,9 +79,9 @@ export default function SubComponentInspector({
       const gain = ctx.createGain();
 
       // 50.0 Hz SA Grid Fundamental + Load-dependent harmonic overtone
-      const baseFreq = part.shaderCategory === 'water' ? 64 : 50;
-      osc1.type = 'sine';
-      osc2.type = 'triangle';
+      const baseFreq = part.shaderCategory === "water" ? 64 : 50;
+      osc1.type = "sine";
+      osc2.type = "triangle";
       osc1.frequency.setValueAtTime(baseFreq, ctx.currentTime);
       osc2.frequency.setValueAtTime(baseFreq * 3 + simulatedLoadPct * 0.65, ctx.currentTime);
 
@@ -94,7 +92,7 @@ export default function SubComponentInspector({
 
       osc1.start();
       osc2.start();
-      oscNodesRef.current = {osc1, osc2, gain};
+      oscNodesRef.current = { osc1, osc2, gain };
     } catch {
       // Ignore WebAudio restrictions
     }
@@ -115,32 +113,31 @@ export default function SubComponentInspector({
 
   if (!isOpen) return null;
 
-  const {material, energy} = getPartInspectorData(part, assemblyId);
+  const { material, energy } = getPartInspectorData(part, assemblyId);
 
   // Dynamic simulation calculations based on load slider
   const loadFactor = simulatedLoadPct / 100;
   // Non-linear efficiency curve: slight drop-off at extremes
   const dynamicEfficiency = Number(
-    (
-      energy.efficiencyPercent -
-      Math.pow(Math.abs(loadFactor - 0.72), 2) * 2.8
-    ).toFixed(2)
+    (energy.efficiencyPercent - Math.pow(Math.abs(loadFactor - 0.72), 2) * 2.8).toFixed(2),
   );
   const dynamicHeatDissipation = (energy.heatDissipationW * Math.pow(loadFactor, 1.4)).toFixed(1);
   const dynamicArbitrageHourlyZar = (
-    (energy.peakTariffArbitrageZarPerKwh * (part.massKg * 0.18) * loadFactor)
+    energy.peakTariffArbitrageZarPerKwh *
+    (part.massKg * 0.18) *
+    loadFactor
   ).toFixed(2);
   const dynamicTempCelsius = (31.5 + loadFactor * 36.8).toFixed(1);
 
   const getShaderIcon = (category: string) => {
     switch (category) {
-      case 'plasma':
+      case "plasma":
         return <Cpu className="w-3.5 h-3.5 text-[#38BDF8]" />;
-      case 'fire':
+      case "fire":
         return <Flame className="w-3.5 h-3.5 text-[#FB923C]" />;
-      case 'water':
+      case "water":
         return <Droplets className="w-3.5 h-3.5 text-[#60A5FA]" />;
-      case 'glass':
+      case "glass":
         return <Sparkles className="w-3.5 h-3.5 text-[#4ADE80]" />;
       default:
         return <Box className="w-3.5 h-3.5 text-[#E6C465]" />;
@@ -148,13 +145,13 @@ export default function SubComponentInspector({
   };
 
   const getGradeBadgeColor = (grade: string) => {
-    if (grade === 'Ultra-Resonant' || grade === 'Direct Pass-Through') {
-      return 'bg-[#19B86B]/20 text-[#4FFFB0] border-[#19B86B]/40';
+    if (grade === "Ultra-Resonant" || grade === "Direct Pass-Through") {
+      return "bg-[#19B86B]/20 text-[#4FFFB0] border-[#19B86B]/40";
     }
-    if (grade.startsWith('A+++')) {
-      return 'bg-[#E6C465]/20 text-[#F5DF98] border-[#E6C465]/40';
+    if (grade.startsWith("A+++")) {
+      return "bg-[#E6C465]/20 text-[#F5DF98] border-[#E6C465]/40";
     }
-    return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+    return "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
   };
 
   return (
@@ -163,7 +160,7 @@ export default function SubComponentInspector({
       <div
         className="sm:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => {
-          triggerHaptic('light');
+          triggerHaptic("light");
           onClose();
         }}
         aria-hidden="true"
@@ -182,496 +179,528 @@ export default function SubComponentInspector({
 
         {/* Inspector Top Sticky Header */}
         <div className="p-3.5 sm:p-5 border-b border-white/10 bg-[#0E2D26]/90 shrink-0">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-white/10 text-[#C4C6AF]">
-                Sub-Component Inspector
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[#143D34] text-[#E6C465] border border-[#E6C465]/25">
-                {getShaderIcon(part.shaderCategory)}
-                {part.shaderCategory.toUpperCase()}
-              </span>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${getGradeBadgeColor(energy.energyRatingGrade)}`}>
-                {energy.energyRatingGrade}
-              </span>
-            </div>
-            <h3 id="inspector-title" className="text-base sm:text-lg font-semibold text-[#F4F3EC] leading-tight truncate">
-              {part.name}
-            </h3>
-            <p className="text-xs text-[#A1B8AD] truncate">
-              {part.role}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              onClose();
-            }}
-            aria-label="Close component inspector"
-            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-[#C4C6AF] hover:text-white transition-colors shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Tab Selection */}
-        <div className="grid grid-cols-3 gap-1.5 p-1 mt-3.5 rounded-xl bg-[#071915] border border-white/10">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              setActiveTab('energy');
-            }}
-            className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
-              activeTab === 'energy'
-                ? 'bg-[#19B86B] text-[#072018] font-semibold shadow-sm'
-                : 'text-[#A1B8AD] hover:text-white'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 shrink-0" />
-            <span>Energy</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              setActiveTab('material');
-            }}
-            className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
-              activeTab === 'material'
-                ? 'bg-[#19B86B] text-[#072018] font-semibold shadow-sm'
-                : 'text-[#A1B8AD] hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5 shrink-0" />
-            <span>Material</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              setActiveTab('simulation');
-            }}
-            className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
-              activeTab === 'simulation'
-                ? 'bg-[#19B86B] text-[#072018] font-semibold shadow-sm'
-                : 'text-[#A1B8AD] hover:text-white'
-            }`}
-          >
-            <Sliders className="w-3.5 h-3.5 shrink-0" />
-            <span>Simulation</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Inspector Scrollable Body */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs scrollbar-thin scrollbar-thumb-white/20">
-        {activeTab === 'energy' && (
-          <div className="space-y-4">
-            {/* Main Energy Efficiency Hero Card */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-[#123E33] to-[#0A241E] border border-[#19B86B]/30 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono text-[#A1B8AD] uppercase tracking-wider">
-                  Conversion & Storage Efficiency
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-white/10 text-[#C4C6AF]">
+                  Sub-Component Inspector
                 </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#19B86B] text-[#082019]">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[#143D34] text-[#E6C465] border border-[#E6C465]/25">
+                  {getShaderIcon(part.shaderCategory)}
+                  {part.shaderCategory.toUpperCase()}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${getGradeBadgeColor(energy.energyRatingGrade)}`}
+                >
                   {energy.energyRatingGrade}
                 </span>
               </div>
+              <h3
+                id="inspector-title"
+                className="text-base sm:text-lg font-semibold text-[#F4F3EC] leading-tight truncate"
+              >
+                {part.name}
+              </h3>
+              <p className="text-xs text-[#A1B8AD] truncate">{part.role}</p>
+            </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-serif font-bold text-white tracking-tight">
-                  {energy.efficiencyPercent}%
-                </span>
-                <span className="text-xs text-[#4FFFB0] font-mono">
-                  Peak Operating Rate
-                </span>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                onClose();
+              }}
+              aria-label="Close component inspector"
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-[#C4C6AF] hover:text-white transition-colors shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Tab Selection */}
+          <div className="grid grid-cols-3 gap-1.5 p-1 mt-3.5 rounded-xl bg-[#071915] border border-white/10">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setActiveTab("energy");
+              }}
+              className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                activeTab === "energy"
+                  ? "bg-[#19B86B] text-[#072018] font-semibold shadow-sm"
+                  : "text-[#A1B8AD] hover:text-white"
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 shrink-0" />
+              <span>Energy</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setActiveTab("material");
+              }}
+              className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                activeTab === "material"
+                  ? "bg-[#19B86B] text-[#072018] font-semibold shadow-sm"
+                  : "text-[#A1B8AD] hover:text-white"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 shrink-0" />
+              <span>Material</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setActiveTab("simulation");
+              }}
+              className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                activeTab === "simulation"
+                  ? "bg-[#19B86B] text-[#072018] font-semibold shadow-sm"
+                  : "text-[#A1B8AD] hover:text-white"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5 shrink-0" />
+              <span>Simulation</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Inspector Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs scrollbar-thin scrollbar-thumb-white/20">
+          {activeTab === "energy" && (
+            <div className="space-y-4">
+              {/* Main Energy Efficiency Hero Card */}
+              <div className="p-4 rounded-xl bg-gradient-to-br from-[#123E33] to-[#0A241E] border border-[#19B86B]/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono text-[#A1B8AD] uppercase tracking-wider">
+                    Conversion & Storage Efficiency
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#19B86B] text-[#082019]">
+                    {energy.energyRatingGrade}
+                  </span>
+                </div>
+
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl sm:text-4xl font-serif font-bold text-white tracking-tight">
+                    {energy.efficiencyPercent}%
+                  </span>
+                  <span className="text-xs text-[#4FFFB0] font-mono">Peak Operating Rate</span>
+                </div>
+
+                {/* Efficiency Visual Bar */}
+                <div className="space-y-1">
+                  <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden p-0.5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#19B86B] via-[#4FFFB0] to-[#E6C465] transition-all duration-500"
+                      style={{ width: `${Math.min(100, energy.efficiencyPercent)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-mono text-[#89A397]">
+                    <span>90.0% Base</span>
+                    <span>95.0% High-Eff</span>
+                    <span>100.0% Theoretical</span>
+                  </div>
+                </div>
+
+                <div className="pt-1 text-[11px] text-[#D1DFD7] border-t border-white/10 flex items-center justify-between">
+                  <span className="text-[#A1B8AD]">Optimal Power Window:</span>
+                  <span className="font-mono text-[#E6C465] font-semibold">
+                    {energy.optimalPowerBand}
+                  </span>
+                </div>
               </div>
 
-              {/* Efficiency Visual Bar */}
-              <div className="space-y-1">
-                <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden p-0.5">
+              {/* South Africa Load-Shedding & Grid Telemetry */}
+              <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-white font-semibold">
+                  <ShieldCheck className="w-4 h-4 text-[#19B86B]" />
+                  <span>SA Grid & Load-Shedding Resilience</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#071A15] border border-white/5 space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#A1B8AD]">Outage Buffer Rating</span>
+                    <span className="font-mono text-white font-medium">
+                      {energy.loadSheddingEndurance}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#A1B8AD]">Eskom Peak Arbitrage Value</span>
+                    <span className="font-mono text-[#4FFFB0] font-semibold">
+                      +R {energy.peakTariffArbitrageZarPerKwh.toFixed(2)} / kWh
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#A1B8AD]">Annual Carbon Offset</span>
+                    <span className="font-mono text-[#E6C465] font-semibold">
+                      {energy.annualCarbonOffsetKg} kg CO₂ / yr
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thermal & Parasitic Loss Specifications */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#A1B8AD] uppercase tracking-wider">
+                    Standby Power Loss
+                  </span>
+                  <p className="text-base font-mono font-bold text-white">
+                    {energy.standbyPowerLossW} W
+                  </p>
+                  <span className="text-[10px] text-[#4FFFB0]">Quiescent Idle Drain</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#A1B8AD] uppercase tracking-wider">
+                    Heat Dissipation
+                  </span>
+                  <p className="text-base font-mono font-bold text-[#FB923C]">
+                    {energy.heatDissipationW} W
+                  </p>
+                  <span className="text-[10px] text-[#A1B8AD] truncate block">
+                    {energy.coolingMethod}
+                  </span>
+                </div>
+              </div>
+
+              {/* Durability & Lifecycle */}
+              <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#E6C465]" />
+                  <div>
+                    <span className="text-[10px] text-[#A1B8AD] block">Expected Service Life</span>
+                    <span className="text-xs font-semibold text-white">
+                      {energy.durabilityCycleLife}
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/10 text-white">
+                  Varda Verified
+                </span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "material" && (
+            <div className="space-y-4">
+              {/* Primary Substrate Spec Card */}
+              <div className="p-4 rounded-xl bg-[#0E2F27] border border-white/15 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-[#A1B8AD] uppercase tracking-wider">
+                    Material Composition
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#19B86B]/20 text-[#4FFFB0] border border-[#19B86B]/30">
+                    {part.massKg} kg Net Mass
+                  </span>
+                </div>
+                <h4 className="text-sm font-semibold text-white leading-snug">
+                  {material.composition}
+                </h4>
+                <p className="text-xs text-[#C4D6CD]">
+                  <strong className="text-white">Alloy / Grade:</strong> {material.grade}
+                </p>
+                <div className="p-2 rounded-lg bg-[#081F1A] border border-white/5 text-[11px] text-[#A1B8AD]">
+                  <span className="text-white font-medium">Surface Treatment: </span>
+                  {material.surfaceTreatment}
+                </div>
+              </div>
+
+              {/* Thermal, Mechanical & Environmental Properties Grid */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-semibold text-white uppercase tracking-wider block">
+                  Physical & Thermal Telemetry
+                </span>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-[#A1B8AD]">Thermal Conductivity (k)</span>
+                    <p className="text-sm font-mono font-bold text-white">
+                      {material.thermalConductivityWmK}{" "}
+                      <span className="text-[10px] font-normal text-[#C4C6AF]">W/m·K</span>
+                    </p>
+                    <div className="w-full h-1 rounded bg-black/40 overflow-hidden mt-1">
+                      <div
+                        className="h-full bg-[#E6C465]"
+                        style={{
+                          width: `${Math.min(100, (material.thermalConductivityWmK / 400) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-[#A1B8AD]">Tensile / Yield Strength</span>
+                    <p className="text-sm font-mono font-bold text-white">
+                      {material.tensileStrengthMpa}{" "}
+                      <span className="text-[10px] font-normal text-[#C4C6AF]">MPa</span>
+                    </p>
+                    <div className="w-full h-1 rounded bg-black/40 overflow-hidden mt-1">
+                      <div
+                        className="h-full bg-[#38BDF8]"
+                        style={{
+                          width: `${Math.min(100, (material.tensileStrengthMpa / 1200) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-[#A1B8AD]">Operating Temperature</span>
+                    <p className="text-xs font-mono font-semibold text-[#F4F3EC]">
+                      {material.temperatureRatingRange}
+                    </p>
+                    <span className="text-[10px] text-[#A1B8AD]">High-Stress Stability</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-[#A1B8AD]">Corrosion & Weather</span>
+                    <p className="text-xs font-mono font-semibold text-[#4FFFB0] truncate">
+                      {material.corrosionRating}
+                    </p>
+                    <span className="text-[10px] text-[#A1B8AD]">SA Coastal Rated</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Circular Economy & Embodied Carbon Footprint */}
+              <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-white flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-[#19B86B]" />
+                    Circular Economy & Recycling
+                  </span>
+                  <span className="font-mono text-xs font-bold text-[#19B86B]">
+                    {material.recyclabilityRate}% Closed-Loop
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#19B86B] via-[#4FFFB0] to-[#E6C465] transition-all duration-500"
-                    style={{width: `${Math.min(100, energy.efficiencyPercent)}%`}}
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#19B86B]"
+                    style={{ width: `${material.recyclabilityRate}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[10px] font-mono text-[#89A397]">
-                  <span>90.0% Base</span>
-                  <span>95.0% High-Eff</span>
-                  <span>100.0% Theoretical</span>
-                </div>
-              </div>
-
-              <div className="pt-1 text-[11px] text-[#D1DFD7] border-t border-white/10 flex items-center justify-between">
-                <span className="text-[#A1B8AD]">Optimal Power Window:</span>
-                <span className="font-mono text-[#E6C465] font-semibold">{energy.optimalPowerBand}</span>
-              </div>
-            </div>
-
-            {/* South Africa Load-Shedding & Grid Telemetry */}
-            <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-2.5">
-              <div className="flex items-center gap-1.5 text-white font-semibold">
-                <ShieldCheck className="w-4 h-4 text-[#19B86B]" />
-                <span>SA Grid & Load-Shedding Resilience</span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-[#071A15] border border-white/5 space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-[#A1B8AD]">Outage Buffer Rating</span>
-                  <span className="font-mono text-white font-medium">{energy.loadSheddingEndurance}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[#A1B8AD]">Eskom Peak Arbitrage Value</span>
-                  <span className="font-mono text-[#4FFFB0] font-semibold">
-                    +R {energy.peakTariffArbitrageZarPerKwh.toFixed(2)} / kWh
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[#A1B8AD]">Annual Carbon Offset</span>
-                  <span className="font-mono text-[#E6C465] font-semibold">
-                    {energy.annualCarbonOffsetKg} kg CO₂ / yr
+                <div className="flex justify-between items-center pt-1 text-[11px] text-[#A1B8AD]">
+                  <span>Embodied Carbon Footprint</span>
+                  <span className="font-mono text-[#F4F3EC] font-medium">
+                    {material.embodiedCarbonKgCo2ePerKg} kg CO₂e / kg
                   </span>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Thermal & Parasitic Loss Specifications */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
-                <span className="text-[10px] text-[#A1B8AD] uppercase tracking-wider">Standby Power Loss</span>
-                <p className="text-base font-mono font-bold text-white">
-                  {energy.standbyPowerLossW} W
-                </p>
-                <span className="text-[10px] text-[#4FFFB0]">Quiescent Idle Drain</span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
-                <span className="text-[10px] text-[#A1B8AD] uppercase tracking-wider">Heat Dissipation</span>
-                <p className="text-base font-mono font-bold text-[#FB923C]">
-                  {energy.heatDissipationW} W
-                </p>
-                <span className="text-[10px] text-[#A1B8AD] truncate block">{energy.coolingMethod}</span>
-              </div>
-            </div>
-
-            {/* Durability & Lifecycle */}
-            <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#E6C465]" />
-                <div>
-                  <span className="text-[10px] text-[#A1B8AD] block">Expected Service Life</span>
-                  <span className="text-xs font-semibold text-white">{energy.durabilityCycleLife}</span>
+          {activeTab === "simulation" && (
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-xl bg-[#0E2F27] border border-white/15 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-white">Dynamic Electrical Load Test</span>
+                  <span className="px-2 py-0.5 rounded font-mono tabular-nums text-xs bg-[#19B86B] text-[#072018] font-bold">
+                    {simulatedLoadPct}% Load
+                  </span>
                 </div>
-              </div>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/10 text-white">
-                Varda Verified
-              </span>
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'material' && (
-          <div className="space-y-4">
-            {/* Primary Substrate Spec Card */}
-            <div className="p-4 rounded-xl bg-[#0E2F27] border border-white/15 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-[#A1B8AD] uppercase tracking-wider">
-                  Material Composition
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#19B86B]/20 text-[#4FFFB0] border border-[#19B86B]/30">
-                  {part.massKg} kg Net Mass
-                </span>
-              </div>
-              <h4 className="text-sm font-semibold text-white leading-snug">
-                {material.composition}
-              </h4>
-              <p className="text-xs text-[#C4D6CD]">
-                <strong className="text-white">Alloy / Grade:</strong> {material.grade}
-              </p>
-              <div className="p-2 rounded-lg bg-[#081F1A] border border-white/5 text-[11px] text-[#A1B8AD]">
-                <span className="text-white font-medium">Surface Treatment: </span>
-                {material.surfaceTreatment}
-              </div>
-            </div>
-
-            {/* Thermal, Mechanical & Environmental Properties Grid */}
-            <div className="space-y-2">
-              <span className="text-[11px] font-semibold text-white uppercase tracking-wider block">
-                Physical & Thermal Telemetry
-              </span>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-0.5">
-                  <span className="text-[10px] text-[#A1B8AD]">Thermal Conductivity (k)</span>
-                  <p className="text-sm font-mono font-bold text-white">
-                    {material.thermalConductivityWmK} <span className="text-[10px] font-normal text-[#C4C6AF]">W/m·K</span>
-                  </p>
-                  <div className="w-full h-1 rounded bg-black/40 overflow-hidden mt-1">
-                    <div
-                      className="h-full bg-[#E6C465]"
-                      style={{width: `${Math.min(100, (material.thermalConductivityWmK / 400) * 100)}%`}}
-                    />
+                <div className="space-y-1.5">
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    step={5}
+                    value={simulatedLoadPct}
+                    onChange={(e) => {
+                      setSimulatedLoadPct(parseInt(e.target.value, 10));
+                    }}
+                    className="w-full accent-[#19B86B] cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] font-mono tabular-nums text-[#A1B8AD]">
+                    <span>10% Idle</span>
+                    <span>50% Nominal</span>
+                    <span>75% Optimal</span>
+                    <span>100% Surge</span>
                   </div>
                 </div>
+              </div>
 
-                <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-0.5">
-                  <span className="text-[10px] text-[#A1B8AD]">Tensile / Yield Strength</span>
-                  <p className="text-sm font-mono font-bold text-white">
-                    {material.tensileStrengthMpa} <span className="text-[10px] font-normal text-[#C4C6AF]">MPa</span>
+              {/* Dynamic Calculated Outputs */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#A1B8AD] block truncate">Efficiency</span>
+                  <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#4FFFB0]">
+                    {dynamicEfficiency}%
                   </p>
-                  <div className="w-full h-1 rounded bg-black/40 overflow-hidden mt-1">
-                    <div
-                      className="h-full bg-[#38BDF8]"
-                      style={{width: `${Math.min(100, (material.tensileStrengthMpa / 1200) * 100)}%`}}
-                    />
+                  <span className="text-[9px] text-[#A1B8AD] block">Harmonic Lock</span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#A1B8AD] block truncate">Thermal Flux</span>
+                  <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#FB923C]">
+                    {dynamicHeatDissipation} W
+                  </p>
+                  <span className="text-[9px] text-[#A1B8AD] block">Dissipation</span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
+                  <span className="text-[10px] text-[#A1B8AD] block truncate">Core Temp</span>
+                  <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#F5DF98]">
+                    {dynamicTempCelsius}°C
+                  </p>
+                  <span className="text-[9px] text-[#A1B8AD] block">FLIR Sensor</span>
+                </div>
+              </div>
+
+              {/* Spatial Audio & 50.0 Hz Acoustic Harmonics Visualizer */}
+              <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-semibold text-white block">
+                      50.0 Hz Acoustic Harmonics Visualizer
+                    </span>
+                    <span className="text-[10px] font-mono tabular-nums text-[#A1B8AD]">
+                      Fundamental: 50.0 Hz · Carrier: {(150 + simulatedLoadPct * 0.65).toFixed(1)}{" "}
+                      Hz · THD &lt; 0.8%
+                    </span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setAcousticActive((a) => !a);
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
+                      acousticActive
+                        ? "bg-[#19B86B] text-[#072018]"
+                        : "bg-[#143D34] text-[#C4C6AF] hover:text-white border border-white/10"
+                    }`}
+                  >
+                    {acousticActive ? (
+                      <>
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>Synth ON</span>
+                      </>
+                    ) : (
+                      <>
+                        <VolumeX className="w-3.5 h-3.5" />
+                        <span>Listen 50Hz</span>
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-0.5">
-                  <span className="text-[10px] text-[#A1B8AD]">Operating Temperature</span>
-                  <p className="text-xs font-mono font-semibold text-[#F4F3EC]">
-                    {material.temperatureRatingRange}
-                  </p>
-                  <span className="text-[10px] text-[#A1B8AD]">High-Stress Stability</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-[#0B2520] border border-white/10 space-y-0.5">
-                  <span className="text-[10px] text-[#A1B8AD]">Corrosion & Weather</span>
-                  <p className="text-xs font-mono font-semibold text-[#4FFFB0] truncate">
-                    {material.corrosionRating}
-                  </p>
-                  <span className="text-[10px] text-[#A1B8AD]">SA Coastal Rated</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Circular Economy & Embodied Carbon Footprint */}
-            <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-white flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-[#19B86B]" />
-                  Circular Economy & Recycling
-                </span>
-                <span className="font-mono text-xs font-bold text-[#19B86B]">
-                  {material.recyclabilityRate}% Closed-Loop
-                </span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#19B86B]"
-                  style={{width: `${material.recyclabilityRate}%`}}
-                />
-              </div>
-              <div className="flex justify-between items-center pt-1 text-[11px] text-[#A1B8AD]">
-                <span>Embodied Carbon Footprint</span>
-                <span className="font-mono text-[#F4F3EC] font-medium">
-                  {material.embodiedCarbonKgCo2ePerKg} kg CO₂e / kg
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'simulation' && (
-          <div className="space-y-4">
-            <div className="p-3.5 rounded-xl bg-[#0E2F27] border border-white/15 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-white">Dynamic Electrical Load Test</span>
-                <span className="px-2 py-0.5 rounded font-mono tabular-nums text-xs bg-[#19B86B] text-[#072018] font-bold">
-                  {simulatedLoadPct}% Load
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                <input
-                  type="range"
-                  min={10}
-                  max={100}
-                  step={5}
-                  value={simulatedLoadPct}
-                  onChange={(e) => {
-                    setSimulatedLoadPct(parseInt(e.target.value, 10));
-                  }}
-                  className="w-full accent-[#19B86B] cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] font-mono tabular-nums text-[#A1B8AD]">
-                  <span>10% Idle</span>
-                  <span>50% Nominal</span>
-                  <span>75% Optimal</span>
-                  <span>100% Surge</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Dynamic Calculated Outputs */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
-                <span className="text-[10px] text-[#A1B8AD] block truncate">Efficiency</span>
-                <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#4FFFB0]">
-                  {dynamicEfficiency}%
-                </p>
-                <span className="text-[9px] text-[#A1B8AD] block">Harmonic Lock</span>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
-                <span className="text-[10px] text-[#A1B8AD] block truncate">Thermal Flux</span>
-                <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#FB923C]">
-                  {dynamicHeatDissipation} W
-                </p>
-                <span className="text-[9px] text-[#A1B8AD] block">Dissipation</span>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-1">
-                <span className="text-[10px] text-[#A1B8AD] block truncate">Core Temp</span>
-                <p className="text-base sm:text-lg font-mono tabular-nums font-bold text-[#F5DF98]">
-                  {dynamicTempCelsius}°C
-                </p>
-                <span className="text-[9px] text-[#A1B8AD] block">FLIR Sensor</span>
-              </div>
-            </div>
-
-            {/* Spatial Audio & 50.0 Hz Acoustic Harmonics Visualizer */}
-            <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-xs font-semibold text-white block">
-                    50.0 Hz Acoustic Harmonics Visualizer
-                  </span>
-                  <span className="text-[10px] font-mono tabular-nums text-[#A1B8AD]">
-                    Fundamental: 50.0 Hz · Carrier: {(150 + simulatedLoadPct * 0.65).toFixed(1)} Hz · THD &lt; 0.8%
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setAcousticActive((a) => !a);
-                  }}
-                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ${
-                    acousticActive
-                      ? 'bg-[#19B86B] text-[#072018]'
-                      : 'bg-[#143D34] text-[#C4C6AF] hover:text-white border border-white/10'
-                  }`}
-                >
-                  {acousticActive ? (
-                    <>
-                      <Volume2 className="w-3.5 h-3.5" />
-                      <span>Synth ON</span>
-                    </>
-                  ) : (
-                    <>
-                      <VolumeX className="w-3.5 h-3.5" />
-                      <span>Listen 50Hz</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* 16-Band Harmonic Spectrum Bars */}
-              <div className="h-14 rounded-lg bg-[#061512] border border-white/5 px-2.5 py-2 flex items-end justify-between gap-1">
-                {[50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 750, 900, 1200, 1600, 2400].map(
-                  (freq, idx) => {
+                {/* 16-Band Harmonic Spectrum Bars */}
+                <div className="h-14 rounded-lg bg-[#061512] border border-white/5 px-2.5 py-2 flex items-end justify-between gap-1">
+                  {[
+                    50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 750, 900, 1200, 1600,
+                    2400,
+                  ].map((freq, idx) => {
                     // Harmonic envelope peaking at 50Hz fundamental and 3rd/5th odd harmonics
                     const baseHeight =
                       idx === 0
                         ? 95
                         : idx === 2
-                        ? 42 + loadFactor * 36
-                        : idx === 4
-                        ? 28 + loadFactor * 28
-                        : Math.max(12, Math.round((Math.sin(idx * 1.7 + loadFactor * 4) * 0.5 + 0.5) * 58 * loadFactor));
+                          ? 42 + loadFactor * 36
+                          : idx === 4
+                            ? 28 + loadFactor * 28
+                            : Math.max(
+                                12,
+                                Math.round(
+                                  (Math.sin(idx * 1.7 + loadFactor * 4) * 0.5 + 0.5) *
+                                    58 *
+                                    loadFactor,
+                                ),
+                              );
                     return (
-                      <div key={freq} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                      <div
+                        key={freq}
+                        className="flex-1 flex flex-col items-center gap-1 h-full justify-end"
+                      >
                         <div
                           className={`w-full rounded-t transition-all duration-200 ${
                             idx === 0
-                              ? 'bg-[#E6C465]'
+                              ? "bg-[#E6C465]"
                               : acousticActive
-                              ? 'bg-[#4FFFB0] animate-pulse'
-                              : 'bg-[#19B86B]/70'
+                                ? "bg-[#4FFFB0] animate-pulse"
+                                : "bg-[#19B86B]/70"
                           }`}
-                          style={{height: `${Math.min(100, baseHeight)}%`}}
+                          style={{ height: `${Math.min(100, baseHeight)}%` }}
                         />
                       </div>
                     );
-                  }
-                )}
+                  })}
+                </div>
+                <div className="flex justify-between text-[9px] font-mono tabular-nums text-[#89A397]">
+                  <span>50.0 Hz (SA Grid)</span>
+                  <span>150 Hz (3rd)</span>
+                  <span>450 Hz (SiC PWM)</span>
+                  <span>2.4 kHz</span>
+                </div>
               </div>
-              <div className="flex justify-between text-[9px] font-mono tabular-nums text-[#89A397]">
-                <span>50.0 Hz (SA Grid)</span>
-                <span>150 Hz (3rd)</span>
-                <span>450 Hz (SiC PWM)</span>
-                <span>2.4 kHz</span>
-              </div>
-            </div>
 
-            <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-2">
-              <span className="text-[11px] font-semibold text-white block">
-                Estimated Peak-Shaving Savings at {simulatedLoadPct}% Load
-              </span>
-              <div className="p-2.5 rounded-lg bg-[#071A15] border border-white/5 flex items-center justify-between">
-                <span className="text-[#A1B8AD]">Hourly Eskom TOU Offset:</span>
-                <span className="font-mono tabular-nums text-sm font-bold text-[#E6C465]">
-                  R {dynamicArbitrageHourlyZar} / hr
+              <div className="p-3.5 rounded-xl bg-[#0B2520] border border-white/10 space-y-2">
+                <span className="text-[11px] font-semibold text-white block">
+                  Estimated Peak-Shaving Savings at {simulatedLoadPct}% Load
                 </span>
+                <div className="p-2.5 rounded-lg bg-[#071A15] border border-white/5 flex items-center justify-between">
+                  <span className="text-[#A1B8AD]">Hourly Eskom TOU Offset:</span>
+                  <span className="font-mono tabular-nums text-sm font-bold text-[#E6C465]">
+                    R {dynamicArbitrageHourlyZar} / hr
+                  </span>
+                </div>
+                <p className="text-[10px] text-[#89A397]">
+                  Calculated based on City of Cape Town / Eskom Homeflex Time-of-Use tariff
+                  structure during peak morning and evening intervals.
+                </p>
               </div>
-              <p className="text-[10px] text-[#89A397]">
-                Calculated based on City of Cape Town / Eskom Homeflex Time-of-Use tariff structure during peak morning and evening intervals.
-              </p>
             </div>
+          )}
+        </div>
+
+        {/* Inspector Bottom Action Footer */}
+        <div className="p-3 sm:p-4 border-t border-white/10 bg-[#0E2D26]/90 shrink-0 space-y-2">
+          <div className="flex items-center gap-2">
+            {onPulsePart && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("medium");
+                  onPulsePart();
+                }}
+                className="flex-1 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1B5246] text-[#E6C465] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/10 cursor-pointer"
+              >
+                <Activity className="w-3.5 h-3.5 text-[#19B86B]" />
+                <span>Pulse Spring</span>
+              </button>
+            )}
+
+            {onSelectShader && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("selection");
+                  onSelectShader("thermal");
+                }}
+                className="flex-1 py-2 px-3 rounded-xl bg-[#3B1528] hover:bg-[#521D37] text-[#FDA4AF] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-[#F43F5E]/30 cursor-pointer"
+              >
+                <Thermometer className="w-3.5 h-3.5 text-[#FB7185]" />
+                <span>FLIR Thermal</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                onClose();
+              }}
+              className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-[#C4C6AF] hover:text-white text-xs font-medium transition-colors cursor-pointer"
+            >
+              Done
+            </button>
           </div>
-        )}
-      </div>
-
-      {/* Inspector Bottom Action Footer */}
-      <div className="p-3 sm:p-4 border-t border-white/10 bg-[#0E2D26]/90 shrink-0 space-y-2">
-        <div className="flex items-center gap-2">
-          {onPulsePart && (
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('medium');
-                onPulsePart();
-              }}
-              className="flex-1 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1B5246] text-[#E6C465] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/10 cursor-pointer"
-            >
-              <Activity className="w-3.5 h-3.5 text-[#19B86B]" />
-              <span>Pulse Spring</span>
-            </button>
-          )}
-
-          {onSelectShader && (
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('selection');
-                onSelectShader('thermal');
-              }}
-              className="flex-1 py-2 px-3 rounded-xl bg-[#3B1528] hover:bg-[#521D37] text-[#FDA4AF] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-[#F43F5E]/30 cursor-pointer"
-            >
-              <Thermometer className="w-3.5 h-3.5 text-[#FB7185]" />
-              <span>FLIR Thermal</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              onClose();
-            }}
-            className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-[#C4C6AF] hover:text-white text-xs font-medium transition-colors cursor-pointer"
-          >
-            Done
-          </button>
         </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
 }

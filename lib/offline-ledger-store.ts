@@ -1,7 +1,7 @@
-import {useSyncExternalStore} from 'react';
-import type {OfflineTransactionItem} from './sa-data';
+import { useSyncExternalStore } from "react";
+import type { OfflineTransactionItem } from "./sa-data";
 
-const STORAGE_KEY = 'varda_sa_offline_ledger_v1';
+const STORAGE_KEY = "varda_sa_offline_ledger_v1";
 
 let memoryCache: OfflineTransactionItem[] | null = null;
 let rawSavedString: string | null = null;
@@ -15,7 +15,7 @@ function emitChange() {
 
 export function subscribeLedger(callback: () => void): () => void {
   listeners.add(callback);
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return () => {
       listeners.delete(callback);
     };
@@ -29,17 +29,17 @@ export function subscribeLedger(callback: () => void): () => void {
     }
   };
 
-  window.addEventListener('storage', handleStorage);
+  window.addEventListener("storage", handleStorage);
   return () => {
     listeners.delete(callback);
-    window.removeEventListener('storage', handleStorage);
+    window.removeEventListener("storage", handleStorage);
   };
 }
 
 export function getLedgerSnapshot(
-  initialLedger: OfflineTransactionItem[]
+  initialLedger: OfflineTransactionItem[],
 ): OfflineTransactionItem[] {
-  if (typeof window === 'undefined') return initialLedger;
+  if (typeof window === "undefined") return initialLedger;
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved !== rawSavedString) {
@@ -76,7 +76,7 @@ const ledgerMountListeners = new Set<() => void>();
 
 function subscribeLedgerMount(callback: () => void): () => void {
   ledgerMountListeners.add(callback);
-  if (typeof window !== 'undefined' && !isLedgerMounted) {
+  if (typeof window !== "undefined" && !isLedgerMounted) {
     const timer = setTimeout(() => {
       isLedgerMounted = true;
       ledgerMountListeners.forEach((l) => l());
@@ -100,13 +100,13 @@ export function useOfflineLedger(initialLedger: OfflineTransactionItem[]) {
   const mounted = useSyncExternalStore(
     subscribeLedgerMount,
     () => isLedgerMounted,
-    () => false
+    () => false,
   );
 
   const ledger = useSyncExternalStore(
     subscribeLedger,
     () => (mounted ? getLedgerSnapshot(initialLedger) : initialLedger),
-    () => initialLedger
+    () => initialLedger,
   );
 
   return [ledger, saveLedger] as const;
