@@ -1,14 +1,26 @@
-import {createElement} from 'react';
-import {renderToStaticMarkup} from 'react-dom/server';
-import {FlowerTulip} from '@phosphor-icons/react/ssr';
 import sharp from 'sharp';
-import {writeFileSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 
-// Use the same official Phosphor mark as the navigation, with maskable safe margins.
-const mark = renderToStaticMarkup(createElement(FlowerTulip, {size: 280, weight: 'fill', color: '#f4d674'}));
-const content = mark.replace(/<svg[^>]*>/, '<svg x="116" y="116" width="280" height="280" viewBox="0 0 256 256">');
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#155448"/>${content}</svg>`;
-const maskable = svg.replace('rx="112"', 'rx="0"');
-writeFileSync('public/icon.svg', svg);
-for (const [file, size, source] of [['pwa-192x192.png', 192, svg], ['pwa-512x512.png', 512, svg], ['pwa-maskable-512x512.png', 512, maskable], ['apple-touch-icon.png', 180, svg]]) await sharp(Buffer.from(source)).resize(size, size).png().toFile(`public/${file}`);
-console.log('Varda Phosphor icons generated, including a maskable safe-area icon.');
+// The committed SVG is the single brand source for browser, iOS and PWA icons.
+const svg = readFileSync('public/icon.svg', 'utf8');
+if (!svg.includes('id="varda-emblem"') || !svg.includes('id="icon-surface"')) {
+  throw new Error('Varda icon SVG is missing its expected branded layers.');
+}
+// Maskable icons require the distinctive mark to fit inside the center safe zone.
+const maskableSvg = svg
+  .replaceAll('rx="112"', 'rx="0"')
+  .replace('rx="105"', 'rx="0"')
+  .replace('<g id="varda-emblem">', '<g id="varda-emblem" transform="translate(58 58) scale(0.773)">');
+const icons = [
+  ['pwa-192x192.png', 192, svg],
+  ['pwa-512x512.png', 512, svg],
+  ['pwa-maskable-512x512.png', 512, maskableSvg],
+  ['apple-touch-icon.png', 180, svg],
+];
+await Promise.all(icons.map(async ([file, size, input]) => {
+  await sharp(Buffer.from(input))
+    .resize(size, size)
+    .png({compressionLevel: 9})
+    .toFile(`public/${file}`);
+}));
+console.log('Generated Varda favicon, PWA and iOS home-screen icons from public/icon.svg.');

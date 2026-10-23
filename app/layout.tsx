@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'Good spaces, good people, and a little more life. Find community events, shared spaces, and a greener everyday with Varda.',
   applicationName: 'Varda', manifest: '/manifest.webmanifest',
   appleWebApp: {capable: true, statusBarStyle: 'default', title: 'Varda'},
-  icons: {icon: '/icon.svg', apple: '/apple-touch-icon.png'},
+  icons: {icon: '/icon.svg?v=2', apple: '/apple-touch-icon.png?v=2'},
   openGraph: {title: 'Varda — Your place. Your people.', description: 'Good spaces. Good people. A little more life.', type: 'website'},
   formatDetection: {telephone: false},
 };

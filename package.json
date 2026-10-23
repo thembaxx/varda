@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build --webpack && node scripts/build-sw-assets.mjs",
+    "dev": "node scripts/generate-pwa-icons.mjs && next dev --webpack",
+    "build": "node scripts/generate-pwa-icons.mjs && next build --webpack && node scripts/build-sw-assets.mjs",
+    "icons:generate": "node scripts/generate-pwa-icons.mjs",
     "start": "next start",
     "lint": "eslint .",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
