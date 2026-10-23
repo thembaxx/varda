@@ -1,6 +1,7 @@
 'use client';
 
 import React, {useState, useEffect} from 'react';
+import Image from 'next/image';
 import {motion} from 'motion/react';
 import ThreeStudioViewport from '@/components/ThreeStudioViewport';
 import VardaCommunityBoard from '@/components/VardaCommunityBoard';
@@ -152,9 +153,10 @@ export default function VardaHomePage() {
         {/* Zone 1: Single text element wordmark */}
         <a
           href="#"
-          className="font-serif text-2xl font-bold tracking-tight text-[#144239] whitespace-nowrap shrink-0 hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-2 font-sans text-xl sm:text-2xl font-bold tracking-[-0.04em] text-[#144239] whitespace-nowrap shrink-0 hover:opacity-90 transition-opacity"
         >
-          Varda
+          <Image src="/icon.svg" alt="" width={36} height={36} unoptimized className="size-9 shrink-0 rounded-xl" />
+          <span>Varda</span>
         </a>
 
         {/* Zone 2: Concise single-line text navigation links with font-mono indices */}

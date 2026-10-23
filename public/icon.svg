@@ -1,1 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#155448"/><svg x="116" y="116" width="280" height="280" viewBox="0 0 256 256"><path d="M208,48a87.48,87.48,0,0,0-35.36,7.43c-15.1-25.37-39.92-38-41.06-38.59a8,8,0,0,0-7.16,0c-1.14.58-26,13.22-41.06,38.59A87.48,87.48,0,0,0,48,48a8,8,0,0,0-8,8V96a88.11,88.11,0,0,0,80,87.63v35.43L83.58,200.84a8,8,0,1,0-7.16,14.32l48,24a8,8,0,0,0,7.16,0l48-24a8,8,0,0,0-7.16-14.32L136,219.06V183.63A88.11,88.11,0,0,0,216,96V56A8,8,0,0,0,208,48ZM56,96V64.44A72.1,72.1,0,0,1,120,136v31.56A72.1,72.1,0,0,1,56,96Zm144,0a72.1,72.1,0,0,1-64,71.56V136a72.1,72.1,0,0,1,64-71.56Z"></path></svg></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Varda">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06173D"/><stop offset="0.48" stop-color="#12102D"/><stop offset="1" stop-color="#321238"/></linearGradient>
+    <radialGradient id="blue" cx="0" cy="0" r="1" gradientTransform="translate(74 338) rotate(-22) scale(280 288)"><stop stop-color="#124DFF" stop-opacity=".8"/><stop offset="1" stop-color="#124DFF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="coral" cx="0" cy="0" r="1" gradientTransform="translate(444 378) rotate(145) scale(245 260)"><stop stop-color="#F77D7E" stop-opacity=".52"/><stop offset="1" stop-color="#F77D7E" stop-opacity="0"/></radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#73E5FF"/><stop offset=".26" stop-color="#326BFF"/><stop offset=".58" stop-color="#BB76FF"/><stop offset="1" stop-color="#FFBB78"/></linearGradient>
+    <linearGradient id="left" x1=".16" y1=".02" x2=".92" y2="1"><stop stop-color="#F6FEFF"/><stop offset=".31" stop-color="#90D5FF"/><stop offset=".57" stop-color="#196EFF"/><stop offset=".83" stop-color="#7139EE"/><stop offset="1" stop-color="#C27BFF"/></linearGradient>
+    <linearGradient id="right" x1=".83" y1="0" x2=".08" y2="1"><stop stop-color="#FFF7C7"/><stop offset=".31" stop-color="#FFC3A1"/><stop offset=".56" stop-color="#F38CBC"/><stop offset=".83" stop-color="#9278F5"/><stop offset="1" stop-color="#C6A0FF"/></linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFFFF" stop-opacity=".92"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+    <radialGradient id="halo"><stop stop-color="#98B8FF" stop-opacity=".28"/><stop offset="1" stop-color="#98B8FF" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect id="icon-surface" width="512" height="512" rx="112" fill="url(#base)"/>
+  <rect width="512" height="512" rx="112" fill="url(#blue)"/>
+  <rect width="512" height="512" rx="112" fill="url(#coral)"/>
+  <rect x="9" y="9" width="494" height="494" rx="105" fill="none" stroke="url(#rim)" stroke-opacity=".83" stroke-width="4"/>
+  <g id="varda-emblem">
+    <ellipse cx="257" cy="280" rx="176" ry="172" fill="url(#halo)"/>
+    <path d="M 392 159 C 350 151 319 185 282 253 C 259 295 238 329 234 338 C 253 375 268 390 282 388 C 299 387 316 358 335 325 C 371 263 401 200 407 179 C 413 161 405 158 392 159 Z" fill="url(#right)"/>
+    <path d="M 117 159 C 159 156 188 181 221 239 C 243 278 256 309 277 343 C 293 367 289 389 274 397 C 258 408 238 389 219 364 C 180 314 136 233 104 183 C 97 169 105 160 117 159 Z" fill="url(#left)"/>
+    <path d="M 117 162 C 162 159 199 191 229 255 C 198 221 162 189 111 175 C 107 173 106 168 117 162 Z" fill="url(#sheen)" opacity=".95"/>
+    <path d="M 397 161 C 351 156 313 207 284 260 C 314 220 355 184 401 177 C 408 175 406 163 397 161 Z" fill="#FFF8E5" opacity=".42"/>
+    <path d="M 245 351 C 259 374 266 391 277 391 C 290 393 300 373 311 350 C 296 369 287 383 278 383 C 269 383 259 369 245 351 Z" fill="#DCE0FF" opacity=".35"/>
+    <path d="M 254 107 L 261 126 L 280 133 L 261 140 L 254 160 L 247 140 L 227 133 L 247 126 Z" fill="#F9F9FF"/>
+    <circle cx="178" cy="110" r="4.5" fill="#99C5FF"/>
+    <circle cx="332" cy="117" r="2.5" fill="#C9B0FF"/>
+  </g>
+</svg>

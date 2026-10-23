@@ -7,10 +7,10 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: '#f7f7ef', theme_color: '#f7f7ef', lang: 'en-ZA',
     categories: ['lifestyle', 'social', 'utilities'],
     icons: [
-      {src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any'},
-      {src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any'},
-      {src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any'},
-      {src: '/pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable'},
+      {src: '/icon.svg?v=2', sizes: 'any', type: 'image/svg+xml', purpose: 'any'},
+      {src: '/pwa-192x192.png?v=2', sizes: '192x192', type: 'image/png', purpose: 'any'},
+      {src: '/pwa-512x512.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'any'},
+      {src: '/pwa-maskable-512x512.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'maskable'},
     ],
     shortcuts: [
       {name: 'Your community', url: '/#community', description: 'Find your next good plan.'},
