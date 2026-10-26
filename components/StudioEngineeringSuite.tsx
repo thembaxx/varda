@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, {useState, useMemo} from 'react';
-import {motion, AnimatePresence} from 'motion/react';
+import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Zap,
   Thermometer,
@@ -16,33 +16,29 @@ import {
   Sun,
   AlertTriangle,
   Layers,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   type VardaProductAssembly,
   type SceneAssetNode,
   type ShaderMode,
   formatZarPrice,
-} from '@/lib/sa-data';
-import {triggerHaptic} from '@/lib/haptics';
-import {shareContent} from '@/lib/native-share';
+} from "@/lib/sa-data";
+import { triggerHaptic } from "@/lib/haptics";
+import { shareContent } from "@/lib/native-share";
 
 interface StudioEngineeringSuiteProps {
-  workspaceMode: 'anatomy' | 'scene-editor';
+  workspaceMode: "anatomy" | "scene-editor";
   currentAssembly: VardaProductAssembly;
   sceneNodes: SceneAssetNode[];
   clipPercent: number;
   onClipPercentChange: (val: number) => void;
-  clipAxis: 'y' | 'x';
-  onClipAxisChange: (axis: 'y' | 'x') => void;
+  clipAxis: "y" | "x";
+  onClipAxisChange: (axis: "y" | "x") => void;
   eskomStage: number;
   onEskomStageChange: (stage: number) => void;
   activeShader: ShaderMode;
   onSelectShader: (shader: ShaderMode) => void;
-  onSelectOrderForPayment: (item: {
-    name: string;
-    description: string;
-    amountZar: number;
-  }) => void;
+  onSelectOrderForPayment: (item: { name: string; description: string; amountZar: number }) => void;
 }
 
 export default function StudioEngineeringSuite({
@@ -59,21 +55,19 @@ export default function StudioEngineeringSuite({
   onSelectShader,
   onSelectOrderForPayment,
 }: StudioEngineeringSuiteProps) {
-  const [activeTab, setActiveTab] = useState<'loadshedding' | 'cross-section' | 'bom-stokvel'>(
-    'loadshedding'
+  const [activeTab, setActiveTab] = useState<"loadshedding" | "cross-section" | "bom-stokvel">(
+    "loadshedding",
   );
   const [stokvelMembers, setStokvelMembers] = useState<number>(8);
   const [copiedNotice, setCopiedNotice] = useState<string | null>(null);
 
   // Compute aggregate electrical, mass & ZAR metrics from either Anatomy Assembly or Scene Editor
   const metrics = useMemo(() => {
-    if (workspaceMode === 'scene-editor') {
+    if (workspaceMode === "scene-editor") {
       const totalZar = sceneNodes.reduce((s, n) => s + n.priceZar, 0);
-      const genKw = sceneNodes
-        .filter((n) => n.powerKw > 0)
-        .reduce((s, n) => s + n.powerKw, 0);
+      const genKw = sceneNodes.filter((n) => n.powerKw > 0).reduce((s, n) => s + n.powerKw, 0);
       const loadKw = Math.abs(
-        sceneNodes.filter((n) => n.powerKw < 0).reduce((s, n) => s + n.powerKw, 0)
+        sceneNodes.filter((n) => n.powerKw < 0).reduce((s, n) => s + n.powerKw, 0),
       );
       const batteryKwh = Math.max(12.8, genKw * 1.65);
       const totalMassKg = sceneNodes.length * 48.5;
@@ -88,7 +82,7 @@ export default function StudioEngineeringSuite({
     }
 
     const totalMassKg = currentAssembly.parts.reduce((s, p) => s + p.massKg, 0);
-    const isKaroo = currentAssembly.id === 'karoo-inverter-vault';
+    const isKaroo = currentAssembly.id === "karoo-inverter-vault";
     return {
       title: currentAssembly.name,
       totalZar: currentAssembly.priceZar,
@@ -132,8 +126,7 @@ export default function StudioEngineeringSuite({
     }> = [];
     for (let h = 0; h < 24; h += 1) {
       // Solar bell curve between 06:00 and 18:00 SAST
-      const sunFactor =
-        h >= 6 && h <= 18 ? Math.sin(((h - 6) / 12) * Math.PI) : 0;
+      const sunFactor = h >= 6 && h <= 18 ? Math.sin(((h - 6) / 12) * Math.PI) : 0;
       const solarKw = Number((metrics.peakSolarKw * sunFactor * 0.86).toFixed(2));
 
       // Evening & morning residential load spikes
@@ -157,7 +150,7 @@ export default function StudioEngineeringSuite({
 
       hours.push({
         hour: h,
-        label: `${String(h).padStart(2, '0')}:00`,
+        label: `${String(h).padStart(2, "0")}:00`,
         solarKw,
         loadKw,
         blackout,
@@ -168,13 +161,9 @@ export default function StudioEngineeringSuite({
     const totalSolarHarvestKwh = hours.reduce((sum, hour) => sum + hour.solarKw, 0);
 
     // Eskom peak tariff arbitrage & solar harvest savings at R 3.42 / kWh
-    const dailySavingsZar = Math.round(
-      totalSolarHarvestKwh * 3.42 + outageHoursPerDay * 18.5
-    );
+    const dailySavingsZar = Math.round(totalSolarHarvestKwh * 3.42 + outageHoursPerDay * 18.5);
     const monthlySavingsZar = dailySavingsZar * 30;
-    const paybackMonths = Number(
-      (metrics.totalZar / Math.max(1200, monthlySavingsZar)).toFixed(1)
-    );
+    const paybackMonths = Number((metrics.totalZar / Math.max(1200, monthlySavingsZar)).toFixed(1));
 
     return {
       outageHoursPerDay,
@@ -188,9 +177,9 @@ export default function StudioEngineeringSuite({
 
   // Itemized BOM rows from either Anatomy parts or Scene Editor nodes
   const bomItems = useMemo(() => {
-    if (workspaceMode === 'scene-editor') {
+    if (workspaceMode === "scene-editor") {
       return sceneNodes.map((node, idx) => ({
-        index: String(idx + 1).padStart(2, '0'),
+        index: String(idx + 1).padStart(2, "0"),
         id: node.uid,
         name: node.label,
         spec: `${node.shaderType.toUpperCase()} Shader · Radius ${node.radius}m`,
@@ -208,19 +197,16 @@ export default function StudioEngineeringSuite({
       const allocatedZar =
         idx === partCount - 1
           ? Math.round(currentAssembly.priceZar * weightRatio)
-          : Math.round((currentAssembly.priceZar * (weightRatio * 0.7 + (1 / partCount) * 0.3)) / 50) *
-            50;
+          : Math.round(
+              (currentAssembly.priceZar * (weightRatio * 0.7 + (1 / partCount) * 0.3)) / 50,
+            ) * 50;
       return {
-        index: String(idx + 1).padStart(2, '0'),
+        index: String(idx + 1).padStart(2, "0"),
         id: part.id,
         name: part.name,
         spec: part.materialSpec,
         massKg: part.massKg,
-        powerKw: Number(
-          (
-            (part.energyEfficiencyData?.heatDissipationW || 120) / 100
-          ).toFixed(1)
-        ),
+        powerKw: Number(((part.energyEfficiencyData?.heatDissipationW || 120) / 100).toFixed(1)),
         priceZar: allocatedZar,
       };
     });
@@ -230,50 +216,49 @@ export default function StudioEngineeringSuite({
   const perMemberMonthlyZar = Math.round(metrics.totalZar / (stokvelMembers * 12));
 
   const handleExportBomFile = () => {
-    triggerHaptic('success');
+    triggerHaptic("success");
     const lines = [
-      '====================================================================',
+      "====================================================================",
       `VARDA SPATIAL STUDIO — ENGINEERING BILL OF MATERIALS (BOM)`,
       `Configuration: ${metrics.title}`,
+      // oxlint-disable-next-line react/purity -- Timestamp is created in a user event handler, outside render.
       `Timestamp: ${new Date().toISOString()}`,
       `Total Mass: ${metrics.totalMassKg} kg | Peak Solar: ${metrics.peakSolarKw} kW | Storage: ${metrics.batteryStorageKwh} kWh`,
       `Total Valuation: R ${formatZarPrice(metrics.totalZar)} ZAR`,
       `Stokvel Split (${stokvelMembers} Members): R ${formatZarPrice(perMemberUpfrontZar)} / member`,
-      '====================================================================',
-      '',
-      'IDX | COMPONENT / MODULE                | SPECIFICATION                        | MASS (KG) | ALLOCATION (ZAR)',
-      '----+-----------------------------------+--------------------------------------+-----------+-----------------',
+      "====================================================================",
+      "",
+      "IDX | COMPONENT / MODULE                | SPECIFICATION                        | MASS (KG) | ALLOCATION (ZAR)",
+      "----+-----------------------------------+--------------------------------------+-----------+-----------------",
       ...bomItems.map(
         (item) =>
-          `#${item.index} | ${item.name.padEnd(33, ' ').slice(0, 33)} | ${item.spec.padEnd(36, ' ').slice(0, 36)} | ${String(item.massKg).padStart(6, ' ')} kg | R ${formatZarPrice(item.priceZar)}`
+          `#${item.index} | ${item.name.padEnd(33, " ").slice(0, 33)} | ${item.spec.padEnd(36, " ").slice(0, 36)} | ${String(item.massKg).padStart(6, " ")} kg | R ${formatZarPrice(item.priceZar)}`,
       ),
-      '====================================================================',
+      "====================================================================",
     ];
-    const blob = new Blob([lines.join('\n')], {type: 'text/plain;charset=utf-8'});
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `varda-bom-${currentAssembly.id}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setCopiedNotice('BOM Spec (.TXT) Downloaded');
+    setCopiedNotice("BOM Spec (.TXT) Downloaded");
     setTimeout(() => setCopiedNotice(null), 2600);
   };
 
   const handleShareStokvelSplit = async () => {
-    triggerHaptic('medium');
+    triggerHaptic("medium");
     const res = await shareContent({
       title: `Varda Stokvel Split — ${metrics.title}`,
       text: `Join our ${stokvelMembers}-member Varda Micro-Grid Stokvel Pool for ${metrics.title}. Per-member share: R ${formatZarPrice(perMemberUpfrontZar)} upfront (or R ${formatZarPrice(perMemberMonthlyZar)}/mo). Dial *120*882*305# or settle via PayShap.`,
-      url: typeof window !== 'undefined' ? `${window.location.origin}/#sa-payments` : undefined,
+      url: typeof window !== "undefined" ? `${window.location.origin}/#sa-payments` : undefined,
     });
-    if (res === 'copied' || res === 'shared') {
+    if (res === "copied" || res === "shared") {
       setCopiedNotice(
-        res === 'copied'
-          ? 'Stokvel Split & USSD Pool Copied'
-          : 'Stokvel Split Shared'
+        res === "copied" ? "Stokvel Split & USSD Pool Copied" : "Stokvel Split Shared",
       );
       setTimeout(() => setCopiedNotice(null), 2600);
     }
@@ -287,21 +272,21 @@ export default function StudioEngineeringSuite({
           {(
             [
               {
-                id: 'loadshedding',
-                num: '01',
-                label: 'Load-Shedding & Solar ROI',
+                id: "loadshedding",
+                num: "01",
+                label: "Load-Shedding & Solar ROI",
                 icon: Zap,
               },
               {
-                id: 'cross-section',
-                num: '02',
-                label: '3D Slice Plane & Thermal IR',
+                id: "cross-section",
+                num: "02",
+                label: "3D Slice Plane & Thermal IR",
                 icon: Scissors,
               },
               {
-                id: 'bom-stokvel',
-                num: '03',
-                label: 'Export BOM & Stokvel Split',
+                id: "bom-stokvel",
+                num: "03",
+                label: "Export BOM & Stokvel Split",
                 icon: FileSpreadsheet,
               },
             ] as const
@@ -313,18 +298,16 @@ export default function StudioEngineeringSuite({
                 key={tab.id}
                 type="button"
                 onClick={() => {
-                  triggerHaptic('selection');
+                  triggerHaptic("selection");
                   setActiveTab(tab.id);
                 }}
                 className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-[#19B86B] text-[#072018] font-bold shadow-xs'
-                    : 'text-[#C4C6AF] hover:text-white'
+                    ? "bg-[#19B86B] text-[#072018] font-bold shadow-xs"
+                    : "text-[#C4C6AF] hover:text-white"
                 }`}
               >
-                <span className="font-mono tabular-nums text-[10px] opacity-75">
-                  {tab.num}
-                </span>
+                <span className="font-mono tabular-nums text-[10px] opacity-75">{tab.num}</span>
                 <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
               </button>
@@ -335,10 +318,12 @@ export default function StudioEngineeringSuite({
         {/* Unboxed Clean Telemetry Summary Strip */}
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#C4C6AF] font-mono tabular-nums">
           <span className="text-[#4FFFB0] font-semibold">
-            {eskomStage === 0 ? 'GRID ONLINE (STAGE 0)' : `ESKOM STAGE ${eskomStage} ACTIVE`}
+            {eskomStage === 0 ? "GRID ONLINE (STAGE 0)" : `ESKOM STAGE ${eskomStage} ACTIVE`}
           </span>
           <span aria-hidden="true">·</span>
-          <span>Slice: {clipPercent}% ({clipAxis.toUpperCase()})</span>
+          <span>
+            Slice: {clipPercent}% ({clipAxis.toUpperCase()})
+          </span>
           <span aria-hidden="true">·</span>
           <span className="text-[#E6C465] font-semibold">
             ROI: R {formatZarPrice(simulation.monthlySavingsZar)}/mo
@@ -354,13 +339,13 @@ export default function StudioEngineeringSuite({
 
       {/* Tab Content Panels */}
       <AnimatePresence mode="wait">
-        {activeTab === 'loadshedding' && (
+        {activeTab === "loadshedding" && (
           <motion.div
             key="loadshedding"
-            initial={{opacity: 0, y: 6}}
-            animate={{opacity: 1, y: 0}}
-            exit={{opacity: 0, y: -6}}
-            transition={{duration: 0.18}}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch"
           >
             {/* Left Column: Stage 0–8 Scrubber & Quantitative Autonomy Metrics */}
@@ -370,7 +355,7 @@ export default function StudioEngineeringSuite({
                   <span className="text-xs font-semibold text-white flex items-center gap-1.5">
                     <AlertTriangle
                       className={`w-3.5 h-3.5 ${
-                        eskomStage >= 4 ? 'text-[#EF4444]' : 'text-[#E6C465]'
+                        eskomStage >= 4 ? "text-[#EF4444]" : "text-[#E6C465]"
                       }`}
                     />
                     Eskom Load-Shedding Stage Scrubber
@@ -383,11 +368,11 @@ export default function StudioEngineeringSuite({
                 {/* Segmented Stage Selector */}
                 <div className="grid grid-cols-5 gap-1.5 bg-[#081C17] p-1 rounded-xl border border-white/10">
                   {[
-                    {stage: 0, label: 'Stage 0'},
-                    {stage: 2, label: 'Stage 2'},
-                    {stage: 4, label: 'Stage 4'},
-                    {stage: 6, label: 'Stage 6'},
-                    {stage: 8, label: 'Stage 8'},
+                    { stage: 0, label: "Stage 0" },
+                    { stage: 2, label: "Stage 2" },
+                    { stage: 4, label: "Stage 4" },
+                    { stage: 6, label: "Stage 6" },
+                    { stage: 8, label: "Stage 8" },
                   ].map((item) => {
                     const active = eskomStage === item.stage;
                     return (
@@ -395,17 +380,17 @@ export default function StudioEngineeringSuite({
                         key={item.stage}
                         type="button"
                         onClick={() => {
-                          triggerHaptic(item.stage >= 6 ? 'heavy' : 'selection');
+                          triggerHaptic(item.stage >= 6 ? "heavy" : "selection");
                           onEskomStageChange(item.stage);
                         }}
                         className={`py-2 px-2 rounded-lg font-mono tabular-nums text-[11px] font-semibold transition-all cursor-pointer ${
                           active
                             ? item.stage >= 6
-                              ? 'bg-[#EF4444] text-white font-bold shadow-xs'
+                              ? "bg-[#EF4444] text-white font-bold shadow-xs"
                               : item.stage >= 2
-                                ? 'bg-[#E6C465] text-[#081C17] font-bold shadow-xs'
-                                : 'bg-[#19B86B] text-[#081C17] font-bold shadow-xs'
-                            : 'text-[#C4C6AF] hover:text-white hover:bg-white/5'
+                                ? "bg-[#E6C465] text-[#081C17] font-bold shadow-xs"
+                                : "bg-[#19B86B] text-[#081C17] font-bold shadow-xs"
+                            : "text-[#C4C6AF] hover:text-white hover:bg-white/5"
                         }`}
                       >
                         {item.label}
@@ -444,9 +429,7 @@ export default function StudioEngineeringSuite({
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-[#081C17] border border-white/8">
-                  <span className="text-[11px] text-[#C4C6AF]">
-                    Est. Tariff Savings
-                  </span>
+                  <span className="text-[11px] text-[#C4C6AF]">Est. Tariff Savings</span>
                   <p className="font-mono tabular-nums text-sm sm:text-base font-bold text-[#E6C465] mt-0.5">
                     R {formatZarPrice(simulation.monthlySavingsZar)}/mo
                   </p>
@@ -456,9 +439,7 @@ export default function StudioEngineeringSuite({
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-[#081C17] border border-white/8">
-                  <span className="text-[11px] text-[#C4C6AF]">
-                    Capital Payback
-                  </span>
+                  <span className="text-[11px] text-[#C4C6AF]">Capital Payback</span>
                   <p className="font-mono tabular-nums text-sm sm:text-base font-bold text-white mt-0.5">
                     {simulation.paybackMonths} mos
                   </p>
@@ -477,7 +458,8 @@ export default function StudioEngineeringSuite({
                     24-Hour SAST Solar Harvest vs. Load-Shedding Autonomy Curve
                   </h4>
                   <p className="text-[11px] text-[#C4C6AF]">
-                    Crimson bars mark Eskom blackout windows; emerald height tracks LiFePO4 battery state-of-charge (SoC %).
+                    Crimson bars mark Eskom blackout windows; emerald height tracks LiFePO4 battery
+                    state-of-charge (SoC %).
                   </p>
                 </div>
                 <div className="flex items-center gap-3 text-[11px] font-mono tabular-nums text-[#C4C6AF]">
@@ -499,10 +481,10 @@ export default function StudioEngineeringSuite({
                   <div
                     key={h.hour}
                     className={`flex flex-col items-center justify-end h-full gap-1 group relative ${
-                      h.hour % 2 === 1 ? 'hidden sm:flex' : 'flex'
+                      h.hour % 2 === 1 ? "hidden sm:flex" : "flex"
                     }`}
                     title={`${h.label} SAST | SoC: ${h.soc}% | Solar: ${h.solarKw}kW | Load: ${h.loadKw}kW${
-                      h.blackout ? ' | ESKOM OUTAGE' : ''
+                      h.blackout ? " | ESKOM OUTAGE" : ""
                     }`}
                   >
                     <div className="w-full flex-1 flex flex-col justify-end rounded-xs overflow-hidden bg-white/5 relative">
@@ -517,18 +499,14 @@ export default function StudioEngineeringSuite({
                       )}
                       {/* Battery SoC bar */}
                       <div
-                        style={{height: `${h.soc}%`}}
+                        style={{ height: `${h.soc}%` }}
                         className={`w-full transition-all duration-300 rounded-t-xs ${
-                          h.blackout
-                            ? 'bg-[#EF4444]'
-                            : h.soc > 70
-                              ? 'bg-[#19B86B]'
-                              : 'bg-[#4FFFB0]'
+                          h.blackout ? "bg-[#EF4444]" : h.soc > 70 ? "bg-[#19B86B]" : "bg-[#4FFFB0]"
                         }`}
                       />
                     </div>
                     <span className="font-mono tabular-nums text-[9px] text-[#C4C6AF]">
-                      {String(h.hour).padStart(2, '0')}
+                      {String(h.hour).padStart(2, "0")}
                     </span>
                   </div>
                 ))}
@@ -546,13 +524,13 @@ export default function StudioEngineeringSuite({
           </motion.div>
         )}
 
-        {activeTab === 'cross-section' && (
+        {activeTab === "cross-section" && (
           <motion.div
             key="cross-section"
-            initial={{opacity: 0, y: 6}}
-            animate={{opacity: 1, y: 0}}
-            exit={{opacity: 0, y: -6}}
-            transition={{duration: 0.18}}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-4"
           >
             {/* Left Column: 3D Clip-Plane Cross-Section Controls */}
@@ -564,7 +542,8 @@ export default function StudioEngineeringSuite({
                     Real-Time WebGL Clip-Plane Cross-Section
                   </h4>
                   <p className="text-[11px] text-[#C4C6AF]">
-                    Slice through the 3D geometry to inspect internal toroidal windings, LiFePO4 cells, and hydro manifolds.
+                    Slice through the 3D geometry to inspect internal toroidal windings, LiFePO4
+                    cells, and hydro manifolds.
                   </p>
                 </div>
                 <span className="font-mono tabular-nums text-xs font-bold px-2.5 py-1 rounded-lg bg-[#081C17] text-[#4FFFB0] border border-white/10">
@@ -587,22 +566,22 @@ export default function StudioEngineeringSuite({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     {[
-                      {val: 0, label: '0% (Uncut)'},
-                      {val: 30, label: '30% Shield Cut'},
-                      {val: 50, label: '50% Core Bisect'},
-                      {val: 75, label: '75% Base Busbar'},
+                      { val: 0, label: "0% (Uncut)" },
+                      { val: 30, label: "30% Shield Cut" },
+                      { val: 50, label: "50% Core Bisect" },
+                      { val: 75, label: "75% Base Busbar" },
                     ].map((preset) => (
                       <button
                         key={preset.val}
                         type="button"
                         onClick={() => {
-                          triggerHaptic('light');
+                          triggerHaptic("light");
                           onClipPercentChange(preset.val);
                         }}
                         className={`px-2.5 py-1 rounded-lg font-mono tabular-nums text-[11px] transition-colors cursor-pointer ${
                           Math.abs(clipPercent - preset.val) <= 3
-                            ? 'bg-[#4FFFB0] text-[#081C17] font-bold'
-                            : 'bg-[#081C17] text-[#C4C6AF] hover:text-white border border-white/10'
+                            ? "bg-[#4FFFB0] text-[#081C17] font-bold"
+                            : "bg-[#081C17] text-[#C4C6AF] hover:text-white border border-white/10"
                         }`}
                       >
                         {preset.label}
@@ -614,22 +593,22 @@ export default function StudioEngineeringSuite({
                   <div className="flex items-center gap-1 bg-[#081C17] p-1 rounded-lg border border-white/10">
                     {(
                       [
-                        {id: 'y', label: 'Y-Horizontal'},
-                        {id: 'x', label: 'X-Vertical'},
+                        { id: "y", label: "Y-Horizontal" },
+                        { id: "x", label: "X-Vertical" },
                       ] as const
                     ).map((ax) => (
                       <button
                         key={ax.id}
                         type="button"
                         onClick={() => {
-                          triggerHaptic('selection');
+                          triggerHaptic("selection");
                           onClipAxisChange(ax.id);
                           if (clipPercent === 0) onClipPercentChange(45);
                         }}
                         className={`px-2.5 py-1 rounded text-[11px] font-mono tabular-nums cursor-pointer ${
                           clipAxis === ax.id
-                            ? 'bg-[#E6C465] text-[#081C17] font-bold'
-                            : 'text-[#C4C6AF] hover:text-white'
+                            ? "bg-[#E6C465] text-[#081C17] font-bold"
+                            : "text-[#C4C6AF] hover:text-white"
                         }`}
                       >
                         {ax.label}
@@ -649,27 +628,28 @@ export default function StudioEngineeringSuite({
                     FLIR Thermal Infrared (IR) Heatmap Shader
                   </h4>
                   <p className="text-[11px] text-[#C4C6AF]">
-                    Maps real-time surface temperature gradients and isotherm contour lines across active 3D sub-components.
+                    Maps real-time surface temperature gradients and isotherm contour lines across
+                    active 3D sub-components.
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => {
-                    triggerHaptic('medium');
-                    onSelectShader(activeShader === 'thermal' ? 'plasma' : 'thermal');
+                    triggerHaptic("medium");
+                    onSelectShader(activeShader === "thermal" ? "plasma" : "thermal");
                   }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
-                    activeShader === 'thermal'
-                      ? 'bg-[#EF4444] text-white shadow-sm'
-                      : 'bg-[#E6C465] text-[#081C17] hover:bg-[#f2d277]'
+                    activeShader === "thermal"
+                      ? "bg-[#EF4444] text-white shadow-sm"
+                      : "bg-[#E6C465] text-[#081C17] hover:bg-[#f2d277]"
                   }`}
                 >
                   <Thermometer className="w-3.5 h-3.5" />
                   <span>
-                    {activeShader === 'thermal'
-                      ? 'Thermal IR Active · Switch to Plasma'
-                      : 'Activate Thermal IR Shader'}
+                    {activeShader === "thermal"
+                      ? "Thermal IR Active · Switch to Plasma"
+                      : "Activate Thermal IR Shader"}
                   </span>
                 </button>
               </div>
@@ -688,13 +668,13 @@ export default function StudioEngineeringSuite({
           </motion.div>
         )}
 
-        {activeTab === 'bom-stokvel' && (
+        {activeTab === "bom-stokvel" && (
           <motion.div
             key="bom-stokvel"
-            initial={{opacity: 0, y: 6}}
-            animate={{opacity: 1, y: 0}}
-            exit={{opacity: 0, y: -6}}
-            transition={{duration: 0.18}}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-4"
           >
             {/* Left Column: Itemized Engineering Bill of Materials (BOM) */}
@@ -706,7 +686,14 @@ export default function StudioEngineeringSuite({
                     Engineering Bill of Materials ({bomItems.length} Line Items)
                   </h4>
                   <p className="text-[11px] text-[#C4C6AF]">
-                    Total Mass: <span className="font-mono tabular-nums text-white">{metrics.totalMassKg} kg</span> · Assembly Valuation: <span className="font-mono tabular-nums text-[#E6C465]">R {formatZarPrice(metrics.totalZar)}</span>
+                    Total Mass:{" "}
+                    <span className="font-mono tabular-nums text-white">
+                      {metrics.totalMassKg} kg
+                    </span>{" "}
+                    · Assembly Valuation:{" "}
+                    <span className="font-mono tabular-nums text-[#E6C465]">
+                      R {formatZarPrice(metrics.totalZar)}
+                    </span>
                   </p>
                 </div>
 
@@ -769,7 +756,7 @@ export default function StudioEngineeringSuite({
                   step={1}
                   value={stokvelMembers}
                   onChange={(e) => {
-                    triggerHaptic('selection');
+                    triggerHaptic("selection");
                     setStokvelMembers(parseInt(e.target.value, 10));
                   }}
                   aria-label="Number of Stokvel Members"
@@ -778,9 +765,7 @@ export default function StudioEngineeringSuite({
 
                 <div className="grid grid-cols-2 gap-2.5 pt-1">
                   <div className="p-2.5 rounded-xl bg-[#081C17] border border-white/8">
-                    <span className="text-[10px] text-[#C4C6AF]">
-                      Per-Member Upfront Share
-                    </span>
+                    <span className="text-[10px] text-[#C4C6AF]">Per-Member Upfront Share</span>
                     <p className="font-mono tabular-nums text-base font-bold text-[#E6C465] mt-0.5">
                       R {formatZarPrice(perMemberUpfrontZar)}
                     </p>
@@ -790,9 +775,7 @@ export default function StudioEngineeringSuite({
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-[#081C17] border border-white/8">
-                    <span className="text-[10px] text-[#C4C6AF]">
-                      12-Mo Stokvel Pool
-                    </span>
+                    <span className="text-[10px] text-[#C4C6AF]">12-Mo Stokvel Pool</span>
                     <p className="font-mono tabular-nums text-base font-bold text-[#4FFFB0] mt-0.5">
                       R {formatZarPrice(perMemberMonthlyZar)}/mo
                     </p>
@@ -807,7 +790,7 @@ export default function StudioEngineeringSuite({
                 <button
                   type="button"
                   onClick={() => {
-                    triggerHaptic('medium');
+                    triggerHaptic("medium");
                     onSelectOrderForPayment({
                       name: `${metrics.title} — Stokvel Share (1/${stokvelMembers})`,
                       description: `Co-ownership share for 1 of ${stokvelMembers} members (${metrics.peakSolarKw}kW Solar + ${metrics.batteryStorageKwh}kWh Storage)`,

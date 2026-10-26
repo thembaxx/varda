@@ -1,36 +1,36 @@
-'use client';
+"use client";
 
-import {useEffect, useState, useSyncExternalStore} from 'react';
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{outcome: 'accepted' | 'dismissed'; platform: string}>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
 const emptySubscribe = () => () => {};
 
 function subscribeStandalone(callback: () => void): () => void {
-  if (typeof window === 'undefined') return () => {};
-  const mql = window.matchMedia('(display-mode: standalone)');
-  mql.addEventListener('change', callback);
-  window.addEventListener('appinstalled', callback);
+  if (typeof window === "undefined") return () => {};
+  const mql = window.matchMedia("(display-mode: standalone)");
+  mql.addEventListener("change", callback);
+  window.addEventListener("appinstalled", callback);
 
   return () => {
-    mql.removeEventListener('change', callback);
-    window.removeEventListener('appinstalled', callback);
+    mql.removeEventListener("change", callback);
+    window.removeEventListener("appinstalled", callback);
   };
 }
 
 function getStandaloneSnapshot(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as unknown as {standalone?: boolean}).standalone === true
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
   );
 }
 
 function getIOSSnapshot(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
 }
 
@@ -39,7 +39,7 @@ const mountListeners = new Set<() => void>();
 
 function subscribeMount(callback: () => void): () => void {
   mountListeners.add(callback);
-  if (typeof window !== 'undefined' && !isClientMounted) {
+  if (typeof window !== "undefined" && !isClientMounted) {
     const timer = setTimeout(() => {
       isClientMounted = true;
       mountListeners.forEach((l) => l());
@@ -60,20 +60,20 @@ export function usePWAInstall() {
   const mounted = useSyncExternalStore(
     subscribeMount,
     () => isClientMounted,
-    () => false
+    () => false,
   );
 
   // Synchronize standalone & device detection with external store snapshots safely after mount
   const isInstalled = useSyncExternalStore(
     subscribeStandalone,
     () => (mounted ? getStandaloneSnapshot() : false),
-    () => false // Server snapshot
+    () => false, // Server snapshot
   );
 
   const isIOS = useSyncExternalStore(
     emptySubscribe,
     () => (mounted ? getIOSSnapshot() : false),
-    () => false // Server snapshot
+    () => false, // Server snapshot
   );
 
   useEffect(() => {
@@ -86,20 +86,20 @@ export function usePWAInstall() {
       setDeferredPrompt(null);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
   const install = async () => {
     if (!deferredPrompt) return false;
     await deferredPrompt.prompt();
-    const {outcome} = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
       setDeferredPrompt(null);
       return true;
     }
@@ -116,24 +116,24 @@ export function usePWAInstall() {
 }
 
 function subscribeOnline(callback: () => void): () => void {
-  if (typeof window === 'undefined') return () => {};
-  window.addEventListener('online', callback);
-  window.addEventListener('offline', callback);
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
 
   return () => {
-    window.removeEventListener('online', callback);
-    window.removeEventListener('offline', callback);
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
   };
 }
 
 function getOnlineSnapshot(): boolean {
-  return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  return typeof navigator !== "undefined" ? navigator.onLine : true;
 }
 
 export function useOnlineStatus(): boolean {
   return useSyncExternalStore(
     subscribeOnline,
     getOnlineSnapshot,
-    () => true // Server snapshot (always true during SSR)
+    () => true, // Server snapshot (always true during SSR)
   );
 }

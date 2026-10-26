@@ -1,9 +1,9 @@
-import {getMigrations} from 'better-auth/db/migration';
-import {getAuth} from '../lib/auth';
-import {getDatabase} from '../lib/database';
+import { getMigrations } from "better-auth/db/migration";
+import { getAuth } from "../lib/auth";
+import { getDatabase } from "../lib/database";
 
 async function main() {
-  const {runMigrations} = await getMigrations(getAuth().options);
+  const { runMigrations } = await getMigrations(getAuth().options);
   await runMigrations();
   getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS community_post (
@@ -18,6 +18,9 @@ async function main() {
       PRIMARY KEY (postId, userId)
     );
   `);
-  console.log('Varda account database is ready. Local secrets stay in .env.local.');
+  console.log("Varda account database is ready. Local secrets stay in .env.local.");
 }
-main().catch(error => { console.error(error instanceof Error ? error.message : 'Migration failed.'); process.exitCode = 1; });
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : "Migration failed.");
+  process.exitCode = 1;
+});
