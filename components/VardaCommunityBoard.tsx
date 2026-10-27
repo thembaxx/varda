@@ -5,7 +5,6 @@ import {motion, AnimatePresence} from 'motion/react';
 import {
   WEEKLY_SCHEDULE_SLOTS,
   COMMUNITY_INQUIRIES,
-  CONFERENCE_ROOMS,
   NEIGHBOURHOOD_SPOTS,
   type CommunityInquiryCard,
   type WeeklyScheduleSlot,
@@ -26,6 +25,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import {triggerHaptic} from '@/lib/haptics';
+import ReservationBooking from '@/components/ReservationBooking';
 
 interface VardaCommunityBoardProps {
   onTriggerCheckout: (item: {
@@ -73,7 +73,6 @@ export default function VardaCommunityBoard({
     'key' | 'apartment' | 'services' | 'manual'
   >('key');
   const [keyUnlocked, setKeyUnlocked] = useState<boolean>(false);
-  const [selectedRoomId, setSelectedRoomId] = useState<string>('fynbos');
   const [selectedSpotId, setSelectedSpotId] = useState<string>(NEIGHBOURHOOD_SPOTS[0].id);
 
   const filteredInquiries =
@@ -118,8 +117,6 @@ export default function VardaCommunityBoard({
     setActiveCardIndex(0);
   };
 
-  const selectedRoom =
-    CONFERENCE_ROOMS.find((r) => r.id === selectedRoomId) || CONFERENCE_ROOMS[0];
   const selectedSpot =
     NEIGHBOURHOOD_SPOTS.find((s) => s.id === selectedSpotId) || NEIGHBOURHOOD_SPOTS[0];
 
@@ -908,48 +905,9 @@ export default function VardaCommunityBoard({
                 )}
 
                 {activeResidentTile === 'services' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#144239]">
-                        Book a Conference Room (PayShap / Ozow)
-                      </span>
-                      <span className="font-mono text-[#144239]">
-                        R {selectedRoom.rateZar}/hr
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {CONFERENCE_ROOMS.map((rm) => (
-                        <button
-                          key={rm.id}
-                          type="button"
-                          disabled={!rm.available}
-                          onClick={() => setSelectedRoomId(rm.id)}
-                          className={`p-2 rounded-lg text-left border transition-colors ${
-                            selectedRoomId === rm.id
-                              ? 'bg-[#144239] text-white border-[#144239]'
-                              : rm.available
-                              ? 'bg-[#F4F3EC] text-[#144239] border-transparent'
-                              : 'bg-gray-100 text-gray-400 border-transparent cursor-not-allowed'
-                          }`}
-                        >
-                          <p className="font-bold text-[11px]">{rm.name}</p>
-                          <p className="text-[10px] opacity-80 truncate">{rm.features}</p>
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onTriggerCheckout({
-                          name: `Conference Room Booking: ${selectedRoom.name}`,
-                          description: `${selectedRoom.features} · 2 Hour Slot`,
-                          amountZar: selectedRoom.rateZar * 2,
-                        })
-                      }
-                      className="w-full py-2 rounded-lg bg-[#E67E22] hover:bg-[#D35400] text-white font-bold text-xs transition-colors"
-                    >
-                      Book {selectedRoom.name} (2 hrs) · R {selectedRoom.rateZar * 2}
-                    </button>
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-[#144239]">Reserve a shared room</h3>
+                    <ReservationBooking />
                   </div>
                 )}
 
