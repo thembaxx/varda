@@ -33,9 +33,9 @@ Offline payment intents are **unpaid plans**. They are never automatically submi
 
 ## Payments and bookings
 
-Checkout is a sandbox handoff for PayFast and Ozow, gated by real test credentials in `.env.local`. Missing credentials return a visible setup message. Live payment requests fail closed. Payment returns and the notification endpoint never claim settlement. A booking preview does not reserve a room.
+Checkout is a sandbox handoff for PayFast and Ozow, gated by real test credentials in `.env.local`. Missing credentials return a visible setup message. Live payment requests fail closed. Payment returns and the notification endpoint never claim settlement. The community board’s Book Pod flow now stores authenticated, unpaid reservations in SQLite. Availability is checked atomically before saving; a room cannot overlap another active reservation. Owners can cancel future reservations. Times use Africa/Johannesburg, half-hour starts between 08:00 and 20:00, one to four hours, up to 90 days ahead. Amounts come from the server room catalogue. Reservation confirmation does not mean payment. Other checkout previews do not reserve rooms.
 
-Before enabling real payments, implement a server-owned order catalogue, availability/booking transactions, durable order records, verified provider callbacks (including provider-side validation and amount/merchant matching), idempotent settlement, and fulfillment. Then deliberately enable live gateway configuration. No simulated successful payments are used by this interface.
+Before enabling real payments, complete a payment order catalogue and settlement integration with the existing unpaid reservations, verified provider callbacks (including provider-side validation and amount/merchant matching), idempotent settlement, and fulfillment. Then deliberately enable live gateway configuration. No simulated successful payments are used by this interface.
 
 ## Deploying accounts
 
@@ -62,3 +62,5 @@ See `design-qa.md` for visual checks and `verification.md` for verification evid
 ## Design sources
 
 The provided NOLi reference boards informed forest green, sage, warm yellow, coral, serif headings, and friendly shared-space layouts. Varda self-hosts Fraunces, Outfit, and JetBrains Mono for numbers, and uses Phosphor icons. Font licences are included in `app/fonts/`. The community-room image was generated for this project. Supplementary food and garden photography is from Unsplash ([food](https://images.unsplash.com/photo-1547592180-85f173990554), [garden](https://images.unsplash.com/photo-1416879595882-3373a0480b5b)). The theme implementation follows [web.dev's theming guidance](https://web.dev/learn/design/theming). Authentication follows the [Better Auth Next.js integration](https://better-auth.com/docs/integrations/next).
+
+Reservation storage checks: `node --import tsx --test tests/reservations.test.ts`. Migrate before serving (`npm run db:migrate`); back up the persistent SQLite volume. Availability and reservations require an account and are never cached offline.
