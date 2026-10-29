@@ -3,7 +3,7 @@ import {getPostgresPool} from './postgres';
 import {CONFERENCE_ROOMS} from './sa-data';
 import {
   ReservationError, RESERVATION_HOURS, reservationDate, parseReservation,
-  publicReservation, type Reservation, type ReservationRow,
+  publicReservation, dateStart, UUID, type Reservation, type ReservationRow,
 } from './reservations';
 
 function row(value: Record<string, unknown>): ReservationRow {
@@ -29,14 +29,12 @@ function row(value: Record<string, unknown>): ReservationRow {
 export class PostgresReservationStore {
   async availability(userId: string, date = reservationDate(), now = Date.now()) {
     // Shared validator enforces the original 90-day limit and Johannesburg dates.
-    const input = parseReservation({roomId: 'fynbos', date, time: '08:00', hours: 1, requestId: randomUUID()}, now - 1);
-    const day = Date.parse(`${date}T00:00:00+02:00`);
+    const day = dateStart(date, now);
     const db = getPostgresPool();
     const [busy, owned] = await Promise.all([
       db.query('SELECT "roomId", "startsAt", "endsAt" FROM space_reservation WHERE status = $1 AND "startsAt" < $2 AND "endsAt" > $3 ORDER BY "startsAt"', ['reserved', day + 86400000, day]),
       db.query('SELECT * FROM space_reservation WHERE "userId" = $1 ORDER BY "startsAt" DESC LIMIT 100', [userId]),
     ]);
-    void input;
     return {
       date,
       rooms: CONFERENCE_ROOMS.map(room => ({...room, busy: busy.rows.filter(x => x.roomId === room.id).map(x => ({
@@ -53,7 +51,8 @@ export class PostgresReservationStore {
     try {
       await client.query('BEGIN');
       // Lock per room: independently requested slots in the same room cannot race.
-      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [input.roomId]);
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`user:${userId}`]);
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`room:${input.roomId}`]);
       const prior = await client.query('SELECT * FROM space_reservation WHERE "userId" = $1 AND "requestId" = $2', [userId, input.requestId]);
       if (prior.rowCount) {
         const existing = row(prior.rows[0]);
@@ -87,7 +86,7 @@ export class PostgresReservationStore {
     if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => key !== 'id'))
       throw new ReservationError('Choose a valid reservation.');
     const id = (value as {id?: unknown}).id;
-    if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(id))
+    if (typeof id !== 'string' || !UUID.test(id))
       throw new ReservationError('Choose a valid reservation.');
     const db = getPostgresPool();
     const result = await db.query(
