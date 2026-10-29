@@ -1,5 +1,7 @@
 import {getAuth} from '@/lib/auth';
 import {getDatabase} from '@/lib/database';
+import {isPostgres} from '@/lib/postgres';
+import {PostgresReservationStore} from '@/lib/reservations-postgres';
 import {ReservationError, ReservationStore, reservationDate} from '@/lib/reservations';
 
 export const runtime = 'nodejs';
@@ -58,7 +60,7 @@ export async function GET(request: Request) {
   try {
     const userId = await identity(request);
     const date = new URL(request.url).searchParams.get('date') ?? reservationDate();
-    return Response.json(new ReservationStore(getDatabase()).availability(userId, date), {headers});
+    return Response.json(await (isPostgres() ? new PostgresReservationStore().availability(userId, date) : new ReservationStore(getDatabase()).availability(userId, date)), {headers});
   } catch (error) { return failure(error); }
 }
 
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
   try {
     const userId = await identity(request);
     const body = await mutationBody(request);
-    const reservation = new ReservationStore(getDatabase()).reserve(userId, body);
+    const reservation = await (isPostgres() ? new PostgresReservationStore().reserve(userId, body) : new ReservationStore(getDatabase()).reserve(userId, body));
     return Response.json({reservation}, {status: 201, headers});
   } catch (error) { return failure(error); }
 }
@@ -75,7 +77,7 @@ export async function DELETE(request: Request) {
   try {
     const userId = await identity(request);
     const body = await mutationBody(request);
-    const reservation = new ReservationStore(getDatabase()).cancel(userId, body);
+    const reservation = await (isPostgres() ? new PostgresReservationStore().cancel(userId, body) : new ReservationStore(getDatabase()).cancel(userId, body));
     return Response.json({reservation}, {headers});
   } catch (error) { return failure(error); }
 }

@@ -23,13 +23,13 @@ export const RESERVATION_SCHEMA = `
 
 export const RESERVATION_HOURS = {start: '08:00', end: '20:00', timeZone: 'Africa/Johannesburg'};
 const DAY = 86_400_000;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class ReservationError extends Error {
   constructor(message: string, public status = 400) { super(message); }
 }
 
-type ReservationRow = {
+export type ReservationRow = {
   id: string; userId: string; requestId: string; roomId: string; startsAt: number;
   endsAt: number; amountCents: number; status: 'reserved' | 'cancelled';
   createdAt: number; cancelledAt: number | null;
@@ -41,7 +41,7 @@ export type Reservation = {
   paymentStatus: 'unpaid'; createdAt: string; cancelledAt: string | null;
 };
 
-function publicReservation(row: ReservationRow): Reservation {
+export function publicReservation(row: ReservationRow): Reservation {
   return {
     id: row.id, roomId: row.roomId,
     roomName: CONFERENCE_ROOMS.find(room => room.id === row.roomId)?.name ?? row.roomId,
@@ -56,7 +56,7 @@ export function reservationDate(now = Date.now()): string {
   return new Date(now + 2 * 3_600_000).toISOString().slice(0, 10);
 }
 
-function dateStart(value: unknown, now: number): number {
+export function dateStart(value: unknown, now: number): number {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value))
     throw new ReservationError('Choose a valid date.');
   const at = Date.parse(`${value}T00:00:00+02:00`);
@@ -74,7 +74,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function parseReservation(value: unknown, now: number) {
+export function parseReservation(value: unknown, now: number) {
   const input = record(value);
   if (Object.keys(input).some(key => !['roomId', 'date', 'time', 'hours', 'requestId'].includes(key)))
     throw new ReservationError('Send only the room, date, time, hours and request ID.');

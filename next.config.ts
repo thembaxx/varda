@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone',
-  serverExternalPackages: ['better-sqlite3'],
+  serverExternalPackages: ['better-sqlite3', 'pg'],
   experimental: {optimizePackageImports: ['@phosphor-icons/react', 'lucide-react']},
   async headers() {
     return [

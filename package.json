@@ -13,7 +13,9 @@
     "setup:local": "node scripts/setup-local.mjs",
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-auth.ts",
     "test:e2e": "playwright test",
-    "test:auth": "node --import tsx --test tests/email-code.test.ts"
+    "test:auth": "node --import tsx --test tests/email-code.test.ts",
+    "test:db": "node --import tsx --test tests/reservations.test.ts",
+    "test:postgres": "node --import tsx --test tests/postgres-integration.test.ts"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.10.0",
@@ -27,6 +29,7 @@
     "motion": "^14.6.0",
     "next": "^16.4.3",
     "postcss": "^8.5.31",
+    "pg": "8.23.1",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
