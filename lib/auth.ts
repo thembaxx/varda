@@ -1,5 +1,7 @@
 import {betterAuth} from 'better-auth';
 import {nextCookies} from 'better-auth/next-js';
+import {emailOTP} from 'better-auth/plugins';
+import {isEmailCodeConfigured, sendSignInCode} from './auth-email';
 import {getDatabase} from './database';
 
 function createAuth() {
@@ -12,7 +14,18 @@ function createAuth() {
     emailAndPassword: {enabled: true, minPasswordLength: 10},
     session: {cookieCache: {enabled: true, maxAge: 300}},
     rateLimit: {enabled: true, storage: 'database'},
-    plugins: [nextCookies()],
+    plugins: [
+      ...(isEmailCodeConfigured() ? [emailOTP({
+        otpLength: 6,
+        expiresIn: 300,
+        allowedAttempts: 3,
+        storeOTP: 'hashed',
+        async sendVerificationOTP({email, otp, type}) {
+          await sendSignInCode(email, otp, type);
+        },
+      })] : []),
+      nextCookies(),
+    ],
   });
 }
 
