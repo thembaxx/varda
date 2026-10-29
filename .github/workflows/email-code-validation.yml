@@ -1,0 +1,40 @@
+name: Email code validation
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/email-code-validation.yml'
+      - 'lib/auth.ts'
+      - 'lib/auth-client.ts'
+      - 'lib/auth-email.ts'
+      - 'components/AccountPanel.tsx'
+      - 'components/EmailCodeSignIn.tsx'
+      - 'tests/email-code.test.ts'
+      - 'package.json'
+  workflow_dispatch:
+
+jobs:
+  auth-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - name: Install without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Check TypeScript
+        run: bun run typecheck
+      - name: Exercise email sender tests
+        run: bun run test:auth
+      - name: Compile production app
+        run: bun run build
+        env:
+          BETTER_AUTH_SECRET: 'ci-only-never-used-in-a-deployment-long-test-secret-123456'
+          BETTER_AUTH_URL: 'http://localhost:3000'
+          AUTH_DATABASE_PATH: '/tmp/varda-otp-test.sqlite'
+          VARDA_EMAIL_OTP_ENABLED: 'false'
+          NEXT_PUBLIC_VARDA_EMAIL_OTP_ENABLED: 'false'
