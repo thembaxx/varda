@@ -11,8 +11,7 @@ export default function EmailCodeSignIn({offline, onSuccess}: {offline: boolean;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  async function send(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function requestCode() {
     if (busy || offline) return;
     setBusy(true);
     setError('');
@@ -30,11 +29,11 @@ export default function EmailCodeSignIn({offline, onSuccess}: {offline: boolean;
 
   async function verify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || offline || !/^\\d{6}$/.test(code)) return;
+    if (busy || offline || !/^[0-9]{6}$/.test(code)) return;
     setBusy(true);
     setError('');
     try {
-      const result = await authClient.signIn.emailOtp({email: email.trim(), otp: code});
+      const result = await authClient.signIn.emailOtp({email: email.trim(), otp: code, name: 'Neighbour'});
       if (result.error) throw new Error(result.error.message || 'Code not accepted.');
       setCode('');
       onSuccess();
@@ -47,7 +46,7 @@ export default function EmailCodeSignIn({offline, onSuccess}: {offline: boolean;
 
   return <div>
     <p className="dialog-intro">{sent ? `We sent a six-digit code to ${email}.` : 'We’ll email you a one-time code. No password needed.'}</p>
-    <form className="account-form" onSubmit={sent ? verify : send}>
+    <form className="account-form" onSubmit={sent ? verify : event => { event.preventDefault(); void requestCode(); }}>
       {!sent ? <label>Email address<input name="code-email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com" value={email} onChange={event => setEmail(event.target.value)} /></label>
         : <label>Six-digit email code<input name="email-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required value={code} onChange={event => setCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))} placeholder="000000" /></label>}
       {offline && <p className="form-note">Reconnect to sign in with an email code.</p>}
@@ -56,7 +55,7 @@ export default function EmailCodeSignIn({offline, onSuccess}: {offline: boolean;
     </form>
     {sent && <div className="flex flex-wrap gap-3">
       <button type="button" className="text-button" disabled={busy || offline} onClick={() => { setSent(false); setCode(''); setError(''); }}>Use another email</button>
-      <button type="button" className="text-button" disabled={busy || offline} onClick={() => { void send({preventDefault() {}} as React.FormEvent<HTMLFormElement>); }}>Resend code</button>
+      <button type="button" className="text-button" disabled={busy || offline} onClick={() => { void requestCode(); }}>Resend code</button>
     </div>}
     <p className="account-security">Codes expire after five minutes and can be used only once. Never share your code.</p>
   </div>;
