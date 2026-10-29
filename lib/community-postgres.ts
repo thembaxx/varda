@@ -2,7 +2,7 @@ import {randomUUID} from 'node:crypto';
 import {getPostgresPool} from './postgres';
 
 export async function listCommunityPosts(userId: string) {
-  const result = await getPostgresPool().query(
+  const result = await getPostgresPool().query<{id: string; title: string; message: string; category: string; createdAt: string; name: string; likes: string; liked: boolean}>(
     `SELECT p.id,p.title,p.message,p.category,p."createdAt",u.name,
       (SELECT COUNT(*) FROM community_like l WHERE l."postId"=p.id) AS likes,
       EXISTS(SELECT 1 FROM community_like l WHERE l."postId"=p.id AND l."userId"=$1) AS liked
