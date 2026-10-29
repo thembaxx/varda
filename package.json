@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "setup:local": "node scripts/setup-local.mjs",
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-auth.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:auth": "node --import tsx --test tests/email-code.test.ts"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.10.0",
