@@ -13,7 +13,14 @@ function createAuth() {
     trustedOrigins: process.env.NODE_ENV === 'production' ? [] : ['http://localhost:3000', 'http://127.0.0.1:3000'],
     emailAndPassword: {enabled: true, minPasswordLength: 10},
     session: {cookieCache: {enabled: true, maxAge: 300}},
-    rateLimit: {enabled: true, storage: 'database'},
+    rateLimit: {
+      enabled: true,
+      storage: 'database',
+      customRules: {
+        '/email-otp/send-verification-otp': {window: 60, max: 3},
+        '/sign-in/email-otp': {window: 60, max: 6},
+      },
+    },
     plugins: [
       ...(isEmailCodeConfigured() ? [emailOTP({
         otpLength: 6,
