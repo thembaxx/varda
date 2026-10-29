@@ -12,7 +12,7 @@ export function isEmailCodeConfigured() {
 export async function sendSignInCode(email: string, otp: string, type: string) {
   if (type !== 'sign-in') throw new Error('Unsupported email-code operation.');
   if (!isEmailCodeConfigured()) throw new Error('Email-code sign-in is not configured.');
-  if (!/^\\d{6}$/.test(otp)) throw new Error('Invalid email-code format.');
+  if (!/^[0-9]{6}$/.test(otp)) throw new Error('Invalid email-code format.');
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
