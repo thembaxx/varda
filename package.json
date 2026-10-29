@@ -14,7 +14,8 @@
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-auth.ts",
     "test:e2e": "playwright test",
     "test:auth": "node --import tsx --test tests/email-code.test.ts",
-    "test:db": "node --import tsx --test tests/reservations.test.ts"
+    "test:db": "node --import tsx --test tests/reservations.test.ts",
+    "test:postgres": "node --import tsx --test tests/postgres-integration.test.ts"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.10.0",
