@@ -109,7 +109,7 @@
         "react/set-state-in-render": "error",
         "react/unsupported-syntax": "warn"
       },
-      "plugins": ["react", "import", "jsx-a11y"],
+      "plugins": ["nextjs", "typescript", "react", "import", "jsx-a11y"],
       "env": {
         "node": true,
         "browser": true
