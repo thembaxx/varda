@@ -14,18 +14,24 @@ export default function ThreeGarden() {
   useEffect(() => {
     const container = mount.current;
     if (!container) return;
+    const qualityMedia = window.matchMedia("(max-width: 760px), (pointer: coarse)");
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
         alpha: true,
-        antialias: true,
+        antialias: !qualityMedia.matches,
         powerPreference: "low-power",
       });
     } catch {
       const pending = window.setTimeout(() => setAvailable(false), 0);
       return () => window.clearTimeout(pending);
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    const updateQuality = () => {
+      renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, qualityMedia.matches ? 1 : 1.5),
+      );
+    };
+    updateQuality();
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
@@ -121,6 +127,11 @@ export default function ThreeGarden() {
       }
     });
     observe.observe(container);
+    const onQualityChange = () => {
+      updateQuality();
+      start();
+    };
+    qualityMedia.addEventListener("change", onQualityChange);
     const resize = new ResizeObserver(() => {
       const { width, height } = container.getBoundingClientRect();
       if (!width || !height) return;
@@ -146,6 +157,7 @@ export default function ThreeGarden() {
       cancelAnimationFrame(frame);
       observe.disconnect();
       resize.disconnect();
+      qualityMedia.removeEventListener("change", onQualityChange);
       document.removeEventListener("visibilitychange", start);
       container.removeEventListener("pointermove", move);
       container.removeEventListener("pointerleave", leave);
