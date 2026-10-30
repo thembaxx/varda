@@ -4,15 +4,15 @@ Your place. Your people. A mobile-first Next.js community app with an interactiv
 
 ## Run locally
 
-Requires Node.js 22.12+ and npm. SQLite uses a native module; a C++ toolchain is needed if your platform has no prebuilt binary.
+Requires Node.js 22.12+ and Bun 1.4.4. SQLite uses a native module; a C++ toolchain is needed if your platform has no prebuilt binary.
 
 ```sh
-npm ci
-npm run setup:local
-npm run dev
+bun install --frozen-lockfile
+bun run setup:local
+bun run dev
 ```
 
-Open `http://localhost:3000`. `setup:local` creates a private `.env.local` with a random account secret and migrates `.data/varda.sqlite`. It preserves existing environment values. Neither file is committed. Re-run `npm run db:migrate` when the account schema changes.
+Open `http://localhost:3000`. `setup:local` creates a private `.env.local` with a random account secret and migrates `.data/varda.sqlite`. It preserves existing environment values. Neither file is committed. Re-run `bun run db:migrate` when the account schema changes.
 
 ## What works
 
@@ -27,39 +27,42 @@ Open `http://localhost:3000`. `setup:local` creates a private `.env.local` with 
 
 Visit online once, then allow the service worker to finish installing. Saved events, personal plans, goals, preferences, and unpaid payment intents remain on the device. Offline mode in Settings disables account, social-write, and checkout requests; it does not change the device's network connection. A real network outage uses the same saved interface.
 
-`npm run build` writes a list of versioned static assets and a build-specific service-worker cache. This includes dynamically loaded studio and dialog chunks so they can open offline even if they were not previously visited. Installation runs in the background with bounded concurrency. A new worker waits for existing tabs to close before activating. The worker caches only same-origin public assets and the public root HTML. It excludes APIs, auth, payments, RSC payloads, third-party responses, and mutations. Local cached community posts are public content, never account or session data.
+`bun run build` writes a list of versioned static assets and a build-specific service-worker cache. This includes dynamically loaded studio and dialog chunks so they can open offline even if they were not previously visited. Installation runs in the background with bounded concurrency. A new worker waits for existing tabs to close before activating. The worker caches only same-origin public assets and the public root HTML. It excludes APIs, auth, payments, RSC payloads, third-party responses, and mutations. Local cached community posts are public content, never account or session data.
 
 Offline payment intents are **unpaid plans**. They are never automatically submitted, marked settled, or charged after reconnection.
 
 ## Payments and bookings
 
-Checkout is a sandbox handoff for PayFast and Ozow, gated by real test credentials in `.env.local`. Missing credentials return a visible setup message. Live payment requests fail closed. Payment returns and the notification endpoint never claim settlement. The community board’s Book Pod flow now stores authenticated, unpaid reservations in SQLite. Availability is checked atomically before saving; a room cannot overlap another active reservation. Owners can cancel future reservations. Times use Africa/Johannesburg, half-hour starts between 08:00 and 20:00, one to four hours, up to 90 days ahead. Amounts come from the server room catalogue. Reservation confirmation does not mean payment. Other checkout previews do not reserve rooms.
+Checkout is a sandbox handoff for PayFast and Ozow, gated by real test credentials in `.env.local`. Missing credentials return a visible setup message. Live payment requests fail closed. Payment returns and the notification endpoint never claim settlement. The community board’s Book Pod flow stores authenticated, unpaid reservations in PostgreSQL in production and SQLite during local development. Availability is checked atomically before saving; a room cannot overlap another active reservation. Owners can cancel future reservations. Times use Africa/Johannesburg, half-hour starts between 08:00 and 20:00, one to four hours, up to 90 days ahead. Amounts come from the server room catalogue. Reservation confirmation does not mean payment. Other checkout previews do not reserve rooms.
 
 Before enabling real payments, complete a payment order catalogue and settlement integration with the existing unpaid reservations, verified provider callbacks (including provider-side validation and amount/merchant matching), idempotent settlement, and fulfillment. Then deliberately enable live gateway configuration. No simulated successful payments are used by this interface.
 
 ## Deploying accounts
 
-Set a new, random `BETTER_AUTH_SECRET` (at least 32 characters), set `BETTER_AUTH_URL` and `APP_URL` to the public HTTPS origin, and migrate the database before serving requests. Set `AUTH_DATABASE_PATH` to a **persistent, writable volume**, not the source tree or an ephemeral filesystem. Run one SQLite-backed instance, or use a shared durable database before scaling horizontally. Back up the database and protect its directory permissions.
+Production accounts require shared PostgreSQL: set `VARDA_DATABASE_DRIVER=postgres`, a dedicated managed `DATABASE_URL`, a new random `BETTER_AUTH_SECRET` (at least 32 characters), and matching public HTTPS `BETTER_AUTH_URL` / `APP_URL` values. Migrate the database explicitly before serving requests. Back it up and protect its credentials. `AUTH_DATABASE_PATH` is a local-development SQLite setting; it cannot enable production account writes, even on a persistent volume.
 
-Varda now includes an **explicit, opt-in PostgreSQL adapter** for Better Auth, the authenticated community board, and room reservations. It uses the existing managed `DATABASE_URL` when `VARDA_DATABASE_DRIVER=postgres`; local development continues to use SQLite by default. It never automatically migrates or imports local SQLite records. In production, the SQLite account adapter fails closed rather than writing to an ephemeral serverless filesystem.
+Varda includes an **explicit PostgreSQL adapter** for Better Auth, the authenticated community board, and room reservations. It uses the existing managed `DATABASE_URL` when `VARDA_DATABASE_DRIVER=postgres`; local development continues to use SQLite by default. It never automatically migrates or imports local SQLite records. In production, the SQLite account adapter fails closed rather than writing to an ephemeral serverless filesystem.
 
-**Production rollout order:** (1) create a durable database backup and inspect any old SQLite user/community/reservation records, (2) confirm a dedicated managed PostgreSQL database and the Vercel-provisioned `DATABASE_URL`, (3) from a trusted migration runner with scoped DB credentials, set `VARDA_DATABASE_DRIVER=postgres` and execute `npm run db:migrate`, (4) verify user/session/verification, community and reservation tables and concurrency tests, (5) set Vercel `VARDA_DATABASE_DRIVER=postgres` and a new secret `BETTER_AUTH_SECRET` (32+ characters); set `BETTER_AUTH_URL` and `APP_URL` to the public HTTPS origin, then deploy. Avoid mixing a former SQLite signing secret into an unrelated Postgres environment without a migration plan. Production database changes are **not** executed as part of ordinary builds or HTTP requests.
+**Production rollout order:** (1) create a durable database backup and inspect any old SQLite user/community/reservation records, (2) confirm a dedicated managed PostgreSQL database and the Vercel-provisioned `DATABASE_URL`, (3) from a trusted migration runner with scoped DB credentials, set `VARDA_DATABASE_DRIVER=postgres` and execute `bun run db:migrate`, (4) verify user/session/verification, community and reservation tables and concurrency tests, (5) set Vercel `VARDA_DATABASE_DRIVER=postgres` and a new secret `BETTER_AUTH_SECRET` (32+ characters); set `BETTER_AUTH_URL` and `APP_URL` to the public HTTPS origin, then deploy. Avoid mixing a former SQLite signing secret into an unrelated Postgres environment without a migration plan. Production database changes are **not** executed as part of ordinary builds or HTTP requests.
 
-Postgres reservations use transaction-scoped advisory locks for each room and for the requesting user, preserving overlapping-slot and ten-upcoming-booking limits. Unpaid reservations remain unpaid. Run `npm run test:db` for existing SQLite tests and `RUN_POSTGRES_TESTS=true npm run test:postgres` only against an isolated PostgreSQL database after migration. CI starts a temporary Postgres service. No claim of production data migration is made. Email/password sign-in continues to work independently of email delivery. Optional passwordless **email-code sign-in** uses Better Auth's email OTP plugin (six digits, 5-minute lifetime, three attempts, one-time use, hashed verification storage) and Resend's HTTPS API. To enable it, first verify a sending domain and configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (for example `Varda <login@your-verified-domain.example>`) on the server, set `VARDA_EMAIL_OTP_ENABLED=true`, and set `NEXT_PUBLIC_VARDA_EMAIL_OTP_ENABLED=true` for the matching client build. All four values must be present and the sender verified. Leave both flags false when delivery is unavailable. OTP request and verification endpoints have database-backed per-client limits, although production abuse protection should also include per-recipient and edge-level controls. Important: Better Auth may revoke an existing unverified account's password and sessions after a successful email OTP sign-in; review existing user verification status before enabling. No codes are written to logs or stored in browser storage; a failed provider request does not produce a false success. Run `npm run db:migrate` after enabling the plugin, and verify an actual end-to-end email delivery and OTP login before releasing. `npm run test:auth` covers delivery configuration and provider-failure behavior. Password recovery and verified-email policies are **not** silently enabled by this opt-in feature.
+Postgres reservations use transaction-scoped advisory locks for each room and for the requesting user, preserving overlapping-slot and ten-upcoming-booking limits. Unpaid reservations remain unpaid. Run `bun run test:db` for existing SQLite tests and `RUN_POSTGRES_TESTS=true bun run test:postgres` only against an isolated PostgreSQL database after migration. CI starts a temporary Postgres service. No claim of production data migration is made. Email/password sign-in continues to work independently of email delivery. Optional passwordless **email-code sign-in** uses Better Auth's email OTP plugin (six digits, 5-minute lifetime, three attempts, one-time use, hashed verification storage) and Resend's HTTPS API. To enable it, first verify a sending domain and configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (for example `Varda <login@your-verified-domain.example>`) on the server, set `VARDA_EMAIL_OTP_ENABLED=true`, and set `NEXT_PUBLIC_VARDA_EMAIL_OTP_ENABLED=true` for the matching client build. All four values must be present and the sender verified. Leave both flags false when delivery is unavailable. OTP request and verification endpoints have database-backed per-client limits, although production abuse protection should also include per-recipient and edge-level controls. Important: Better Auth may revoke an existing unverified account's password and sessions after a successful email OTP sign-in; review existing user verification status before enabling. No codes are written to logs or stored in browser storage; a failed provider request does not produce a false success. Run `bun run db:migrate` after enabling the plugin, and verify an actual end-to-end email delivery and OTP login before releasing. `bun run test:auth` covers delivery configuration and provider-failure behavior. Password recovery and verified-email policies are **not** silently enabled by this opt-in feature.
 
 The standalone build includes `public/` and `/_next/static/`. Deploy with HTTPS for service workers, install prompts, and native sharing. Platform/browser support for vibration, native share, installation, and status-bar styling varies; the app provides visual feedback and guided installation fallbacks.
 
 ## Checks
 
 ```sh
-npm run typecheck
-npm run lint
-npm run build
-npm run start
-npm run test:e2e
+bun run typecheck
+bun run lint
+bun run format:check
+bun run test:unit
+bun run build
+bun run test:e2e
 ```
 
-The Playwright suite uses the system Chromium when `CHROMIUM_PATH` is set, otherwise `/usr/bin/chromium` if present, or Playwright's installed browser. Install it with `npx playwright install chromium` if needed. Tests use an isolated account and clean it up. Tests cover themes, saved plans, offline reload, mobile layout, auth and community posting, native install events, and accessibility.
+The Playwright suite uses the system Chromium when `CHROMIUM_PATH` is set, otherwise `/usr/bin/chromium` if present, or Playwright's installed browser. Install it with `bunx playwright install chromium` if needed. After a production build, set `VARDA_TEST_DATABASE_URL` to a dedicated loopback PostgreSQL database whose name ends in `_test`. Playwright migrates that test database and starts its own loopback HTTPS server on port 3215 (override with `VARDA_TEST_PORT`); it never reuses the development server or SQLite account database. Never point this variable at a database containing real records. OpenSSL generates a one-day localhost certificate in a temporary directory; port 3216 (test port + 1) hosts the internal production server. Desktop and mobile Chromium projects cover profile registration/edit/sign-in, authenticated community writes, unpaid reservation idempotency/cancellation, theme persistence, offline reload and API-cache exclusion, responsive layout and accessibility. Test accounts and their dependent records are deleted after each journey. Certificates and other temporary files are removed after the suite. CI runs these gates too. Physical-device installation and haptics still need device checks.
+
+Oxlint replaces the TypeScript-dependent ESLint parser so lint works with TypeScript 7. Native Next.js rules and the standalone compatibility plugin preserve the framework checks; React hooks/compiler, TypeScript and accessibility rules remain enabled. Oxfmt supplies the formatting baseline.
 
 See `design-qa.md` for visual checks and `verification.md` for verification evidence.
 
@@ -67,4 +70,4 @@ See `design-qa.md` for visual checks and `verification.md` for verification evid
 
 The provided NOLi reference boards informed forest green, sage, warm yellow, coral, serif headings, and friendly shared-space layouts. Varda self-hosts Fraunces, Outfit, and JetBrains Mono for numbers, and uses Phosphor icons. Font licences are included in `app/fonts/`. The community-room image was generated for this project. Supplementary food and garden photography is from Unsplash ([food](https://images.unsplash.com/photo-1547592180-85f173990554), [garden](https://images.unsplash.com/photo-1416879595882-3373a0480b5b)). The theme implementation follows [web.dev's theming guidance](https://web.dev/learn/design/theming). Authentication follows the [Better Auth Next.js integration](https://better-auth.com/docs/integrations/next).
 
-Reservation storage checks: `node --import tsx --test tests/reservations.test.ts`. Migrate before serving (`npm run db:migrate`); back up the persistent SQLite volume. Availability and reservations require an account and are never cached offline.
+Reservation storage checks: `node --import tsx --test tests/reservations.test.ts`. Migrate before serving (`bun run db:migrate`); back up the selected development or production database. Availability and reservations require an account and are never cached offline.

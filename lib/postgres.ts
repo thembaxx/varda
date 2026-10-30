@@ -1,27 +1,30 @@
-import {Pool} from 'pg';
-import {getDatabase} from './database';
+import { Pool } from "pg";
+import { getDatabase } from "./database";
 
 /**
  * Database selection is explicit. A configured DATABASE_URL alone must never
  * silently switch an existing local database or migrate its contents.
  */
 export function isPostgres() {
-  return process.env.VARDA_DATABASE_DRIVER === 'postgres';
+  return process.env.VARDA_DATABASE_DRIVER === "postgres";
 }
 
-const state = globalThis as unknown as {vardaPgPool?: Pool};
+const state = globalThis as unknown as { vardaPgPool?: Pool };
 
 export function getPostgresPool(): Pool {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString || !/^postgres(ql)?:\/\//.test(connectionString)) {
-    throw new Error('A PostgreSQL DATABASE_URL is required for the durable Varda database.');
+    throw new Error("A PostgreSQL DATABASE_URL is required for the durable Varda database.");
   }
   if (!state.vardaPgPool) {
     state.vardaPgPool = new Pool({
-      connectionString, max: 3, idleTimeoutMillis: 15000,
-      connectionTimeoutMillis: 5000, allowExitOnIdle: true,
+      connectionString,
+      max: 3,
+      idleTimeoutMillis: 15000,
+      connectionTimeoutMillis: 5000,
+      allowExitOnIdle: true,
     });
-    state.vardaPgPool.on('error', () => {
+    state.vardaPgPool.on("error", () => {
       // A temporarily disconnected idle client is removed by pg.
       // Do not log connection string or driver error details here.
     });
@@ -31,8 +34,10 @@ export function getPostgresPool(): Pool {
 
 export function getAccountDatabase() {
   if (isPostgres()) return getPostgresPool();
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Production accounts require VARDA_DATABASE_DRIVER=postgres and a durable database.');
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Production accounts require VARDA_DATABASE_DRIVER=postgres and a durable database.",
+    );
   }
   return getDatabase();
 }

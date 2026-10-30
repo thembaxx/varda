@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, {useState} from 'react';
-import {motion, AnimatePresence} from 'motion/react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   CheckCircle2,
   Clock,
@@ -17,37 +17,37 @@ import {
   Copy,
   Check,
   WifiOff,
-} from 'lucide-react';
-import {type OfflineTransactionItem, formatZarPrice} from '@/lib/sa-data';
-import {useOfflineLedger} from '@/lib/offline-ledger-store';
-import {triggerHaptic} from '@/lib/haptics';
+} from "lucide-react";
+import { type OfflineTransactionItem, formatZarPrice } from "@/lib/sa-data";
+import { useOfflineLedger } from "@/lib/offline-ledger-store";
+import { triggerHaptic } from "@/lib/haptics";
 
 const DEFAULT_RECENT_ORDERS: OfflineTransactionItem[] = [
   {
-    id: 'tx-901',
-    timestamp: 'Today · 06:42 SAST',
-    title: 'Varda Rooftop Solar Stokvel Pool (Unit 305)',
-    method: 'PayShap',
+    id: "tx-901",
+    timestamp: "Today · 06:42 SAST",
+    title: "Varda Rooftop Solar Stokvel Pool (Unit 305)",
+    method: "PayShap",
     amountZar: 1450,
-    reference: 'VRD-ZA-884120',
+    reference: "VRD-ZA-884120",
     synced: true,
   },
   {
-    id: 'tx-902',
-    timestamp: 'Yesterday · 18:15 SAST',
-    title: 'Conference Room Fynbos (2 Hours)',
-    method: 'Ozow EFT',
+    id: "tx-902",
+    timestamp: "Yesterday · 18:15 SAST",
+    title: "Conference Room Fynbos (2 Hours)",
+    method: "Ozow EFT",
     amountZar: 240,
-    reference: 'VRD-ZA-772914',
+    reference: "VRD-ZA-772914",
     synced: true,
   },
   {
-    id: 'tx-903',
-    timestamp: 'Stage 4 Outage · Queued',
-    title: 'Drakensberg Hydro-Solar Stokvel Contribution',
-    method: 'USSD Voucher',
+    id: "tx-903",
+    timestamp: "Stage 4 Outage · Queued",
+    title: "Drakensberg Hydro-Solar Stokvel Contribution",
+    method: "USSD Voucher",
     amountZar: 2650,
-    reference: 'VRD-USSD-551908',
+    reference: "VRD-USSD-551908",
     synced: false,
   },
 ];
@@ -63,35 +63,31 @@ function computeDeterministicHex(seed: string, length: number): string {
     h1 = Math.imul(h1 ^ ch, 2654435761);
     h2 = Math.imul(h2 ^ ch, 1597334677);
   }
-  let hex = '';
+  let hex = "";
   let s1 = h1 >>> 0;
   let s2 = h2 >>> 0;
   while (hex.length < length) {
     s1 = Math.imul(s1 ^ (s1 >>> 15), 2246822507) >>> 0;
     s2 = Math.imul(s2 ^ (s2 >>> 13), 3266489909) >>> 0;
-    hex += s1.toString(16).padStart(8, '0') + s2.toString(16).padStart(8, '0');
+    hex += s1.toString(16).padStart(8, "0") + s2.toString(16).padStart(8, "0");
   }
   return hex.slice(0, length);
 }
 
 interface RecentOrdersListProps {
-  onSelectOrder?: (order: {
-    name: string;
-    description: string;
-    amountZar: number;
-  }) => void;
+  onSelectOrder?: (order: { name: string; description: string; amountZar: number }) => void;
 }
 
-export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps) {
+export default function RecentOrdersList({ onSelectOrder }: RecentOrdersListProps) {
   const [orders, persistOrders] = useOfflineLedger(DEFAULT_RECENT_ORDERS);
-  const [filter, setFilter] = useState<'all' | 'synced' | 'queued'>('all');
+  const [filter, setFilter] = useState<"all" | "synced" | "queued">("all");
   const [expandedReceiptId, setExpandedReceiptId] = useState<string | null>(null);
   const [isReconciling, setIsReconciling] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const filteredOrders = orders.filter((item) => {
-    if (filter === 'synced') return item.synced;
-    if (filter === 'queued') return !item.synced;
+    if (filter === "synced") return item.synced;
+    if (filter === "queued") return !item.synced;
     return true;
   });
 
@@ -100,13 +96,13 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
   const queuedCount = orders.filter((item) => !item.synced).length;
 
   const handleLogQuickAttempt = () => {
-    triggerHaptic('light');
+    triggerHaptic("light");
     const refNum = Math.floor(100000 + Math.random() * 900000);
     const newAttempt: OfflineTransactionItem = {
       id: `tx-${Date.now()}`,
-      timestamp: 'Attempted · Just now',
-      title: 'Karoo-X8 Solar-Thermal Inverter Inspection Deposit',
-      method: 'Capitec Pay',
+      timestamp: "Attempted · Just now",
+      title: "Karoo-X8 Solar-Thermal Inverter Inspection Deposit",
+      method: "Capitec Pay",
       amountZar: 2500,
       reference: `VRD-ZA-${refNum}`,
       synced: true,
@@ -115,13 +111,13 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
   };
 
   const handleQueueOfflineUssd = () => {
-    triggerHaptic('warning');
+    triggerHaptic("warning");
     const refNum = Math.floor(100000 + Math.random() * 900000);
     const newQueued: OfflineTransactionItem = {
       id: `tx-ussd-${Date.now()}`,
-      timestamp: 'Offline Queue · *120*882#',
-      title: 'Karoo-X8 LiFePO4 Blade Expansion Share',
-      method: 'USSD Voucher',
+      timestamp: "Offline Queue · *120*882#",
+      title: "Karoo-X8 LiFePO4 Blade Expansion Share",
+      method: "USSD Voucher",
       amountZar: 3400,
       reference: `VRD-USSD-${refNum}`,
       synced: false,
@@ -131,7 +127,7 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
 
   const handleReconcileOfflineQueue = () => {
     if (queuedCount === 0 || isReconciling) return;
-    triggerHaptic('medium');
+    triggerHaptic("medium");
     setIsReconciling(true);
     setTimeout(() => {
       const reconciled = orders.map((item) =>
@@ -140,33 +136,33 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
           : {
               ...item,
               synced: true,
-              timestamp: 'Reconciled · Just now SAST',
-            }
+              timestamp: "Reconciled · Just now SAST",
+            },
       );
       persistOrders(reconciled);
       setIsReconciling(false);
-      triggerHaptic('success');
+      triggerHaptic("success");
     }, 550);
   };
 
   const handleResetOrders = () => {
-    triggerHaptic('warning');
+    triggerHaptic("warning");
     persistOrders(DEFAULT_RECENT_ORDERS);
     setExpandedReceiptId(null);
   };
 
   const handleCopyReceipt = (order: OfflineTransactionItem, md5: string, sha512: string) => {
-    triggerHaptic('selection');
+    triggerHaptic("selection");
     const text = [
       `VARDA CRYPTOGRAPHIC SETTLEMENT RECEIPT`,
       `Order: ${order.title}`,
       `Amount: R ${formatZarPrice(order.amountZar)} ZAR`,
       `Method: ${order.method} | Reference: ${order.reference}`,
-      `Status: ${order.synced ? 'SETTLED & VERIFIED' : 'OFFLINE QUEUED'}`,
+      `Status: ${order.synced ? "SETTLED & VERIFIED" : "OFFLINE QUEUED"}`,
       `PayFast MD5 Signature: ${md5}`,
       `Ozow SHA-512 Digest: ${sha512}`,
-    ].join('\n');
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    ].join("\n");
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
     setCopiedId(order.id);
@@ -203,7 +199,7 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
           <div className="px-3 py-1.5 rounded-xl bg-[#F4F3EC] border border-[#144239]/12 flex items-center gap-2">
             <span className="text-xs text-[#144239]/70">Attempts:</span>
             <span className="font-mono tabular-nums text-xs font-bold text-[#144239]">
-              {String(orders.length).padStart(2, '0')}
+              {String(orders.length).padStart(2, "0")}
             </span>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-[#F4F3EC] border border-[#144239]/12 flex items-center gap-2">
@@ -217,33 +213,33 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
 
       {/* Filter Bar & Offline Queue Auto-Reconciliation Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 bg-[#F4F3EC] p-1 rounded-xl border border-[#144239]/10">
+        <div className="flex flex-wrap items-center gap-1.5 bg-[#F4F3EC] p-1 rounded-xl border border-[#144239]/10">
           {(
             [
-              {id: 'all', label: 'All Attempts', count: orders.length},
-              {id: 'synced', label: 'Verified', count: verifiedCount},
-              {id: 'queued', label: 'Offline Queue', count: queuedCount},
+              { id: "all", label: "All Attempts", count: orders.length },
+              { id: "synced", label: "Verified", count: verifiedCount },
+              { id: "queued", label: "Offline Queue", count: queuedCount },
             ] as const
           ).map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => {
-                triggerHaptic('selection');
+                triggerHaptic("selection");
                 setFilter(tab.id);
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                 filter === tab.id
-                  ? 'bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs'
-                  : 'text-[#144239]/75 hover:text-[#144239]'
+                  ? "bg-[#144239] text-[#F4F3EC] font-semibold shadow-xs"
+                  : "text-[#144239]/75 hover:text-[#144239]"
               }`}
             >
               <span>{tab.label}</span>
               <span
                 className={`font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
                   filter === tab.id
-                    ? 'bg-[#E6C465] text-[#0B241E] font-bold'
-                    : 'bg-[#144239]/10 text-[#144239]'
+                    ? "bg-[#E6C465] text-[#0B241E] font-bold"
+                    : "bg-[#144239]/10 text-[#144239]"
                 }`}
               >
                 {tab.count}
@@ -260,13 +256,9 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
               disabled={isReconciling}
               className="px-3.5 py-1.5 rounded-xl bg-[#19B86B] hover:bg-[#159f5c] text-[#072018] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
             >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${isReconciling ? 'animate-spin' : ''}`}
-              />
+              <RefreshCw className={`w-3.5 h-3.5 ${isReconciling ? "animate-spin" : ""}`} />
               <span className="font-mono tabular-nums">
-                {isReconciling
-                  ? 'Reconciling USSD...'
-                  : `Sync ${queuedCount} Queued USSD`}
+                {isReconciling ? "Reconciling USSD..." : `Sync ${queuedCount} Queued USSD`}
               </span>
             </button>
           )}
@@ -310,27 +302,27 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
             const isExpanded = expandedReceiptId === order.id;
             const md5Hash = computeDeterministicHex(
               `${order.reference}:${order.amountZar}:MD5`,
-              32
+              32,
             );
             const sha512Hash = computeDeterministicHex(
               `${order.reference}:${order.method}:${order.amountZar}:SHA512`,
-              64
+              64,
             );
 
             return (
               <motion.div
                 key={order.id}
                 layout
-                initial={{opacity: 0, y: 8}}
-                animate={{opacity: 1, y: 0}}
-                exit={{opacity: 0, scale: 0.96}}
-                transition={{type: 'spring', stiffness: 360, damping: 28}}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ type: "spring", stiffness: 360, damping: 28 }}
                 className="group p-4 rounded-2xl bg-[#F4F3EC]/85 hover:bg-[#F4F3EC] border border-[#144239]/12 transition-colors flex flex-col justify-between gap-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-2.5 min-w-0">
                     <span className="font-mono tabular-nums text-[11px] font-bold px-2 py-1 rounded-lg bg-[#144239] text-[#E6C465] shrink-0">
-                      #{String(orders.length - idx).padStart(2, '0')}
+                      #{String(orders.length - idx).padStart(2, "0")}
                     </span>
                     <div className="min-w-0">
                       <h4 className="text-xs sm:text-sm font-bold text-[#144239] truncate">
@@ -352,7 +344,7 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
                     </p>
                     <span
                       className={`inline-flex items-center gap-1 font-mono tabular-nums text-[10px] font-semibold mt-0.5 ${
-                        order.synced ? 'text-[#15803D]' : 'text-[#B45309]'
+                        order.synced ? "text-[#15803D]" : "text-[#B45309]"
                       }`}
                     >
                       {order.synced ? (
@@ -374,10 +366,10 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
                 <AnimatePresence initial={false}>
                   {isExpanded && (
                     <motion.div
-                      initial={{opacity: 0, height: 0}}
-                      animate={{opacity: 1, height: 'auto'}}
-                      exit={{opacity: 0, height: 0}}
-                      transition={{duration: 0.2}}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
                       <div className="p-3 rounded-xl bg-[#0B241E] text-[#F4F3EC] space-y-2 text-[11px] font-mono tabular-nums border border-[#144239]/20 mt-1">
@@ -439,13 +431,13 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
                   <button
                     type="button"
                     onClick={() => {
-                      triggerHaptic('light');
+                      triggerHaptic("light");
                       setExpandedReceiptId(isExpanded ? null : order.id);
                     }}
                     className="font-mono tabular-nums text-[#144239]/75 hover:text-[#144239] font-semibold inline-flex items-center gap-1 cursor-pointer"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-[#19B86B]" />
-                    <span>{isExpanded ? 'Hide Receipt' : 'Verify MD5 / SHA-512'}</span>
+                    <span>{isExpanded ? "Hide Receipt" : "Verify MD5 / SHA-512"}</span>
                     {isExpanded ? (
                       <ChevronUp className="w-3 h-3" />
                     ) : (
@@ -457,7 +449,7 @@ export default function RecentOrdersList({onSelectOrder}: RecentOrdersListProps)
                     <button
                       type="button"
                       onClick={() => {
-                        triggerHaptic('selection');
+                        triggerHaptic("selection");
                         onSelectOrder({
                           name: order.title,
                           description: `Repeat order via ${order.method} (Prev Ref: ${order.reference})`,

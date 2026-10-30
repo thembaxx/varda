@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import {useOnlineStatus} from '@/hooks/usePWAInstall';
-import {WifiOff} from 'lucide-react';
+import React from "react";
+import { useOnlineStatus } from "@/hooks/usePWAInstall";
+import { WifiOff } from "lucide-react";
 
 export default function OfflineBanner() {
   const isOnline = useOnlineStatus();

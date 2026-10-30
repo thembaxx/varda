@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React, {useState} from 'react';
-import {motion, AnimatePresence} from 'motion/react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   WEEKLY_SCHEDULE_SLOTS,
   COMMUNITY_INQUIRIES,
   NEIGHBOURHOOD_SPOTS,
   type CommunityInquiryCard,
   type WeeklyScheduleSlot,
-} from '@/lib/sa-data';
+} from "@/lib/sa-data";
 import {
   Calendar,
   Heart,
@@ -23,29 +23,21 @@ import {
   Users,
   Clock,
   ArrowUpRight,
-} from 'lucide-react';
-import {triggerHaptic} from '@/lib/haptics';
-import ReservationBooking from '@/components/ReservationBooking';
+} from "lucide-react";
+import { triggerHaptic } from "@/lib/haptics";
+import ReservationBooking from "@/components/ReservationBooking";
 
 interface VardaCommunityBoardProps {
-  onTriggerCheckout: (item: {
-    name: string;
-    description: string;
-    amountZar: number;
-  }) => void;
+  onTriggerCheckout: (item: { name: string; description: string; amountZar: number }) => void;
 }
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HOURS = [13, 14, 15, 16, 17, 18, 19];
 
-export default function VardaCommunityBoard({
-  onTriggerCheckout,
-}: VardaCommunityBoardProps) {
+export default function VardaCommunityBoard({ onTriggerCheckout }: VardaCommunityBoardProps) {
   // Interactive State
-  const [selectedSlot, setSelectedSlot] = useState<WeeklyScheduleSlot>(
-    WEEKLY_SCHEDULE_SLOTS[0]
-  );
-  const [rsvpedSlotIds, setRsvpedSlotIds] = useState<string[]>(['slot-lunch']);
+  const [selectedSlot, setSelectedSlot] = useState<WeeklyScheduleSlot>(WEEKLY_SCHEDULE_SLOTS[0]);
+  const [rsvpedSlotIds, setRsvpedSlotIds] = useState<string[]>(["slot-lunch"]);
 
   // Eco-level & Rooftop garden interactive state
   const [energySavedPct, setEnergySavedPct] = useState<number>(80);
@@ -56,43 +48,39 @@ export default function VardaCommunityBoard({
   });
 
   // Inquiries & Filter State
-  const [categoryFilter, setCategoryFilter] = useState<
-    'All' | CommunityInquiryCard['category']
-  >('All');
+  const [categoryFilter, setCategoryFilter] = useState<"All" | CommunityInquiryCard["category"]>(
+    "All",
+  );
   const [inquiries, setInquiries] = useState<CommunityInquiryCard[]>(COMMUNITY_INQUIRIES);
   const [activeCardIndex, setActiveCardIndex] = useState<number>(0);
-  const [JoinedIds, setJoinedIds] = useState<string[]>(['inq-2']);
+  const [JoinedIds, setJoinedIds] = useState<string[]>(["inq-2"]);
   const [showNewInquiryForm, setShowNewInquiryForm] = useState<boolean>(false);
-  const [newInquiryTitle, setNewInquiryTitle] = useState<string>('');
-  const [newInquiryQuote, setNewInquiryQuote] = useState<string>('');
-  const [newInquiryCat, setNewInquiryCat] =
-    useState<CommunityInquiryCard['category']>('Culture');
+  const [newInquiryTitle, setNewInquiryTitle] = useState<string>("");
+  const [newInquiryQuote, setNewInquiryQuote] = useState<string>("");
+  const [newInquiryCat, setNewInquiryCat] = useState<CommunityInquiryCard["category"]>("Culture");
 
   // Resident Suite & Conference Room Booking State
   const [activeResidentTile, setActiveResidentTile] = useState<
-    'key' | 'apartment' | 'services' | 'manual'
-  >('key');
+    "key" | "apartment" | "services" | "manual"
+  >("key");
   const [keyUnlocked, setKeyUnlocked] = useState<boolean>(false);
   const [selectedSpotId, setSelectedSpotId] = useState<string>(NEIGHBOURHOOD_SPOTS[0].id);
 
   const filteredInquiries =
-    categoryFilter === 'All'
-      ? inquiries
-      : inquiries.filter((i) => i.category === categoryFilter);
+    categoryFilter === "All" ? inquiries : inquiries.filter((i) => i.category === categoryFilter);
 
   const currentInquiry =
-    filteredInquiries[activeCardIndex % Math.max(1, filteredInquiries.length)] ||
-    inquiries[0];
+    filteredInquiries[activeCardIndex % Math.max(1, filteredInquiries.length)] || inquiries[0];
 
   const handleNextCard = () => {
-    triggerHaptic('light');
+    triggerHaptic("light");
     setActiveCardIndex((prev) => (prev + 1) % Math.max(1, filteredInquiries.length));
   };
 
   const handleJoinInquiry = (id: string) => {
-    triggerHaptic('medium');
+    triggerHaptic("medium");
     setJoinedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -101,18 +89,18 @@ export default function VardaCommunityBoard({
     if (!newInquiryTitle.trim() || !newInquiryQuote.trim()) return;
     const created: CommunityInquiryCard = {
       id: `inq-${Date.now()}`,
-      author: 'Themba Mndebele',
-      unit: 'Loft 305 · Woodstock',
+      author: "Themba Mndebele",
+      unit: "Loft 305 · Woodstock",
       category: newInquiryCat,
       title: newInquiryTitle.trim(),
       quote: newInquiryQuote.trim(),
-      timeLabel: 'Sat 24/10 · 4:00 pm',
-      venue: 'Varda Courtyard',
+      timeLabel: "Sat 24/10 · 4:00 pm",
+      venue: "Varda Courtyard",
       attendeesCount: 1,
     };
     setInquiries((prev) => [created, ...prev]);
-    setNewInquiryTitle('');
-    setNewInquiryQuote('');
+    setNewInquiryTitle("");
+    setNewInquiryQuote("");
     setShowNewInquiryForm(false);
     setActiveCardIndex(0);
   };
@@ -133,8 +121,8 @@ export default function VardaCommunityBoard({
           </h2>
         </div>
         <p className="text-sm text-[#11362E]/80 max-w-md">
-          Real-time rooftop energy savings, urban harvest tracking, resident social
-          inquiries, and shared space reservations synced across offline mesh nodes.
+          Real-time rooftop energy savings, urban harvest tracking, resident social inquiries, and
+          shared space reservations synced across offline mesh nodes.
         </p>
       </div>
 
@@ -156,9 +144,7 @@ export default function VardaCommunityBoard({
 
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
-              <p className="text-xs font-semibold text-[#144239]">
-                Sync with Varda Mobile Pass
-              </p>
+              <p className="text-xs font-semibold text-[#144239]">Sync with Varda Mobile Pass</p>
               <p className="text-[11px] text-[#144239]/65">
                 Works offline during Stage 6 Load-Shedding
               </p>
@@ -167,9 +153,9 @@ export default function VardaCommunityBoard({
               type="button"
               onClick={() =>
                 onTriggerCheckout({
-                  name: 'Varda Co-op Resident Monthly Stokvel Pass',
+                  name: "Varda Co-op Resident Monthly Stokvel Pass",
                   description:
-                    'Includes Solar Micro-Grid Quota + Rooftop Harvest Share + Conference Credits',
+                    "Includes Solar Micro-Grid Quota + Rooftop Harvest Share + Conference Credits",
                   amountZar: 1450,
                 })
               }
@@ -204,70 +190,65 @@ export default function VardaCommunityBoard({
                     ))}
                   </div>
 
-                <div className="divide-y divide-white/5">
-                  {HOURS.map((hr) => (
-                    <div
-                      key={hr}
-                      className="grid grid-cols-8 gap-1 min-h-[34px] items-center py-0.5"
-                    >
-                      <span className="text-[10px] font-mono tabular-nums text-[#C4C6AF]/70 text-center">
-                        {hr > 12 ? `${hr - 12}pm` : `${hr}pm`}
-                      </span>
-                      {DAYS.map((_, dayIdx) => {
-                        const slot = WEEKLY_SCHEDULE_SLOTS.find(
-                          (s) => s.dayIndex === dayIdx && Math.floor(s.startHour) === hr
-                        );
-                        if (!slot) {
-                          return (
-                            <div
-                              key={dayIdx}
-                              className="h-7 rounded bg-white/[0.02]"
-                            />
+                  <div className="divide-y divide-white/5">
+                    {HOURS.map((hr) => (
+                      <div
+                        key={hr}
+                        className="grid grid-cols-8 gap-1 min-h-[34px] items-center py-0.5"
+                      >
+                        <span className="text-[10px] font-mono tabular-nums text-[#C4C6AF]/70 text-center">
+                          {hr > 12 ? `${hr - 12}pm` : `${hr}pm`}
+                        </span>
+                        {DAYS.map((_, dayIdx) => {
+                          const slot = WEEKLY_SCHEDULE_SLOTS.find(
+                            (s) => s.dayIndex === dayIdx && Math.floor(s.startHour) === hr,
                           );
-                        }
-                        const isSelected = selectedSlot.id === slot.id;
-                        const toneClass =
-                          slot.tone === 'coral'
-                            ? 'bg-[#F3B2A8] text-[#144239]'
-                            : slot.tone === 'ochre'
-                            ? 'bg-[#E6C465] text-[#144239]'
-                            : slot.tone === 'mint'
-                            ? 'bg-[#D6EADF] text-[#144239]'
-                            : 'bg-[#C4C6AF] text-[#144239]';
+                          if (!slot) {
+                            return <div key={dayIdx} className="h-7 rounded bg-white/[0.02]" />;
+                          }
+                          const isSelected = selectedSlot.id === slot.id;
+                          const toneClass =
+                            slot.tone === "coral"
+                              ? "bg-[#F3B2A8] text-[#144239]"
+                              : slot.tone === "ochre"
+                                ? "bg-[#E6C465] text-[#144239]"
+                                : slot.tone === "mint"
+                                  ? "bg-[#D6EADF] text-[#144239]"
+                                  : "bg-[#C4C6AF] text-[#144239]";
 
-                        return (
-                          <button
-                            key={dayIdx}
-                            type="button"
-                            onClick={() => setSelectedSlot(slot)}
-                            className={`h-7 rounded px-1 text-[9px] font-semibold leading-tight truncate transition-transform ${toneClass} ${
-                              isSelected ? 'ring-2 ring-white scale-105' : 'hover:scale-105'
-                            }`}
-                            title={slot.title}
-                          >
-                            {slot.title.split(' ')[0]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
+                          return (
+                            <button
+                              key={dayIdx}
+                              type="button"
+                              onClick={() => setSelectedSlot(slot)}
+                              className={`h-7 rounded px-1 text-[9px] font-semibold leading-tight truncate transition-transform ${toneClass} ${
+                                isSelected ? "ring-2 ring-white scale-105" : "hover:scale-105"
+                              }`}
+                              title={slot.title}
+                            >
+                              {slot.title.split(" ")[0]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
               {/* Selected Event Detail Card (Inspired by Noli Pink Yoga Pill Card) */}
               <div className="space-y-2">
                 <h4 className="font-serif text-lg font-medium text-white">Event</h4>
                 <motion.div
                   key={selectedSlot.id}
-                  initial={{opacity: 0, y: 6}}
-                  animate={{opacity: 1, y: 0}}
-                  transition={{duration: 0.18}}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18 }}
                   className="rounded-2xl bg-[#F3B2A8] text-[#144239] p-4 flex items-center justify-between gap-4 shadow-md"
                 >
                   <div className="space-y-1">
                     <div className="text-xs font-medium text-[#144239]/75">
-                      {DAYS[selectedSlot.dayIndex]} · {selectedSlot.startHour - 12}:00 pm ·{' '}
+                      {DAYS[selectedSlot.dayIndex]} · {selectedSlot.startHour - 12}:00 pm ·{" "}
                       {selectedSlot.location}
                     </div>
                     <h5 className="font-serif text-lg font-bold leading-snug">
@@ -279,17 +260,17 @@ export default function VardaCommunityBoard({
                   <button
                     type="button"
                     onClick={() => {
-                      triggerHaptic('medium');
+                      triggerHaptic("medium");
                       setRsvpedSlotIds((prev) =>
                         prev.includes(selectedSlot.id)
                           ? prev.filter((i) => i !== selectedSlot.id)
-                          : [...prev, selectedSlot.id]
+                          : [...prev, selectedSlot.id],
                       );
                     }}
                     className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
                       rsvpedSlotIds.includes(selectedSlot.id)
-                        ? 'bg-[#144239] text-white'
-                        : 'bg-white text-[#144239] hover:bg-[#F4F3EC]'
+                        ? "bg-[#144239] text-white"
+                        : "bg-white text-[#144239] hover:bg-[#F4F3EC]"
                     }`}
                   >
                     {rsvpedSlotIds.includes(selectedSlot.id) ? (
@@ -327,8 +308,8 @@ export default function VardaCommunityBoard({
                   type="button"
                   onClick={() =>
                     onTriggerCheckout({
-                      name: 'Truth & Origin Solar Coffee Bundle (5x Flat Whites)',
-                      description: 'Includes 20% Varda Resident Rebate',
+                      name: "Truth & Origin Solar Coffee Bundle (5x Flat Whites)",
+                      description: "Includes 20% Varda Resident Rebate",
                       amountZar: 160,
                     })
                   }
@@ -349,12 +330,10 @@ export default function VardaCommunityBoard({
             <div className="bg-[#C4C6AF] text-[#144239] p-6 sm:p-7 space-y-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold text-[#144239]">
-                    Community Goals
-                  </h3>
+                  <h3 className="font-serif text-2xl font-bold text-[#144239]">Community Goals</h3>
                   <p className="text-xs text-[#144239]/80 mt-1 leading-relaxed">
-                    Supporting collective energy independence during load-shedding and
-                    cultivating organic produce on our rooftop beds.
+                    Supporting collective energy independence during load-shedding and cultivating
+                    organic produce on our rooftop beds.
                   </p>
                 </div>
               </div>
@@ -373,8 +352,8 @@ export default function VardaCommunityBoard({
                         onClick={() => setEnergySavedPct(val)}
                         className={`px-2 py-0.5 rounded text-[11px] font-mono tabular-nums transition-colors ${
                           energySavedPct === val
-                            ? 'bg-[#144239] text-white font-semibold'
-                            : 'bg-white/50 text-[#144239] hover:bg-white'
+                            ? "bg-[#144239] text-white font-semibold"
+                            : "bg-white/50 text-[#144239] hover:bg-white"
                         }`}
                       >
                         {val}%
@@ -404,9 +383,7 @@ export default function VardaCommunityBoard({
                         strokeWidth="7"
                         strokeLinecap="round"
                         strokeDasharray={2 * Math.PI * 32}
-                        strokeDashoffset={
-                          2 * Math.PI * 32 * (1 - energySavedPct / 100)
-                        }
+                        strokeDashoffset={2 * Math.PI * 32 * (1 - energySavedPct / 100)}
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -422,7 +399,7 @@ export default function VardaCommunityBoard({
                       {/* Floating Callout Bubble */}
                       <div
                         className="absolute top-0 -translate-x-1/2 transition-all duration-300"
-                        style={{left: `${energySavedPct}%`}}
+                        style={{ left: `${energySavedPct}%` }}
                       >
                         <div className="bg-white text-[#144239] px-2.5 py-0.5 rounded-full text-[11px] font-serif font-bold shadow-sm whitespace-nowrap">
                           VARDA
@@ -457,12 +434,12 @@ export default function VardaCommunityBoard({
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                {(['Tomatoes', 'Carrots', 'Salad'] as const).map((crop) => (
+                {(["Tomatoes", "Carrots", "Salad"] as const).map((crop) => (
                   <button
                     key={crop}
                     type="button"
                     onClick={() => {
-                      triggerHaptic('light');
+                      triggerHaptic("light");
                       setWateredCrops((prev) => ({
                         ...prev,
                         [crop]: Math.min(100, prev[crop] + 4),
@@ -471,9 +448,7 @@ export default function VardaCommunityBoard({
                     className="p-3 rounded-2xl bg-white/35 hover:bg-white/55 transition-colors flex flex-col items-center text-center gap-1.5 cursor-pointer"
                   >
                     <Sprout className="w-6 h-6 text-[#144239]" />
-                    <span className="font-serif text-sm font-bold text-[#144239]">
-                      {crop}
-                    </span>
+                    <span className="font-serif text-sm font-bold text-[#144239]">{crop}</span>
                     <span className="text-[11px] font-mono tabular-nums text-[#144239]/80">
                       Moisture {wateredCrops[crop]}%
                     </span>
@@ -483,18 +458,14 @@ export default function VardaCommunityBoard({
 
               <div className="pt-2 flex items-center justify-between text-xs border-t border-[#144239]/15">
                 <span className="font-semibold">Plantsitters this week:</span>
-                <span className="text-[#144239]/85">
-                  Thandiwe N. · Sipho D. · Naledi M.
-                </span>
+                <span className="text-[#144239]/85">Thandiwe N. · Sipho D. · Naledi M.</span>
               </div>
             </div>
 
             {/* Lower Ochre Panel: Neighbourhood Map & Directory */}
             <div className="bg-[#E6C465] text-[#144239] p-6 sm:p-7 space-y-4 flex-1">
               <div className="flex items-center justify-between">
-                <h4 className="font-serif text-xl font-bold text-[#144239]">
-                  Neighbourhood
-                </h4>
+                <h4 className="font-serif text-xl font-bold text-[#144239]">Neighbourhood</h4>
                 <span className="text-xs font-medium text-[#144239]/80">
                   Woodstock & Maboneng Local Partners
                 </span>
@@ -505,10 +476,7 @@ export default function VardaCommunityBoard({
                 <div className="relative h-36 rounded-2xl bg-[#D8E8E4] overflow-hidden border border-[#144239]/15 shadow-inner">
                   {/* Stylized water/harbour & roads */}
                   <svg className="w-full h-full" viewBox="0 0 200 140">
-                    <path
-                      d="M0 0 L200 0 L200 45 Q130 65 80 35 T0 55 Z"
-                      fill="#9ED3EB"
-                    />
+                    <path d="M0 0 L200 0 L200 45 Q130 65 80 35 T0 55 Z" fill="#9ED3EB" />
                     <path
                       d="M20 140 L95 40 M80 140 L165 20 M0 85 L200 95"
                       stroke="#FFFFFF"
@@ -525,11 +493,11 @@ export default function VardaCommunityBoard({
                         key={spot.id}
                         type="button"
                         onClick={() => setSelectedSpotId(spot.id)}
-                        style={{left: `${spot.coords.x}%`, top: `${spot.coords.y}%`}}
+                        style={{ left: `${spot.coords.x}%`, top: `${spot.coords.y}%` }}
                         className={`absolute -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center transition-transform ${
                           active
-                            ? 'bg-[#144239] text-[#E6C465] scale-125 shadow-md'
-                            : 'bg-white text-[#144239] hover:scale-110'
+                            ? "bg-[#144239] text-[#E6C465] scale-125 shadow-md"
+                            : "bg-white text-[#144239] hover:scale-110"
                         }`}
                         title={spot.name}
                       >
@@ -546,22 +514,20 @@ export default function VardaCommunityBoard({
                       key={spot.id}
                       type="button"
                       onClick={() => {
-                        triggerHaptic('selection');
+                        triggerHaptic("selection");
                         setSelectedSpotId(spot.id);
                       }}
                       className={`w-full text-left px-3 py-2 rounded-xl transition-colors flex items-center justify-between gap-2 cursor-pointer ${
                         selectedSpotId === spot.id
-                          ? 'bg-[#144239] text-white'
-                          : 'bg-white/45 hover:bg-white/70 text-[#144239]'
+                          ? "bg-[#144239] text-white"
+                          : "bg-white/45 hover:bg-white/70 text-[#144239]"
                       }`}
                     >
                       <div className="truncate">
                         <p className="text-xs font-bold truncate">{spot.name}</p>
                         <p
                           className={`text-[10px] truncate ${
-                            selectedSpotId === spot.id
-                              ? 'text-[#E6C465]'
-                              : 'text-[#144239]/75'
+                            selectedSpotId === spot.id ? "text-[#E6C465]" : "text-[#144239]/75"
                           }`}
                         >
                           {spot.discount}
@@ -587,7 +553,7 @@ export default function VardaCommunityBoard({
                   <button
                     type="button"
                     onClick={() => {
-                      triggerHaptic('medium');
+                      triggerHaptic("medium");
                       onTriggerCheckout({
                         name: `${selectedSpot.name} — Resident Partner Pass`,
                         description: `${selectedSpot.discount} (${selectedSpot.category} · ${selectedSpot.walkTime})`,
@@ -612,9 +578,7 @@ export default function VardaCommunityBoard({
             <div className="space-y-5">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="font-serif text-2xl font-semibold text-white">
-                    Inquiries
-                  </h3>
+                  <h3 className="font-serif text-2xl font-semibold text-white">Inquiries</h3>
                   <p className="text-xs text-[#C4C6AF] mt-0.5">
                     Resident social board & Stokvel co-op invites
                   </p>
@@ -631,46 +595,44 @@ export default function VardaCommunityBoard({
 
               {/* Category Filter Buttons (Culture, Party, Food & Drinks, Work) */}
               <div className="flex flex-wrap items-center gap-1.5">
-                {(['All', 'Culture', 'Party', 'Food & Drinks', 'Work'] as const).map(
-                  (cat) => {
-                    const active = categoryFilter === cat;
-                    const activeTone =
-                      cat === 'Culture'
-                        ? 'bg-[#F3B2A8] text-[#144239]'
-                        : cat === 'Party'
-                        ? 'bg-[#E6C465] text-[#144239]'
-                        : cat === 'Food & Drinks'
-                        ? 'bg-[#C4C6AF] text-[#144239]'
-                        : 'bg-white text-[#144239]';
+                {(["All", "Culture", "Party", "Food & Drinks", "Work"] as const).map((cat) => {
+                  const active = categoryFilter === cat;
+                  const activeTone =
+                    cat === "Culture"
+                      ? "bg-[#F3B2A8] text-[#144239]"
+                      : cat === "Party"
+                        ? "bg-[#E6C465] text-[#144239]"
+                        : cat === "Food & Drinks"
+                          ? "bg-[#C4C6AF] text-[#144239]"
+                          : "bg-white text-[#144239]";
 
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => {
-                          setCategoryFilter(cat);
-                          setActiveCardIndex(0);
-                        }}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
-                          active
-                            ? activeTone
-                            : 'bg-[#0F352D] text-[#C4C6AF] hover:text-white border border-white/15'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    );
-                  }
-                )}
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setCategoryFilter(cat);
+                        setActiveCardIndex(0);
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+                        active
+                          ? activeTone
+                          : "bg-[#0F352D] text-[#C4C6AF] hover:text-white border border-white/15"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Optional New Inquiry Form */}
               <AnimatePresence>
                 {showNewInquiryForm && (
                   <motion.form
-                    initial={{opacity: 0, height: 0}}
-                    animate={{opacity: 1, height: 'auto'}}
-                    exit={{opacity: 0, height: 0}}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
                     onSubmit={handleAddInquiry}
                     className="bg-[#0F352D] rounded-2xl p-4 border border-white/15 space-y-3 overflow-hidden"
                   >
@@ -681,9 +643,7 @@ export default function VardaCommunityBoard({
                       <select
                         value={newInquiryCat}
                         onChange={(e) =>
-                          setNewInquiryCat(
-                            e.target.value as CommunityInquiryCard['category']
-                          )
+                          setNewInquiryCat(e.target.value as CommunityInquiryCard["category"])
                         }
                         className="bg-[#144239] text-white text-xs rounded-lg px-2 py-1 border border-white/15"
                       >
@@ -724,23 +684,21 @@ export default function VardaCommunityBoard({
 
                 <motion.div
                   key={currentInquiry.id}
-                  initial={{opacity: 0, scale: 0.96, x: 12}}
-                  animate={{opacity: 1, scale: 1, x: 0}}
-                  transition={{duration: 0.2}}
+                  initial={{ opacity: 0, scale: 0.96, x: 12 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  transition={{ duration: 0.2 }}
                   className="relative rounded-3xl bg-[#194E43] border border-white/15 p-6 shadow-xl space-y-4"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-xs font-semibold text-white">
-                        {currentInquiry.author}
-                      </p>
+                      <p className="text-xs font-semibold text-white">{currentInquiry.author}</p>
                       <p className="text-[11px] text-[#C4C6AF]">
                         {currentInquiry.unit} · {currentInquiry.category}
                       </p>
                     </div>
                     <span className="text-xs font-mono tabular-nums text-[#E6C465]">
                       {currentInquiry.attendeesCount +
-                        (JoinedIds.includes(currentInquiry.id) ? 1 : 0)}{' '}
+                        (JoinedIds.includes(currentInquiry.id) ? 1 : 0)}{" "}
                       joined
                     </span>
                   </div>
@@ -773,7 +731,7 @@ export default function VardaCommunityBoard({
                     </button>
 
                     <span className="text-[11px] text-[#C4C6AF]">
-                      Card {(activeCardIndex % filteredInquiries.length) + 1} of{' '}
+                      Card {(activeCardIndex % filteredInquiries.length) + 1} of{" "}
                       {filteredInquiries.length}
                     </span>
 
@@ -782,14 +740,12 @@ export default function VardaCommunityBoard({
                       onClick={() => handleJoinInquiry(currentInquiry.id)}
                       className={`px-4 h-10 rounded-full border flex items-center gap-1.5 text-xs font-semibold transition-colors ${
                         JoinedIds.includes(currentInquiry.id)
-                          ? 'bg-[#E6C465] border-[#E6C465] text-[#144239]'
-                          : 'border-[#E6C465]/70 text-[#E6C465] hover:bg-[#E6C465]/20'
+                          ? "bg-[#E6C465] border-[#E6C465] text-[#144239]"
+                          : "border-[#E6C465]/70 text-[#E6C465] hover:bg-[#E6C465]/20"
                       }`}
                     >
                       <Heart className="w-4 h-4 fill-current" />
-                      {JoinedIds.includes(currentInquiry.id)
-                        ? 'Counted In!'
-                        : 'Count me in'}
+                      {JoinedIds.includes(currentInquiry.id) ? "Counted In!" : "Count me in"}
                     </button>
                   </div>
                 </motion.div>
@@ -800,9 +756,7 @@ export default function VardaCommunityBoard({
             <div className="rounded-2xl bg-[#F7F6F1] text-[#144239] p-5 space-y-4 shadow-inner">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-serif text-xl font-bold text-[#144239]">
-                    Welcome, Themba
-                  </h4>
+                  <h4 className="font-serif text-xl font-bold text-[#144239]">Welcome, Themba</h4>
                   <p className="text-xs text-[#144239]/70">
                     Unit 305 Smart Controls & Conference Pods
                   </p>
@@ -817,27 +771,27 @@ export default function VardaCommunityBoard({
                 {(
                   [
                     {
-                      id: 'key',
-                      label: 'Digital key',
-                      bg: 'bg-[#F3B2A8]',
+                      id: "key",
+                      label: "Digital key",
+                      bg: "bg-[#F3B2A8]",
                       icon: KeyRound,
                     },
                     {
-                      id: 'apartment',
-                      label: 'Apartment',
-                      bg: 'bg-[#E6C465]',
+                      id: "apartment",
+                      label: "Apartment",
+                      bg: "bg-[#E6C465]",
                       icon: Home,
                     },
                     {
-                      id: 'services',
-                      label: 'Book Pod',
-                      bg: 'bg-[#B7C4B8]',
+                      id: "services",
+                      label: "Book Pod",
+                      bg: "bg-[#B7C4B8]",
                       icon: Users,
                     },
                     {
-                      id: 'manual',
-                      label: 'Guest Manual',
-                      bg: 'bg-[#C4C6AF]',
+                      id: "manual",
+                      label: "Guest Manual",
+                      bg: "bg-[#C4C6AF]",
                       icon: BookOpen,
                     },
                   ] as const
@@ -850,13 +804,11 @@ export default function VardaCommunityBoard({
                       type="button"
                       onClick={() => setActiveResidentTile(tile.id)}
                       className={`${tile.bg} p-3 rounded-2xl text-[#144239] flex flex-col items-center justify-center gap-1.5 transition-transform ${
-                        active ? 'ring-2 ring-[#144239] scale-[1.03]' : 'hover:scale-[1.02]'
+                        active ? "ring-2 ring-[#144239] scale-[1.03]" : "hover:scale-[1.02]"
                       }`}
                     >
                       <Icon className="w-5 h-5" />
-                      <span className="text-[11px] font-bold whitespace-nowrap">
-                        {tile.label}
-                      </span>
+                      <span className="text-[11px] font-bold whitespace-nowrap">{tile.label}</span>
                     </button>
                   );
                 })}
@@ -864,7 +816,7 @@ export default function VardaCommunityBoard({
 
               {/* Dynamic Interactive Drawer for Selected Tile */}
               <div className="p-3.5 rounded-xl bg-white border border-[#144239]/10 text-xs space-y-2.5">
-                {activeResidentTile === 'key' && (
+                {activeResidentTile === "key" && (
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-bold text-[#144239]">
@@ -878,17 +830,15 @@ export default function VardaCommunityBoard({
                       type="button"
                       onClick={() => setKeyUnlocked((u) => !u)}
                       className={`px-3.5 py-2 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
-                        keyUnlocked
-                          ? 'bg-[#19B86B] text-[#082019]'
-                          : 'bg-[#144239] text-white'
+                        keyUnlocked ? "bg-[#19B86B] text-[#082019]" : "bg-[#144239] text-white"
                       }`}
                     >
-                      {keyUnlocked ? 'Unlocked (Tap to Lock)' : 'Tap to Unlock Door'}
+                      {keyUnlocked ? "Unlocked (Tap to Lock)" : "Tap to Unlock Door"}
                     </button>
                   </div>
                 )}
 
-                {activeResidentTile === 'apartment' && (
+                {activeResidentTile === "apartment" && (
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-bold text-[#144239]">
@@ -898,20 +848,18 @@ export default function VardaCommunityBoard({
                         Solar Geyser: 66°C · Fibre UPS: Active · Draw: 0.42 kW
                       </p>
                     </div>
-                    <span className="font-mono font-semibold text-[#144239]">
-                      STAGE 0
-                    </span>
+                    <span className="font-mono font-semibold text-[#144239]">STAGE 0</span>
                   </div>
                 )}
 
-                {activeResidentTile === 'services' && (
+                {activeResidentTile === "services" && (
                   <div className="space-y-3">
                     <h3 className="font-bold text-[#144239]">Reserve a shared room</h3>
                     <ReservationBooking />
                   </div>
                 )}
 
-                {activeResidentTile === 'manual' && (
+                {activeResidentTile === "manual" && (
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-bold text-[#144239]">
