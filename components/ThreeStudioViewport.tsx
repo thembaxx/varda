@@ -737,7 +737,8 @@ export default function ThreeStudioViewport({
       typeof navigator !== "undefined" &&
       (navigator.webdriver || /HeadlessChrome/i.test(navigator.userAgent));
 
-    const lowPower = window.matchMedia("(max-width: 760px), (pointer: coarse)").matches;
+    const qualityMedia = window.matchMedia("(max-width: 760px), (pointer: coarse)");
+    let lowPower = qualityMedia.matches;
     const renderer = new THREE.WebGLRenderer({
       antialias: !isHeadless && !lowPower,
       powerPreference: lowPower ? "low-power" : "high-performance",
@@ -769,7 +770,7 @@ export default function ThreeStudioViewport({
 
     const keyLight = new THREE.DirectionalLight("#FFF3D6", 2.4);
     keyLight.position.set(5, 8, 5);
-    keyLight.castShadow = !isHeadless;
+    keyLight.castShadow = !isHeadless && !lowPower;
     keyLight.shadow.mapSize.set(1024, 1024);
     keyLight.shadow.camera.near = 0.5;
     keyLight.shadow.camera.far = 25;
@@ -2018,6 +2019,16 @@ export default function ThreeStudioViewport({
       }
     };
 
+    const refreshQuality = () => {
+      lowPower = qualityMedia.matches;
+      renderer.setPixelRatio(
+        isHeadless ? 1 : Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 2),
+      );
+      renderer.shadowMap.enabled = !isHeadless && !lowPower;
+      keyLight.castShadow = !isHeadless && !lowPower;
+      renderer.shadowMap.needsUpdate = true;
+    };
+
     const handleResize = () => {
       if (!container) return;
       const w = container.clientWidth || 960;
@@ -2037,6 +2048,7 @@ export default function ThreeStudioViewport({
       orthoCamera.updateProjectionMatrix();
 
       renderer.setSize(w, h);
+      refreshQuality();
     };
 
     const onVisibilityChange = () => {
@@ -2050,6 +2062,7 @@ export default function ThreeStudioViewport({
     };
 
     handleResize();
+    qualityMedia.addEventListener("change", refreshQuality);
     if (!document.hidden) animate();
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("resize", handleResize);
@@ -2063,6 +2076,7 @@ export default function ThreeStudioViewport({
     return () => {
       cancelAnimationFrame(frameId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      qualityMedia.removeEventListener("change", refreshQuality);
       resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("pointermove", onPointerMove);
