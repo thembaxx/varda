@@ -6,7 +6,7 @@ The profile/tooling branch incorporates current main `70b0fd9`, including option
 
 Checked with Node.js 24.19.0, Bun 1.4.4 and system Chromium:
 
-- Frozen Bun installation, Oxfmt format check, Oxlint and TypeScript passed. Oxlint retains 25 warnings; no lint errors were suppressed to pass the migration. The isolated export-handler purity exception documents an existing event-handler false positive.
+- Frozen Bun installation, Oxfmt format check, Oxlint and TypeScript passed. Oxlint retains 25 warnings; the Next.js, React and TypeScript rule sets remain enabled. One narrowly scoped export-handler purity exception documents an event-handler false positive.
 - All **5 unit tests** passed: email-code configuration/provider failure and SQLite reservation durability/validation.
 - Both **PostgreSQL integration tests** passed after explicit migration into a dedicated local test database, including ownership, idempotency, community writes and concurrent booking overlap protection.
 - The complete Next.js production build and offline asset manifest completed successfully.
