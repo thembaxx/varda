@@ -27,7 +27,9 @@ export default function ThreeGarden() {
       return () => window.clearTimeout(pending);
     }
     const updateQuality = () => {
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, qualityMedia.matches ? 1 : 1.5));
+      renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, qualityMedia.matches ? 1 : 1.5),
+      );
     };
     updateQuality();
     renderer.setClearColor(0x000000, 0);
