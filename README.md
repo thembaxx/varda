@@ -4,15 +4,15 @@ Your place. Your people. A mobile-first Next.js community app with an interactiv
 
 ## Run locally
 
-Requires Node.js 22.12+ and npm. SQLite uses a native module; a C++ toolchain is needed if your platform has no prebuilt binary.
+Requires Node.js 22.12+ and Bun 1.4.4. SQLite uses a native module; a C++ toolchain is needed if your platform has no prebuilt binary.
 
 ```sh
-npm ci
-npm run setup:local
-npm run dev
+bun install --frozen-lockfile
+bun run setup:local
+bun run dev
 ```
 
-Open `http://localhost:3000`. `setup:local` creates a private `.env.local` with a random account secret and migrates `.data/varda.sqlite`. It preserves existing environment values. Neither file is committed. Re-run `npm run db:migrate` when the account schema changes.
+Open `http://localhost:3000`. `setup:local` creates a private `.env.local` with a random account secret and migrates `.data/varda.sqlite`. It preserves existing environment values. Neither file is committed. Re-run `bun run db:migrate` when the account schema changes.
 
 ## What works
 
@@ -27,7 +27,7 @@ Open `http://localhost:3000`. `setup:local` creates a private `.env.local` with 
 
 Visit online once, then allow the service worker to finish installing. Saved events, personal plans, goals, preferences, and unpaid payment intents remain on the device. Offline mode in Settings disables account, social-write, and checkout requests; it does not change the device's network connection. A real network outage uses the same saved interface.
 
-`npm run build` writes a list of versioned static assets and a build-specific service-worker cache. This includes dynamically loaded studio and dialog chunks so they can open offline even if they were not previously visited. Installation runs in the background with bounded concurrency. A new worker waits for existing tabs to close before activating. The worker caches only same-origin public assets and the public root HTML. It excludes APIs, auth, payments, RSC payloads, third-party responses, and mutations. Local cached community posts are public content, never account or session data.
+`bun run build` writes a list of versioned static assets and a build-specific service-worker cache. This includes dynamically loaded studio and dialog chunks so they can open offline even if they were not previously visited. Installation runs in the background with bounded concurrency. A new worker waits for existing tabs to close before activating. The worker caches only same-origin public assets and the public root HTML. It excludes APIs, auth, payments, RSC payloads, third-party responses, and mutations. Local cached community posts are public content, never account or session data.
 
 Offline payment intents are **unpaid plans**. They are never automatically submitted, marked settled, or charged after reconnection.
 
@@ -48,14 +48,17 @@ The standalone build includes `public/` and `/_next/static/`. Deploy with HTTPS 
 ## Checks
 
 ```sh
-npm run typecheck
-npm run lint
-npm run build
-npm run start
-npm run test:e2e
+bun run typecheck
+bun run lint
+bun run format:check
+bun run test:unit
+bun run build
+bun run test:e2e
 ```
 
-The Playwright suite uses the system Chromium when `CHROMIUM_PATH` is set, otherwise `/usr/bin/chromium` if present, or Playwright's installed browser. Install it with `npx playwright install chromium` if needed. Tests use an isolated account and clean it up. Tests cover themes, saved plans, offline reload, mobile layout, auth and community posting, native install events, and accessibility.
+The Playwright suite uses the system Chromium when `CHROMIUM_PATH` is set, otherwise `/usr/bin/chromium` if present, or Playwright's installed browser. Install it with `bunx playwright install chromium` if needed. After a production build, Playwright migrates a temporary SQLite database and starts its own loopback HTTPS server on port 3215 (override with `VARDA_TEST_PORT`); it never reuses the development server or account database. OpenSSL generates a one-day localhost certificate in that temporary directory; port 3216 (test port + 1) hosts the internal production server. Desktop and mobile Chromium projects cover profile registration/edit/sign-in, authenticated community writes, unpaid reservation idempotency/cancellation, theme persistence, offline reload and API-cache exclusion, responsive layout and accessibility. The temporary database is removed after the suite. CI runs these gates too. Physical-device installation and haptics still need device checks.
+
+Oxlint replaces the TypeScript-dependent ESLint parser so lint works with TypeScript 7. Native Next.js rules and the standalone compatibility plugin preserve the framework checks; React hooks/compiler, TypeScript and accessibility rules remain enabled. Oxfmt supplies the formatting baseline.
 
 See `design-qa.md` for visual checks and `verification.md` for verification evidence.
 
@@ -63,4 +66,4 @@ See `design-qa.md` for visual checks and `verification.md` for verification evid
 
 The provided NOLi reference boards informed forest green, sage, warm yellow, coral, serif headings, and friendly shared-space layouts. Varda self-hosts Fraunces, Outfit, and JetBrains Mono for numbers, and uses Phosphor icons. Font licences are included in `app/fonts/`. The community-room image was generated for this project. Supplementary food and garden photography is from Unsplash ([food](https://images.unsplash.com/photo-1547592180-85f173990554), [garden](https://images.unsplash.com/photo-1416879595882-3373a0480b5b)). The theme implementation follows [web.dev's theming guidance](https://web.dev/learn/design/theming). Authentication follows the [Better Auth Next.js integration](https://better-auth.com/docs/integrations/next).
 
-Reservation storage checks: `node --import tsx --test tests/reservations.test.ts`. Migrate before serving (`npm run db:migrate`); back up the persistent SQLite volume. Availability and reservations require an account and are never cached offline.
+Reservation storage checks: `node --import tsx --test tests/reservations.test.ts`. Migrate before serving (`bun run db:migrate`); back up the persistent SQLite volume. Availability and reservations require an account and are never cached offline.
