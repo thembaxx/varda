@@ -737,16 +737,20 @@ export default function ThreeStudioViewport({
       typeof navigator !== "undefined" &&
       (navigator.webdriver || /HeadlessChrome/i.test(navigator.userAgent));
 
+    const qualityMedia = window.matchMedia("(max-width: 760px), (pointer: coarse)");
+    let lowPower = qualityMedia.matches;
     const renderer = new THREE.WebGLRenderer({
-      antialias: !isHeadless,
-      powerPreference: "high-performance",
+      antialias: !isHeadless && !lowPower,
+      powerPreference: lowPower ? "low-power" : "high-performance",
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(isHeadless ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(
+      isHeadless ? 1 : Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 2),
+    );
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
-    renderer.shadowMap.enabled = !isHeadless;
+    renderer.shadowMap.enabled = !isHeadless && !lowPower;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.localClippingEnabled = true;
 
@@ -766,7 +770,7 @@ export default function ThreeStudioViewport({
 
     const keyLight = new THREE.DirectionalLight("#FFF3D6", 2.4);
     keyLight.position.set(5, 8, 5);
-    keyLight.castShadow = !isHeadless;
+    keyLight.castShadow = !isHeadless && !lowPower;
     keyLight.shadow.mapSize.set(1024, 1024);
     keyLight.shadow.camera.near = 0.5;
     keyLight.shadow.camera.far = 25;
@@ -1618,6 +1622,8 @@ export default function ThreeStudioViewport({
     let shaderTime = 1.4; // Base visual seed so static/reduced-motion still renders rich shader patterns
 
     const animate = () => {
+      frameId = 0;
+      if (document.hidden) return;
       frameId = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
       const st = stateRef.current;
@@ -2013,6 +2019,16 @@ export default function ThreeStudioViewport({
       }
     };
 
+    const refreshQuality = () => {
+      lowPower = qualityMedia.matches;
+      renderer.setPixelRatio(
+        isHeadless ? 1 : Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 2),
+      );
+      renderer.shadowMap.enabled = !isHeadless && !lowPower;
+      keyLight.castShadow = !isHeadless && !lowPower;
+      renderer.shadowMap.needsUpdate = true;
+    };
+
     const handleResize = () => {
       if (!container) return;
       const w = container.clientWidth || 960;
@@ -2032,11 +2048,23 @@ export default function ThreeStudioViewport({
       orthoCamera.updateProjectionMatrix();
 
       renderer.setSize(w, h);
+      refreshQuality();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      } else if (!frameId) {
+        clock.getDelta();
+        frameId = requestAnimationFrame(animate);
+      }
     };
 
     handleResize();
-    animate();
-
+    qualityMedia.addEventListener("change", refreshQuality);
+    if (!document.hidden) animate();
+    document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("resize", handleResize);
     const resizeObserver = new ResizeObserver(() => {
       handleResize();
@@ -2047,6 +2075,8 @@ export default function ThreeStudioViewport({
 
     return () => {
       cancelAnimationFrame(frameId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      qualityMedia.removeEventListener("change", refreshQuality);
       resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("pointermove", onPointerMove);
