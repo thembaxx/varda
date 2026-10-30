@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { X } from "@/components/ui/icons";
 
 export default function Dialog({
@@ -17,6 +17,7 @@ export default function Dialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const reducedMotion = useReducedMotion();
   useEffect(() => {
     const dialog = ref.current;
     dialog?.showModal();
@@ -38,7 +39,7 @@ export default function Dialog({
       }}
     >
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        initial={reducedMotion ? false : { opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         className="dialog-content"
       >

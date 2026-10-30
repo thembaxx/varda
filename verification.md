@@ -25,6 +25,10 @@ All **10 affected scenarios passed across the final targeted runs**:
 
 The other **10 unchanged scenarios** (home/settings access, persisted themes/accents, studio motion preference, offline-payment labels and system appearance) passed in the earlier full Chromium run before the latest-main integration. They were not redundantly rerun locally after the PostgreSQL merge. The CI workflow runs the full **20-case** suite with its own PostgreSQL service and HTTPS harness, alongside format/lint/type/unit/build gates.
 
+## Dialog entrance follow-up
+
+Parallel hosted runs on `e9f1e05` exposed a Settings audit timing race: the passing run completed all 20 cases, while the other scanned modal content at approximately 79% entrance opacity and reported transient blended colours. The steady-state colour tokens were unchanged by this follow-up. Dialogs now skip entrance animation when the device requests reduced motion; regular entrance motion is preserved. Accessibility checks wait for the visible dialog content to reach opacity 1 and its settled transform before running the same Axe rules. The focused desktop/mobile accessibility checks passed **2/2** against the rebuilt production HTTPS/PostgreSQL app. Lint, TypeScript and production build also passed. The follow-up was reapplied to current main `d43382b`, preserving its subsequent performance and dependency updates: all **7** current unit tests, frozen install, lint, typecheck, formatting, production build and both focused desktop/mobile accessibility cases passed again.
+
 ## Boundaries
 
 No production deployment, production data migration, live email-code delivery or payment settlement was performed. Physical-device installation, haptics and native sharing remain device checks. Automated accessibility results cover the tested pages/states, not every possible interaction.
