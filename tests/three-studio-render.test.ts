@@ -17,3 +17,17 @@ test("decorative Varda WebGL studio pauses in background tabs and cleans up the 
     assert.ok(source.includes(expected), expected);
   }
 });
+
+
+test("Varda decorative garden caps mobile rendering quality and tears down its media listener", () => {
+  const source = readFileSync("components/ThreeGarden.tsx", "utf8");
+  for (const expected of [
+    '"(max-width: 760px), (pointer: coarse)"',
+    "qualityMedia.matches ? 1 : 1.5",
+    'qualityMedia.addEventListener("change", onQualityChange)',
+    'qualityMedia.removeEventListener("change", onQualityChange)',
+    'document.removeEventListener("visibilitychange", start)',
+  ]) {
+    assert.ok(source.includes(expected), expected);
+  }
+});
