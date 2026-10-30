@@ -86,6 +86,12 @@ test("home and preferences have no serious accessibility violations", async ({ p
     homeResults.violations.filter((item) => ["serious", "critical"].includes(item.impact || "")),
   ).toEqual([]);
   await page.getByRole("button", { name: "Open settings" }).click();
+  const settings = page.getByRole("dialog", { name: "Make it yours" });
+  await expect(settings).toBeVisible();
+  // Axe must inspect the final painted state, not text composited mid-entrance.
+  const content = settings.locator(".dialog-content");
+  await expect(content).toHaveCSS("opacity", "1");
+  await expect(content).toHaveCSS("transform", "none");
   const settingsResults = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
