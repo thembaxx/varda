@@ -1,11 +1,18 @@
 import { getMigrations } from "better-auth/db/migration";
 import { getAuth } from "../lib/auth";
 import { getDatabase } from "../lib/database";
+import { isPostgres, getPostgresPool, POSTGRES_APPLICATION_SCHEMA } from "../lib/postgres";
 import { RESERVATION_SCHEMA } from "../lib/reservations";
 
 async function main() {
   const { runMigrations } = await getMigrations(getAuth().options);
   await runMigrations();
+  if (isPostgres()) {
+    await getPostgresPool().query(POSTGRES_APPLICATION_SCHEMA);
+    await getPostgresPool().end();
+    console.log("Varda durable Postgres account, community and booking schema migrated.");
+    return;
+  }
   getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS community_post (
       id TEXT PRIMARY KEY, authorId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,

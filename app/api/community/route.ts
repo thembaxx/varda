@@ -1,5 +1,11 @@
 import { getAuth } from "@/lib/auth";
 import { getDatabase } from "@/lib/database";
+import { isPostgres } from "@/lib/postgres";
+import {
+  listCommunityPosts,
+  toggleCommunityLike,
+  createCommunityPost,
+} from "@/lib/community-postgres";
 import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
@@ -9,12 +15,14 @@ const headers = { "Cache-Control": "no-store" };
 export async function GET(request: Request) {
   try {
     const session = await getAuth().api.getSession({ headers: request.headers });
-    const posts = getDatabase()
-      .prepare(`SELECT p.id, p.title, p.message, p.category, p.createdAt, u.name,
+    const posts = isPostgres()
+      ? await listCommunityPosts(session?.user.id || "")
+      : getDatabase()
+          .prepare(`SELECT p.id, p.title, p.message, p.category, p.createdAt, u.name,
       (SELECT COUNT(*) FROM community_like l WHERE l.postId = p.id) AS likes,
       EXISTS(SELECT 1 FROM community_like l WHERE l.postId = p.id AND l.userId = ?) AS liked
       FROM community_post p JOIN user u ON u.id = p.authorId ORDER BY p.createdAt DESC LIMIT 60`)
-      .all(session?.user.id || "");
+          .all(session?.user.id || "");
     return Response.json({ posts }, { headers });
   } catch {
     return Response.json(
@@ -51,8 +59,14 @@ export async function POST(request: Request) {
     if (Number(request.headers.get("content-length") || 0) > 10_000)
       return Response.json({ message: "Your note is too long." }, { status: 413, headers });
     const body = await request.json();
-    const db = getDatabase();
     if (body.action === "like" && typeof body.id === "string") {
+      if (isPostgres()) {
+        const liked = await toggleCommunityLike(session.user.id, body.id);
+        return liked === null
+          ? Response.json({ message: "That note is no longer here." }, { status: 404, headers })
+          : Response.json({ liked }, { headers });
+      }
+      const db = getDatabase();
       const post = db.prepare("SELECT id FROM community_post WHERE id = ?").get(body.id);
       if (!post)
         return Response.json({ message: "That note is no longer here." }, { status: 404, headers });
@@ -89,6 +103,13 @@ export async function POST(request: Request) {
         { status: 400, headers },
       );
     }
+    if (isPostgres()) {
+      const id = await createCommunityPost(session.user.id, title, message, category);
+      return id
+        ? Response.json({ id }, { status: 201, headers })
+        : Response.json({ message: "Try posting again in a minute." }, { status: 429, headers });
+    }
+    const db = getDatabase();
     const recent = db
       .prepare("SELECT COUNT(*) AS count FROM community_post WHERE authorId = ? AND createdAt > ?")
       .get(session.user.id, Date.now() - 60_000) as { count: number };

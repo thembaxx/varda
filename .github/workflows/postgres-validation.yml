@@ -1,0 +1,71 @@
+name: Durable account database validation
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/postgres-validation.yml"
+      - "lib/postgres.ts"
+      - "lib/community-postgres.ts"
+      - "lib/reservations-postgres.ts"
+      - "lib/reservations.ts"
+      - "lib/auth.ts"
+      - "app/api/community/route.ts"
+      - "app/api/reservations/route.ts"
+      - "scripts/migrate-auth.ts"
+      - "types/pg.d.ts"
+      - "tests/postgres-integration.test.ts"
+      - "bun.lock"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-pass
+          POSTGRES_DB: varda_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d varda_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      VARDA_DATABASE_DRIVER: postgres
+      DATABASE_URL: postgresql://postgres:ci-only-pass@127.0.0.1:5432/varda_ci
+      BETTER_AUTH_SECRET: local-ci-only-secret-at-least-32-random-like-chars
+      BETTER_AUTH_URL: http://localhost:3000
+      APP_URL: http://localhost:3000
+      RUN_POSTGRES_TESTS: "true"
+      VARDA_EMAIL_OTP_ENABLED: "false"
+      NEXT_PUBLIC_VARDA_EMAIL_OTP_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: TypeScript
+        run: bun run typecheck
+      - name: Existing SQLite reservation tests
+        run: bun run test:db
+      - name: Email code delivery tests
+        run: bun run test:auth
+      - name: Migrate isolated PostgreSQL database
+        run: bun run db:migrate
+      - name: PostgreSQL integration tests
+        run: bun run test:postgres
+      - name: Production compilation
+        run: bun run build

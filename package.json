@@ -16,7 +16,10 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "test:unit": "node --import tsx --test tests/*.test.ts"
+    "test:unit": "node --import tsx --test tests/email-code.test.ts tests/reservations.test.ts",
+    "test:auth": "node --import tsx --test tests/email-code.test.ts",
+    "test:db": "node --import tsx --test tests/reservations.test.ts",
+    "test:postgres": "node --import tsx --test tests/postgres-integration.test.ts"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.10.0",
@@ -29,6 +32,7 @@
     "lucide-react": "^1.61.0",
     "motion": "^14.6.0",
     "next": "^16.4.3",
+    "pg": "8.23.1",
     "postcss": "^8.5.31",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
