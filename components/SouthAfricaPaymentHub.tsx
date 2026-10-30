@@ -799,7 +799,7 @@ export default function SouthAfricaPaymentHub({
                   type="button"
                   onClick={handleCompleteCheckout}
                   disabled={loadingSession || verifyingItn}
-                  className="flex-1 py-3.5 px-6 rounded-2xl bg-[#E6C465] hover:bg-[#f2d174] text-[#144239] font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg whitespace-nowrap shrink-0"
+                  className="flex-1 py-3.5 px-6 rounded-2xl bg-[#E6C465] hover:bg-[#f2d174] text-[#144239] font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg whitespace-normal min-w-0"
                 >
                   <Lock className="w-4 h-4" />
                   {verifyingItn

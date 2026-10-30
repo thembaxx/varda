@@ -69,7 +69,7 @@ test("mobile bottom navigation remains visible without horizontal page overflow"
   const nav = page.getByRole("navigation", { name: "Mobile Bottom Navigation" });
   await expect(nav).toBeVisible();
   await expect(nav.getByRole("button", { name: "Varda Quick Settle" })).toBeVisible();
-  for (const width of [320, 390, 768, 1024, 1440]) {
+  for (const width of [320, 390, 640, 768, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))

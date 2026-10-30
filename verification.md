@@ -1,25 +1,30 @@
-# Verification status
+# Verification — 30 October 2026
 
-The user explicitly requested: “Skip checks, just merge.” Remaining verification was stopped.
+The profile/tooling branch incorporates current main `70b0fd9`, including optional email-code sign-in and the shared PostgreSQL account/community/reservation backend. Existing reservation implementation and tests, Next.js/Motion versions, branding and production SQLite safeguards were preserved. Generated icon and service-worker build output is excluded from these source changes.
 
-Completed before that instruction:
+## Local proof
 
-- TypeScript and ESLint completed successfully during implementation.
-- Next.js production compilation succeeded. The complete production build was not confirmed.
-- The redesigned desktop home rendered in Chromium at 1440 × 1000, with no page errors and no horizontal overflow. Evidence: `/workspace/shared/varda/desktop-first-pass.png` (session artifact).
-- The local Better Auth and community database schema migrated successfully. The SQLite driver was exercised with a read query.
-- Service-worker and setup scripts passed JavaScript syntax validation.
-- Local secrets and the SQLite database are ignored by Git.
+Checked with Node.js 24.19.0, Bun 1.4.4 and system Chromium:
 
-Not completed:
+- Frozen Bun installation, Oxfmt format check, Oxlint and TypeScript passed. Oxlint retains 25 warnings; no lint errors were suppressed to pass the migration. The isolated export-handler purity exception documents an existing event-handler false positive.
+- All **5 unit tests** passed: email-code configuration/provider failure and SQLite reservation durability/validation.
+- Both **PostgreSQL integration tests** passed after explicit migration into a dedicated local test database, including ownership, idempotency, community writes and concurrent booking overlap protection.
+- The complete Next.js production build and offline asset manifest completed successfully.
 
-- Automated Playwright account/social, offline reload, responsive, install, and accessibility tests. The tests are included in `tests/` for follow-up.
-- Mobile and dark-theme visual QA.
-- Full production build completion and generated offline-asset manifest verification.
-- Physical-device vibration, installation, and background audio checks.
+## Browser proof
 
-Deployment requirements:
+The final targeted production runs use isolated PostgreSQL 18, a temporary loopback HTTPS certificate/proxy, and desktop (1440 × 1000) and mobile (390 × 844, touch) Chromium contexts. The production SQLite rejection and public-origin checks stay enabled. Tests clean up their own account records; no production database or provider credentials are used.
 
-- Run `npm run setup:local` for local development. Set a unique auth secret, public origin, and persistent database storage for deployment.
-- A serverless deployment needs a durable database adapter instead of local SQLite.
-- Payment handoffs are sandbox-only and require provider credentials. Live settlement and room reservation are deliberately disabled.
+All **10 affected scenarios passed across the final targeted runs**:
+
+- Registration, profile edit, authenticated community posting, wrong-origin rejection, unpaid booking/idempotency/cancellation, reload and sign-in on both profiles.
+- Unauthenticated community writes and unsigned settlement fail closed on both profiles.
+- Responsive navigation and page width at 320, 390, 640, 768, 1024, 1280 and 1440 pixels on both profiles.
+- Whole-home and Settings accessibility scans have no serious/critical violations on both profiles. A final two-case accessibility rerun passed after darkening Settings help text; accessibility rules were unchanged.
+- Installed public shell reloads offline, account controls explain the connection requirement, and caches exclude API/account/payment responses on both profiles.
+
+The other **10 unchanged scenarios** (home/settings access, persisted themes/accents, studio motion preference, offline-payment labels and system appearance) passed in the earlier full Chromium run before the latest-main integration. They were not redundantly rerun locally after the PostgreSQL merge. The CI workflow runs the full **20-case** suite with its own PostgreSQL service and HTTPS harness, alongside format/lint/type/unit/build gates.
+
+## Boundaries
+
+No production deployment, production data migration, live email-code delivery or payment settlement was performed. Physical-device installation, haptics and native sharing remain device checks. Automated accessibility results cover the tested pages/states, not every possible interaction.

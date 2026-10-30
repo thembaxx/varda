@@ -6,6 +6,24 @@ import { join } from "node:path";
 
 const port = Number(process.env.VARDA_TEST_PORT || 3215);
 const baseURL = `https://localhost:${port}`;
+const databaseURL = process.env.VARDA_TEST_DATABASE_URL;
+if (!databaseURL)
+  throw new Error(
+    "Set VARDA_TEST_DATABASE_URL to a dedicated loopback PostgreSQL database ending in _test.",
+  );
+const database = new URL(databaseURL);
+if (
+  !["localhost", "127.0.0.1", "[::1]"].includes(database.hostname) ||
+  !database.pathname.endsWith("_test")
+) {
+  throw new Error(
+    "Browser tests require a dedicated loopback PostgreSQL database ending in _test.",
+  );
+}
+process.env.VARDA_DATABASE_DRIVER = "postgres";
+process.env.DATABASE_URL = databaseURL;
+process.env.VARDA_EMAIL_OTP_ENABLED = "false";
+
 // Browser workers inherit the managed server's isolated account database.
 // Never reuse a developer database or an already-running server.
 if (!process.env.VARDA_E2E_DIR) {

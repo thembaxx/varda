@@ -168,7 +168,7 @@ export default function VardaHomePage() {
         </a>
 
         {/* Zone 2: Concise single-line text navigation links with font-mono indices */}
-        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-[#11362E]/80">
+        <nav className="hidden xl:flex items-center gap-7 text-sm font-medium text-[#11362E]/80">
           <a
             href="#studio"
             className="hover:text-[#144239] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5"
@@ -204,7 +204,7 @@ export default function VardaHomePage() {
           <button
             type="button"
             onClick={handleTopShare}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#144239]/20 hover:bg-[#144239]/5 text-[#144239] text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#144239]/20 hover:bg-[#144239]/5 text-[#144239] text-xs font-semibold transition-colors shrink-0 cursor-pointer"
             title="Share Varda"
           >
             <Share2 className="w-3.5 h-3.5" />
@@ -212,7 +212,7 @@ export default function VardaHomePage() {
           </button>
 
           <ThemeControls />
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <PWAInstallButton />
           </div>
 
@@ -221,7 +221,7 @@ export default function VardaHomePage() {
             onClick={() => triggerHaptic("selection")}
             className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold text-[#F4F3EC] bg-[#144239] rounded-xl hover:bg-[#1B574B] active:scale-95 transition-all whitespace-nowrap shrink-0 shadow-sm"
           >
-            <span className="hidden sm:inline">PayFast & Ozow </span>Checkout
+            <span className="hidden xl:inline">PayFast & Ozow </span>Checkout
           </a>
         </div>
       </header>

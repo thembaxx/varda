@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
-import Database from "better-sqlite3";
-import path from "node:path";
+import { Pool } from "pg";
 
 test("Better Auth registration, profile edits, authenticated community API and sign-in survive a reload", async ({
   page,
@@ -83,12 +82,11 @@ test("Better Auth registration, profile edits, authenticated community API and s
     await page.getByRole("button", { name: "Open your profile" }).click();
     await expect(page.getByText(email, { exact: true })).toBeVisible();
   } finally {
-    const db = new Database(path.resolve(process.env.AUTH_DATABASE_PATH || ".data/varda.sqlite"));
+    const pool = new Pool({ connectionString: process.env.VARDA_TEST_DATABASE_URL! });
     try {
-      db.pragma("foreign_keys = ON");
-      db.prepare("DELETE FROM user WHERE email = ?").run(email);
+      await pool.query('DELETE FROM "user" WHERE email = $1', [email]);
     } finally {
-      db.close();
+      await pool.end();
     }
   }
 });

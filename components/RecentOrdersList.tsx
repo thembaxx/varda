@@ -213,7 +213,7 @@ export default function RecentOrdersList({ onSelectOrder }: RecentOrdersListProp
 
       {/* Filter Bar & Offline Queue Auto-Reconciliation Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 bg-[#F4F3EC] p-1 rounded-xl border border-[#144239]/10">
+        <div className="flex flex-wrap items-center gap-1.5 bg-[#F4F3EC] p-1 rounded-xl border border-[#144239]/10">
           {(
             [
               { id: "all", label: "All Attempts", count: orders.length },
