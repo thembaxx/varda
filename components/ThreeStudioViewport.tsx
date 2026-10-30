@@ -743,7 +743,9 @@ export default function ThreeStudioViewport({
       powerPreference: lowPower ? "low-power" : "high-performance",
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(isHeadless ? 1 : Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 2));
+    renderer.setPixelRatio(
+      isHeadless ? 1 : Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 2),
+    );
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
