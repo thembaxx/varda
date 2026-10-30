@@ -11,6 +11,8 @@ test("decorative Varda WebGL studio pauses in background tabs and cleans up the 
     'powerPreference: lowPower ? "low-power" : "high-performance"',
     "renderer.shadowMap.enabled = !isHeadless && !lowPower",
     "lowPower ? 1 : 2",
+    'qualityMedia.addEventListener("change", refreshQuality)',
+    'qualityMedia.removeEventListener("change", refreshQuality)',
   ]) {
     assert.ok(source.includes(expected), expected);
   }
