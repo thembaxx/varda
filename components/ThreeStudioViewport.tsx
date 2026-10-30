@@ -1619,11 +1619,12 @@ export default function ThreeStudioViewport({
     // ========================================================================
     const clock = new THREE.Clock();
     let frameId = 0;
+    let viewportVisible = true;
     let shaderTime = 1.4; // Base visual seed so static/reduced-motion still renders rich shader patterns
 
     const animate = () => {
       frameId = 0;
-      if (document.hidden) return;
+      if (document.hidden || !viewportVisible) return;
       frameId = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
       const st = stateRef.current;
@@ -2052,7 +2053,7 @@ export default function ThreeStudioViewport({
     };
 
     const onVisibilityChange = () => {
-      if (document.hidden) {
+      if (document.hidden || !viewportVisible) {
         cancelAnimationFrame(frameId);
         frameId = 0;
       } else if (!frameId) {
@@ -2060,6 +2061,17 @@ export default function ThreeStudioViewport({
         frameId = requestAnimationFrame(animate);
       }
     };
+
+    // Stop simulating physics and shaders while the studio is scrolled offscreen.
+    // Intersection and tab visibility must both permit a resumed frame loop.
+    const viewportObserver = new IntersectionObserver(
+      ([entry]) => {
+        viewportVisible = entry.isIntersecting;
+        onVisibilityChange();
+      },
+      { threshold: 0.01 },
+    );
+    viewportObserver.observe(container);
 
     handleResize();
     qualityMedia.addEventListener("change", refreshQuality);
@@ -2076,6 +2088,7 @@ export default function ThreeStudioViewport({
     return () => {
       cancelAnimationFrame(frameId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      viewportObserver.disconnect();
       qualityMedia.removeEventListener("change", refreshQuality);
       resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
