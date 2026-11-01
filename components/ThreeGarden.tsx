@@ -46,7 +46,18 @@ export default function ThreeGarden() {
     group.rotation.z = -0.12;
     scene.add(group);
     const green = new THREE.MeshStandardMaterial({ color: "#29634d", roughness: 0.8 });
-    const yellow = new THREE.MeshStandardMaterial({ color: "#f5d969", roughness: 0.65 });
+    const yellow = new THREE.MeshPhysicalMaterial({
+      color: "#f5d969",
+      roughness: 0.59,
+      clearcoat: 0.38,
+      iridescence: 0.18,
+      iridescenceThicknessRange: [130, 220],
+    });
+    const innerPetal = new THREE.MeshPhysicalMaterial({
+      color: "#ffdb9e",
+      roughness: 0.64,
+      clearcoat: 0.28,
+    });
     const pollen = new THREE.MeshStandardMaterial({ color: "#aa582f", roughness: 0.9 });
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.07, 2.1, 12), green);
     stem.position.y = -0.7;
@@ -72,6 +83,15 @@ export default function ThreeGarden() {
       petal.rotation.z = -angle;
       bloom.add(petal);
       petals.push(petal);
+    }
+    // Smaller offset petals catch the key light and give the bloom a layered silhouette.
+    for (let index = 0; index < 6; index++) {
+      const angle = ((index + 0.5) / 6) * Math.PI * 2;
+      const petal = new THREE.Mesh(new THREE.SphereGeometry(0.29, 20, 12), innerPetal);
+      petal.scale.set(0.58, 1.25, 0.26);
+      petal.position.set(Math.sin(angle) * 0.29, Math.cos(angle) * 0.29, 0.09);
+      petal.rotation.z = -angle;
+      bloom.add(petal);
     }
     const center = new THREE.Mesh(new THREE.SphereGeometry(0.27, 24, 20), pollen);
     center.scale.z = 0.45;
@@ -164,7 +184,7 @@ export default function ThreeGarden() {
       scene.traverse((node) => {
         if (node instanceof THREE.Mesh) node.geometry.dispose();
       });
-      [green, yellow, pollen].forEach((material) => material.dispose());
+      [green, yellow, innerPetal, pollen].forEach((material) => material.dispose());
       renderer.dispose();
       renderer.domElement.remove();
     };
