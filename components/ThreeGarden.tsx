@@ -46,7 +46,13 @@ export default function ThreeGarden() {
     group.rotation.z = -0.12;
     scene.add(group);
     const green = new THREE.MeshStandardMaterial({ color: "#29634d", roughness: 0.8 });
-    const yellow = new THREE.MeshStandardMaterial({ color: "#f5d969", roughness: 0.65 });
+    const yellow = new THREE.MeshPhysicalMaterial({
+      color: "#f5d969",
+      roughness: 0.49,
+      clearcoat: 0.28,
+      sheen: 0.35,
+      sheenColor: "#fff7da",
+    });
     const pollen = new THREE.MeshStandardMaterial({ color: "#aa582f", roughness: 0.9 });
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.07, 2.1, 12), green);
     stem.position.y = -0.7;
@@ -72,6 +78,11 @@ export default function ThreeGarden() {
       petal.rotation.z = -angle;
       bloom.add(petal);
       petals.push(petal);
+      const inner = new THREE.Mesh(new THREE.SphereGeometry(0.19, 16, 12), yellow);
+      inner.scale.set(0.64, 1.48, 0.26);
+      inner.position.set(Math.sin(angle) * 0.27, Math.cos(angle) * 0.27, 0.015);
+      inner.rotation.z = -angle;
+      bloom.add(inner);
     }
     const center = new THREE.Mesh(new THREE.SphereGeometry(0.27, 24, 20), pollen);
     center.scale.z = 0.45;
