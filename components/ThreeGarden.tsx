@@ -51,7 +51,8 @@ export default function ThreeGarden() {
       roughness: 0.59,
       clearcoat: 0.38,
       iridescence: 0.18,
-      iridescenceThicknessMinimum: 130, iridescenceThicknessMaximum: 220,
+      iridescenceThicknessMinimum: 130,
+      iridescenceThicknessMaximum: 220,
     });
     const innerPetal = new THREE.MeshPhysicalMaterial({
       color: "#ffdb9e",
