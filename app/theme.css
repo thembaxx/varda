@@ -84,14 +84,18 @@ html[data-theme="dark"] [class~="bg-[#144239]/12"],
 html[data-theme="dark"] [class~="bg-[#144239]/15"] {
   background-color: rgb(187 221 200 / 12%);
 }
-html[data-theme="dark"] [class~="hover:bg-[#DAD8C8]"]:hover,
-html[data-theme="dark"] [class~="hover:bg-[#EAE8DC]"]:hover,
-html[data-theme="dark"] [class~="hover:bg-[#F4F3EC]"]:hover {
-  background-color: #26483e;
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="dark"] [class~="hover:bg-[#DAD8C8]"]:hover,
+  html[data-theme="dark"] [class~="hover:bg-[#EAE8DC]"]:hover,
+  html[data-theme="dark"] [class~="hover:bg-[#F4F3EC]"]:hover {
+    background-color: #26483e;
+  }
 }
-html[data-theme="dark"] [class~="hover:text-[#144239]"]:hover,
-html[data-theme="dark"] [class~="hover:text-[#144239]/90"]:hover {
-  color: #fff7e5;
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="dark"] [class~="hover:text-[#144239]"]:hover,
+  html[data-theme="dark"] [class~="hover:text-[#144239]/90"]:hover {
+    color: #fff7e5;
+  }
 }
 /* Sunflower and bright green actions still need dark ink on their light fill. */
 html[data-theme="dark"]
@@ -141,8 +145,10 @@ html[data-theme="dark"] :is(input, select, textarea):focus-visible {
     transform 0.18s,
     border-color 0.18s;
 }
-.varda-theme-button:hover {
-  background: rgb(20 66 57 / 12%);
+@media (hover: hover) and (pointer: fine) {
+  .varda-theme-button:hover {
+    background: rgb(20 66 57 / 12%);
+  }
 }
 .varda-theme-button:active {
   transform: scale(0.95);
@@ -156,8 +162,10 @@ html[data-theme="dark"] .varda-theme-button {
   border-color: rgb(187 221 200 / 24%);
   color: #f4f3ec;
 }
-html[data-theme="dark"] .varda-theme-button:hover {
-  background: #285146;
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="dark"] .varda-theme-button:hover {
+    background: #285146;
+  }
 }
 @media (max-width: 380px) {
   .varda-theme-controls {
@@ -211,8 +219,10 @@ html[data-theme="dark"] .varda-theme-button:hover {
   border-radius: 10px;
   cursor: pointer;
 }
-.dialog-header .icon-button:hover {
-  background: rgb(20 66 57 / 10%);
+@media (hover: hover) and (pointer: fine) {
+  .dialog-header .icon-button:hover {
+    background: rgb(20 66 57 / 10%);
+  }
 }
 .dialog-intro {
   color: #516a5f;
@@ -324,8 +334,10 @@ html[data-theme="dark"] .varda-theme-button:hover {
   border-radius: 9px;
   cursor: pointer;
 }
-.text-button:hover {
-  background: rgb(20 66 57 / 10%);
+@media (hover: hover) and (pointer: fine) {
+  .text-button:hover {
+    background: rgb(20 66 57 / 10%);
+  }
 }
 .app-dialog button:focus-visible {
   outline: 2px solid #daa93e;
@@ -353,9 +365,11 @@ html[data-theme="dark"] .theme-options button[aria-pressed="true"] {
   background: #e6c465;
   color: #08231c;
 }
-html[data-theme="dark"] .dialog-header .icon-button:hover,
-html[data-theme="dark"] .text-button:hover {
-  background: rgb(187 221 200 / 12%);
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="dark"] .dialog-header .icon-button:hover,
+  html[data-theme="dark"] .text-button:hover {
+    background: rgb(187 221 200 / 12%);
+  }
 }
 html[data-theme="dark"] .switch {
   background: #647c6f;

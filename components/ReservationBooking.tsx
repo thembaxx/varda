@@ -14,7 +14,7 @@ type Room = {
 };
 type Availability = { date: string; rooms: Room[]; reservations: Reservation[] };
 const fieldClass =
-  "w-full rounded-lg border border-[#144239]/30 bg-white p-2 text-sm text-[#144239]";
+  "w-full rounded-lg border border-[#144239]/30 bg-white p-2 text-sm text-[#144239] [@media(pointer:coarse)]:text-[16px]";
 const buttonClass =
   "rounded-lg bg-[#144239] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50";
 const dateText = (at: number) => new Date(at + 7_200_000).toISOString().slice(0, 10);

@@ -645,7 +645,7 @@ export default function VardaCommunityBoard({ onTriggerCheckout }: VardaCommunit
                         onChange={(e) =>
                           setNewInquiryCat(e.target.value as CommunityInquiryCard["category"])
                         }
-                        className="bg-[#144239] text-white text-xs rounded-lg px-2 py-1 border border-white/15"
+                        className="bg-[#144239] text-white text-xs rounded-lg px-2 py-1 border border-white/15 [@media(pointer:coarse)]:text-[16px]"
                       >
                         <option value="Culture">Culture</option>
                         <option value="Food & Drinks">Food & Drinks</option>
@@ -658,14 +658,14 @@ export default function VardaCommunityBoard({ onTriggerCheckout }: VardaCommunit
                       placeholder="Event title (e.g., First Thursdays Gallery Walk)"
                       value={newInquiryTitle}
                       onChange={(e) => setNewInquiryTitle(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#144239] text-white text-xs border border-white/15 placeholder:text-[#C4C6AF]/50"
+                      className="w-full px-3 py-2 rounded-xl bg-[#144239] text-white text-xs border border-white/15 placeholder:text-[#C4C6AF]/50 [@media(pointer:coarse)]:text-[16px]"
                     />
                     <textarea
                       rows={2}
                       placeholder="Write your invite message to neighbours..."
                       value={newInquiryQuote}
                       onChange={(e) => setNewInquiryQuote(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#144239] text-white text-xs border border-white/15 placeholder:text-[#C4C6AF]/50"
+                      className="w-full px-3 py-2 rounded-xl bg-[#144239] text-white text-xs border border-white/15 placeholder:text-[#C4C6AF]/50 [@media(pointer:coarse)]:text-[16px]"
                     />
                     <button
                       type="submit"
