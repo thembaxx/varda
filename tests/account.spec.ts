@@ -1,6 +1,49 @@
 import { test, expect } from "@playwright/test";
 import { Pool } from "pg";
 
+test.describe("account draft", () => {
+  test.use({ serviceWorkers: "block" });
+  test("session revalidation preserves a sign-in draft", async ({ page }) => {
+    await page.route("**/api/auth/get-session", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: "null" }),
+    );
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open your profile" }).click();
+    const email = page.getByLabel("Email address", { exact: true });
+    const password = page.getByLabel("Password", { exact: true });
+    await email.fill("draft@example.test");
+    await password.fill("A-little-test-password-1987");
+
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/auth/get-session", async (route) => {
+      await pending;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+    });
+    // Better Auth revalidates when another tab broadcasts a session change.
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "better-auth.message",
+          newValue: JSON.stringify({ event: "session", data: { trigger: "signout" } }),
+        }),
+      );
+    });
+    try {
+      await expect(
+        page.getByRole("status").filter({ hasText: "Finding your profile" }),
+      ).toBeVisible();
+    } finally {
+      release();
+    }
+    await expect(email).toBeVisible();
+    await expect(email).toHaveValue("draft@example.test");
+    await expect(password).toHaveValue("A-little-test-password-1987");
+  });
+});
+
 test("Better Auth registration, profile edits, authenticated community API and sign-in survive a reload", async ({
   page,
 }) => {
