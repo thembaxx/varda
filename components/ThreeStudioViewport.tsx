@@ -2161,8 +2161,8 @@ export default function ThreeStudioViewport({
       {/* Top Viewport Header Bar: Responsive Mobile-First Header */}
       <div className="relative z-10 px-3.5 sm:px-5 py-3 sm:py-3.5 bg-[#0E2D26] border-b border-white/10 flex flex-col gap-2.5 sm:gap-3">
         {/* Top Row: Wordmark / Title + Status + Action Controls */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-x-3 gap-y-2.5">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 w-full sm:w-auto sm:flex-1">
             <span className="font-mono tabular-nums text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#19B86B]/20 text-[#4FFFB0] border border-[#19B86B]/30 shrink-0">
               {workspaceMode === "anatomy"
                 ? `${String(currentPartIndex + 1).padStart(2, "0")}/${String(currentAssembly.parts.length).padStart(2, "0")}`
@@ -2190,7 +2190,7 @@ export default function ThreeStudioViewport({
                   setIsolatePart((prev) => !prev);
                 }}
                 title="Toggle X-Ray Context Isolation (Wireframe unselected parts)"
-                className={`p-2 sm:px-2.5 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                className={`min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 justify-center p-2 sm:px-2.5 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                   isolatePart
                     ? "bg-[#4FFFB0] text-[#082019] border-[#4FFFB0] font-semibold"
                     : "bg-[#12382F] text-[#C4C6AF] border-white/15 hover:text-white"
