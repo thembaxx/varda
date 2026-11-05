@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 async function home(page: import("@playwright/test").Page) {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { level: 1, name: /Interactive.*3D.*micro-grid anatomy/ }),
+    page.getByRole("heading", { level: 1, name: /Explore energy hardware in 3D\./ }),
   ).toBeVisible();
 }
 
@@ -120,7 +120,7 @@ test("installed public shell reloads offline without caching account or payment 
   await context.setOffline(true);
   await page.reload();
   await expect(
-    page.getByRole("heading", { level: 1, name: /Interactive.*3D.*micro-grid anatomy/ }),
+    page.getByRole("heading", { level: 1, name: /Explore energy hardware in 3D\./ }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Open your profile" }).click();
   await expect(page.getByText("Reconnect to sign in or update your account.")).toBeVisible();
