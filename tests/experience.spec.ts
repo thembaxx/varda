@@ -179,7 +179,6 @@ test("3D studio mobile controls stay within the viewport and meet touch sizes", 
   }
 });
 
-
 test("inspector remains usable across compact and desktop viewports", async ({ page }) => {
   await home(page);
   const studio = page.locator("#studio");
