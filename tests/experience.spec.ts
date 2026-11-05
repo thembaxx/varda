@@ -136,3 +136,46 @@ test("installed public shell reloads offline without caching account or payment 
   expect(cachedPaths.some((path) => path.startsWith("/api/"))).toBe(false);
   await context.setOffline(false);
 });
+
+
+test("3D studio mobile controls stay within the viewport and meet touch sizes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const studio = page.locator("#studio");
+  await expect(studio).toBeVisible();
+
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await studio.scrollIntoViewIfNeeded();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+      .toBe(true);
+
+    if (width <= 390) {
+      const buttons = [
+        studio.getByRole("button", { name: "Toggle tactile audio" }),
+        studio.getByRole("button", { name: "Toggle Fullscreen 3D View" }),
+        studio.getByRole("button", { name: "Toggle Component Inspector" }),
+        studio.getByRole("button", { name: "Previous anatomy part" }),
+        studio.getByRole("button", { name: "Next anatomy part" }),
+        studio.getByRole("button", { name: "Explode", exact: true }),
+        studio.getByRole("button", { name: "Specs", exact: true }),
+      ];
+      for (const button of buttons) {
+        await expect(button).toBeVisible();
+        const bounds = await button.boundingBox();
+        expect(bounds, "the touch control must have a real layout box").not.toBeNull();
+        expect(bounds!.width).toBeGreaterThanOrEqual(44);
+        expect(bounds!.height).toBeGreaterThanOrEqual(44);
+        expect(bounds!.x).toBeGreaterThanOrEqual(-1);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1);
+      }
+    }
+
+    await test.info().attach(\`studio-\${width}px.png\`, {
+      body: await studio.screenshot({ animations: "disabled" }),
+      contentType: "image/png",
+    });
+  }
+});
