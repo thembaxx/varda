@@ -252,7 +252,6 @@ export default function VardaHomePage() {
                   3D STUDIO
                 </span>
                 <span>South Africa</span>
-                
               </div>
 
               <h1
