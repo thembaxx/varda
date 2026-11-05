@@ -45,8 +45,19 @@ jobs:
       - run: bun run typecheck
       - run: bun run test:unit
       - run: bun run build
-      - run: bunx playwright install --with-deps chromium
+      # Ubuntu GitHub runners ship the Chromium runtime libraries already.
+      # Avoid waiting on an external apt mirror just to install the browser.
+      - run: bunx playwright install chromium
       - run: bun run test:e2e
+      - name: Preserve genuine responsive studio and inspector screenshots
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: varda-studio-visual-qa
+          path: |
+            test-results/studio-qa/*.png
+          if-no-files-found: warn
+          retention-days: 7
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
