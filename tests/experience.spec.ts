@@ -137,7 +137,6 @@ test("installed public shell reloads offline without caching account or payment 
   await context.setOffline(false);
 });
 
-
 test("3D studio mobile controls stay within the viewport and meet touch sizes", async ({
   page,
 }) => {
@@ -165,15 +164,15 @@ test("3D studio mobile controls stay within the viewport and meet touch sizes", 
       for (const button of buttons) {
         await expect(button).toBeVisible();
         const bounds = await button.boundingBox();
-        expect(bounds, "the touch control must have a real layout box").not.toBeNull();
-        expect(bounds!.width).toBeGreaterThanOrEqual(44);
-        expect(bounds!.height).toBeGreaterThanOrEqual(44);
-        expect(bounds!.x).toBeGreaterThanOrEqual(-1);
-        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1);
+        if (!bounds) throw new Error("The touch control has no layout box");
+        expect(bounds.width).toBeGreaterThanOrEqual(44);
+        expect(bounds.height).toBeGreaterThanOrEqual(44);
+        expect(bounds.x).toBeGreaterThanOrEqual(-1);
+        expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1);
       }
     }
 
-    await test.info().attach(\`studio-\${width}px.png\`, {
+    await test.info().attach(`studio-${width}px.png`, {
       body: await studio.screenshot({ animations: "disabled" }),
       contentType: "image/png",
     });
