@@ -269,8 +269,8 @@ export default function VardaHomePage() {
               className="lg:col-span-4 space-y-4"
             >
               <p className="text-sm sm:text-base text-[#11362E]/80 leading-relaxed">
-                Inspect solar and hydro components, experiment with the 3D studio, and explore
-                local energy tools.
+                Inspect solar and hydro components, experiment with the 3D studio, and explore local
+                energy tools.
               </p>
 
               {/* Workspace Quick Toggles for South African Low-Bandwidth & Offline Mode */}
