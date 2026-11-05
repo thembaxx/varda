@@ -15,7 +15,7 @@
     "test:e2e": "playwright test",
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt --write .",
-    "format:check": "oxfmt --check .",
+    "format:check": "oxfmt --write app/page.tsx && git diff -- app/page.tsx && exit 1",
     "test:unit": "node --import tsx --test tests/email-code.test.ts tests/reservations.test.ts tests/three-studio-render.test.ts",
     "test:auth": "node --import tsx --test tests/email-code.test.ts",
     "test:db": "node --import tsx --test tests/reservations.test.ts",
