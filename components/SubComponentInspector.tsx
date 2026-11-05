@@ -170,7 +170,13 @@ export default function SubComponentInspector({
       <div
         role="dialog"
         aria-labelledby="inspector-title"
-        className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] rounded-t-3xl border-t border-white/20 sm:rounded-none sm:border-t-0 sm:border-l sm:absolute sm:inset-y-0 sm:right-0 sm:z-30 w-full sm:w-[410px] md:w-[450px] max-w-full bg-[#081F1A]/95 sm:bg-[#081F1A]/95 backdrop-blur-xl flex flex-col shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom sm:slide-in-from-right"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.stopPropagation();
+            onClose();
+          }
+        }}
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] rounded-t-3xl border-t border-white/20 sm:rounded-none sm:border-t-0 sm:border-l sm:absolute sm:inset-y-0 sm:right-0 sm:z-30 w-full sm:w-[410px] md:w-[450px] max-w-full bg-[#081F1A]/95 sm:bg-[#081F1A]/95 backdrop-blur-xl flex flex-col shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom sm:slide-in-from-right"
       >
         {/* Mobile Drag Indicator Handle */}
         <div className="sm:hidden flex justify-center pt-2.5 pb-1">
@@ -211,7 +217,8 @@ export default function SubComponentInspector({
                 onClose();
               }}
               aria-label="Close component inspector"
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-[#C4C6AF] hover:text-white transition-colors shrink-0"
+              autoFocus
+              className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/15 text-[#C4C6AF] hover:text-white transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4FFFB0]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -225,7 +232,8 @@ export default function SubComponentInspector({
                 triggerHaptic("light");
                 setActiveTab("energy");
               }}
-              className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+              aria-pressed={activeTab === "energy"}
+              className={`min-h-11 py-1.5 px-1 sm:px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 sm:gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4FFFB0] ${
                 activeTab === "energy"
                   ? "bg-[#19B86B] text-[#072018] font-semibold shadow-sm"
                   : "text-[#A1B8AD] hover:text-white"
@@ -241,7 +249,8 @@ export default function SubComponentInspector({
                 triggerHaptic("light");
                 setActiveTab("material");
               }}
-              className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+              aria-pressed={activeTab === "material"}
+              className={`min-h-11 py-1.5 px-1 sm:px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 sm:gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4FFFB0] ${
                 activeTab === "material"
                   ? "bg-[#19B86B] text-[#072018] font-semibold shadow-sm"
                   : "text-[#A1B8AD] hover:text-white"
@@ -257,7 +266,8 @@ export default function SubComponentInspector({
                 triggerHaptic("light");
                 setActiveTab("simulation");
               }}
-              className={`py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+              aria-pressed={activeTab === "simulation"}
+              className={`min-h-11 py-1.5 px-1 sm:px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 sm:gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4FFFB0] ${
                 activeTab === "simulation"
                   ? "bg-[#19B86B] text-[#072018] font-semibold shadow-sm"
                   : "text-[#A1B8AD] hover:text-white"
@@ -667,7 +677,7 @@ export default function SubComponentInspector({
                   triggerHaptic("medium");
                   onPulsePart();
                 }}
-                className="flex-1 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1B5246] text-[#E6C465] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/10 cursor-pointer"
+                className="flex-1 min-h-11 py-2 px-3 rounded-xl bg-[#143D34] hover:bg-[#1B5246] text-[#E6C465] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-white/10 cursor-pointer"
               >
                 <Activity className="w-3.5 h-3.5 text-[#19B86B]" />
                 <span>Pulse Spring</span>
@@ -681,7 +691,7 @@ export default function SubComponentInspector({
                   triggerHaptic("selection");
                   onSelectShader("thermal");
                 }}
-                className="flex-1 py-2 px-3 rounded-xl bg-[#3B1528] hover:bg-[#521D37] text-[#FDA4AF] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-[#F43F5E]/30 cursor-pointer"
+                className="flex-1 min-h-11 py-2 px-3 rounded-xl bg-[#3B1528] hover:bg-[#521D37] text-[#FDA4AF] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border border-[#F43F5E]/30 cursor-pointer"
               >
                 <Thermometer className="w-3.5 h-3.5 text-[#FB7185]" />
                 <span>FLIR Thermal</span>
@@ -694,7 +704,7 @@ export default function SubComponentInspector({
                 triggerHaptic("light");
                 onClose();
               }}
-              className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-[#C4C6AF] hover:text-white text-xs font-medium transition-colors cursor-pointer"
+              className="min-h-11 py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-[#C4C6AF] hover:text-white text-xs font-medium transition-colors cursor-pointer"
             >
               Done
             </button>
