@@ -249,21 +249,16 @@ export default function VardaHomePage() {
             >
               <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[#144239]/75">
                 <span className="font-mono tabular-nums font-bold px-2 py-0.5 rounded-md bg-[#144239]/10 text-[#144239]">
-                  01 · SPATIAL LAB
+                  3D STUDIO
                 </span>
-                <span>Woodstock, Cape Town & Maboneng, JHB</span>
-                <span aria-hidden="true">·</span>
-                <span className="font-mono tabular-nums font-semibold text-[#144239]">
-                  ZAR (R) Native
-                </span>
+                <span>South Africa</span>
               </div>
 
               <h1
                 className="font-serif text-3xl sm:text-5xl lg:text-[3.5rem] font-semibold text-[#11362E] tracking-tight leading-[1.12] sm:leading-[1.08]"
                 style={{ textWrap: "balance" }}
               >
-                Interactive <span className="font-mono tabular-nums">3D</span> micro-grid anatomy,
-                WebGL shaders & community living.
+                Explore energy hardware in 3D.
               </h1>
             </motion.div>
 
@@ -273,10 +268,9 @@ export default function VardaHomePage() {
               transition={{ duration: 0.25, delay: 0.05 }}
               className="lg:col-span-4 space-y-4"
             >
-              <p className="text-xs sm:text-base text-[#11362E]/80 leading-relaxed">
-                Inspect multi-part solar and hydro hardware with custom GLSL fire, water, and plasma
-                shaders, test real-time <span className="font-mono tabular-nums">3D</span> collision
-                physics, and settle via PayFast, Ozow Instant EFT, PayShap, or offline USSD.
+              <p className="text-sm sm:text-base text-[#11362E]/80 leading-relaxed">
+                Inspect solar and hydro components, experiment with the 3D studio, and explore local
+                energy tools.
               </p>
 
               {/* Workspace Quick Toggles for South African Low-Bandwidth & Offline Mode */}
@@ -368,7 +362,7 @@ export default function VardaHomePage() {
                 <p className="text-sm sm:text-base font-bold text-[#144239] font-mono tabular-nums">
                   {stat.value}
                 </p>
-                <p className="text-[10px] sm:text-[11px] text-[#144239]/75 leading-snug">
+                <p className="hidden sm:block text-xs text-[#144239]/75 leading-snug">
                   {stat.context}
                 </p>
               </div>
