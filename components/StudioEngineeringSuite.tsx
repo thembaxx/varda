@@ -539,11 +539,10 @@ export default function StudioEngineeringSuite({
                 <div className="space-y-0.5">
                   <h4 className="text-xs sm:text-sm font-semibold text-white flex items-center gap-1.5">
                     <Scissors className="w-4 h-4 text-[#4FFFB0]" />
-                    Real-Time WebGL Clip-Plane Cross-Section
+                    See inside the model
                   </h4>
                   <p className="text-[11px] text-[#C4C6AF]">
-                    Slice through the 3D geometry to inspect internal toroidal windings, LiFePO4
-                    cells, and hydro manifolds.
+                    Move the slider to reveal internal parts of the selected model.
                   </p>
                 </div>
                 <span className="font-mono tabular-nums text-xs font-bold px-2.5 py-1 rounded-lg bg-[#081C17] text-[#4FFFB0] border border-white/10">
@@ -625,11 +624,10 @@ export default function StudioEngineeringSuite({
                 <div className="space-y-0.5">
                   <h4 className="text-xs sm:text-sm font-semibold text-white flex items-center gap-1.5">
                     <Thermometer className="w-4 h-4 text-[#E6C465]" />
-                    FLIR Thermal Infrared (IR) Heatmap Shader
+                    Temperature view
                   </h4>
                   <p className="text-[11px] text-[#C4C6AF]">
-                    Maps real-time surface temperature gradients and isotherm contour lines across
-                    active 3D sub-components.
+                    Shows temperature differences across the selected model's surfaces.
                   </p>
                 </div>
 
