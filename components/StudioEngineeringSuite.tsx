@@ -627,7 +627,7 @@ export default function StudioEngineeringSuite({
                     Temperature view
                   </h4>
                   <p className="text-[11px] text-[#C4C6AF]">
-                    Shows temperature differences across the selected model's surfaces.
+                    Shows temperature differences across the selected model surfaces.
                   </p>
                 </div>
 
