@@ -178,3 +178,52 @@ test("3D studio mobile controls stay within the viewport and meet touch sizes", 
     });
   }
 });
+
+
+test("inspector remains usable across compact and desktop viewports", async ({ page }) => {
+  await home(page);
+  const studio = page.locator("#studio");
+
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await studio.scrollIntoViewIfNeeded();
+
+    const toggle = studio.getByRole("button", { name: "Toggle Component Inspector" });
+    await toggle.click();
+    const inspector = studio.getByRole("dialog");
+    await expect(inspector).toBeVisible();
+
+    const panel = await inspector.boundingBox();
+    if (!panel) throw new Error("The inspector must have a layout box");
+    expect(panel.x).toBeGreaterThanOrEqual(-1);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(width + 1);
+
+    const close = inspector.getByRole("button", { name: "Close component inspector" });
+    await expect(close).toBeFocused();
+    const closeBox = await close.boundingBox();
+    if (!closeBox) throw new Error("The inspector close control has no layout box");
+    expect(closeBox.width).toBeGreaterThanOrEqual(44);
+    expect(closeBox.height).toBeGreaterThanOrEqual(44);
+
+    const material = inspector.getByRole("button", { name: "Material", exact: true });
+    await material.click();
+    await expect(material).toHaveAttribute("aria-pressed", "true");
+    if (width <= 390) {
+      for (const tabName of ["Energy", "Material", "Simulation"]) {
+        const tab = inspector.getByRole("button", { name: tabName, exact: true });
+        const bounds = await tab.boundingBox();
+        if (!bounds) throw new Error("Inspector tab has no layout box");
+        expect(bounds.height).toBeGreaterThanOrEqual(44);
+      }
+    }
+
+    await test.info().attach("inspector-" + width + "px.png", {
+      body: await studio.screenshot({ animations: "disabled" }),
+      contentType: "image/png",
+    });
+
+    await page.keyboard.press("Escape");
+    await expect(inspector).toHaveCount(0);
+    await expect(toggle).toBeVisible();
+  }
+});
