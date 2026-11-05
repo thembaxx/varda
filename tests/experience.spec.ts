@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 async function home(page: import("@playwright/test").Page) {
   await page.goto("/");
@@ -172,8 +174,14 @@ test("3D studio mobile controls stay within the viewport and meet touch sizes", 
       }
     }
 
-    await test.info().attach(`studio-${width}px.png`, {
-      body: await studio.screenshot({ animations: "disabled" }),
+    const screenshot = await studio.screenshot({ animations: "disabled" });
+    await mkdir(join("test-results", "studio-qa"), { recursive: true });
+    await writeFile(
+      join("test-results", "studio-qa", `studio-${width}-${test.info().project.name}.png`),
+      screenshot,
+    );
+    await test.info().attach("studio-" + width + "px.png", {
+      body: screenshot,
       contentType: "image/png",
     });
   }
@@ -216,8 +224,14 @@ test("inspector remains usable across compact and desktop viewports", async ({ p
       }
     }
 
+    const screenshot = await studio.screenshot({ animations: "disabled" });
+    await mkdir(join("test-results", "studio-qa"), { recursive: true });
+    await writeFile(
+      join("test-results", "studio-qa", `inspector-${width}-${test.info().project.name}.png`),
+      screenshot,
+    );
     await test.info().attach("inspector-" + width + "px.png", {
-      body: await studio.screenshot({ animations: "disabled" }),
+      body: screenshot,
       contentType: "image/png",
     });
 
