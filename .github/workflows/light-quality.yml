@@ -45,7 +45,9 @@ jobs:
       - run: bun run typecheck
       - run: bun run test:unit
       - run: bun run build
-      - run: bunx playwright install --with-deps chromium
+      # Ubuntu GitHub runners ship the Chromium runtime libraries already.
+      # Avoid waiting on an external apt mirror just to install the browser.
+      - run: bunx playwright install chromium
       - run: bun run test:e2e
       - name: Preserve genuine responsive studio and inspector screenshots
         if: success()
