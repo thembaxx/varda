@@ -2208,7 +2208,7 @@ export default function ThreeStudioViewport({
                 setIsIsometric((prev) => !prev);
               }}
               title={isIsometric ? "Switch to Perspective 3D" : "Switch to Isometric Ortho"}
-              className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 justify-center p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                 isIsometric
                   ? "bg-[#E6C465] text-[#0B241E] border-[#E6C465] font-semibold"
                   : "bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]"
@@ -2227,7 +2227,7 @@ export default function ThreeStudioViewport({
                 }}
                 aria-label="Toggle Component Inspector"
                 title="Inspect Material & Energy Data"
-                className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                className={`min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 justify-center p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                   inspectorOpen
                     ? "bg-[#19B86B] text-[#082019] border-[#19B86B] font-semibold"
                     : "bg-[#12382F] text-[#F4F3EC] border-white/15 hover:bg-[#18493E]"
@@ -2246,7 +2246,7 @@ export default function ThreeStudioViewport({
               }}
               aria-label="Toggle tactile audio"
               title={soundEnabled ? "Mute 3D audio" : "Enable 3D audio"}
-              className="p-2 rounded-xl bg-[#12382F] text-[#C4C6AF] hover:text-white border border-white/10 cursor-pointer"
+              className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-2 rounded-xl bg-[#12382F] text-[#C4C6AF] hover:text-white border border-white/10 cursor-pointer"
             >
               {soundEnabled ? (
                 <Volume2 className="w-3.5 h-3.5" />
@@ -2263,7 +2263,7 @@ export default function ThreeStudioViewport({
               }}
               aria-label="Toggle Fullscreen 3D View"
               title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen 3D View"}
-              className={`p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 justify-center p-2 sm:px-3 sm:py-1.5 text-xs font-medium rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer ${
                 isFullscreen
                   ? "bg-[#E6C465] text-[#0B241E] border-[#E6C465] font-semibold"
                   : "bg-[#12382F] text-[#C4C6AF] hover:text-white border-white/10"
@@ -2389,7 +2389,7 @@ export default function ThreeStudioViewport({
                   type="button"
                   onClick={() => handleCyclePart(-1)}
                   aria-label="Previous anatomy part"
-                  className="p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
+                  className="min-h-11 min-w-11 inline-flex items-center justify-center p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -2401,7 +2401,7 @@ export default function ThreeStudioViewport({
                   type="button"
                   onClick={() => handleCyclePart(1)}
                   aria-label="Next anatomy part"
-                  className="p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
+                  className="min-h-11 min-w-11 inline-flex items-center justify-center p-1.5 rounded-lg bg-[#143D34] text-white active:scale-95 cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -2413,9 +2413,9 @@ export default function ThreeStudioViewport({
                   triggerHaptic("light");
                   setExplodeFactor((f) => (f > 0.45 ? 0 : 0.85));
                 }}
-                className="px-2.5 py-1.5 rounded-lg bg-[#143D34] text-[11px] font-mono tabular-nums font-semibold text-[#4FFFB0] active:scale-95 cursor-pointer"
+                className="min-h-11 px-2 py-1.5 rounded-lg bg-[#143D34] text-[11px] font-mono tabular-nums font-semibold text-[#4FFFB0] active:scale-95 cursor-pointer"
               >
-                {explodeFactor > 0.45 ? "Assemble 0%" : "Explode 85%"}
+                {explodeFactor > 0.45 ? "Assemble" : "Explode"}
               </button>
 
               <button
@@ -2424,7 +2424,7 @@ export default function ThreeStudioViewport({
                   triggerHaptic("light");
                   setInspectorOpen(true);
                 }}
-                className="px-3 py-1.5 rounded-lg bg-[#19B86B] text-[#082019] text-[11px] font-bold flex items-center gap-1 active:scale-95 shrink-0 cursor-pointer"
+                className="min-h-11 px-2 py-1.5 rounded-lg bg-[#19B86B] text-[#082019] text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 shrink-0 cursor-pointer"
               >
                 <Sliders className="w-3 h-3" />
                 <span>Specs</span>
@@ -2611,7 +2611,7 @@ export default function ThreeStudioViewport({
                           setSelectedPartId(asm.parts[0].id);
                           setActiveShader(asm.recommendedShader);
                         }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                        className={`min-h-11 sm:min-h-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer ${
                           selectedAssemblyId === asm.id
                             ? "bg-[#F4F3EC] text-[#0E2D26] font-bold shadow-xs"
                             : "bg-[#143D34] text-[#C4C6AF] hover:text-white"
